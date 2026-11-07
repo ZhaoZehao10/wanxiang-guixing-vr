@@ -246,7 +246,7 @@ if (failed) { console.error(`✗ ${failed} 个组合失败，未写回`); proces
 // ---------- 写回 puzzle.mjs ----------
 const src = fs.readFileSync(PUZZLE, 'utf8');
 const fmt = JSON.stringify(table, null, 1).replace(/"([xy])"/g, "'$1'").replace(/"/g, "'");
-const block = `// >>> CUT_TABLE_START（标定工具生成，勿手改）\nconst CUT_TABLE = ${fmt};\n// <<< CUT_TABLE_END`;
+const block = `// >>> CUT_TABLE_START（标定工具生成，勿手改）\nexport const CUT_TABLE = ${fmt};\n// <<< CUT_TABLE_END`;
 const re = /\/\/ >>> CUT_TABLE_START[\s\S]*?\/\/ <<< CUT_TABLE_END/;
 if (!re.test(src)) { console.error('✗ puzzle.mjs 中找不到 CUT_TABLE 标记区'); process.exit(1); }
 fs.writeFileSync(PUZZLE, src.replace(re, block), 'utf8');
