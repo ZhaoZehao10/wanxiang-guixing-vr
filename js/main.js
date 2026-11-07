@@ -8,6 +8,12 @@ import { VRButton } from '../vendor/VRButton.js';
 import { splitIntoPieces } from './puzzle.mjs';
 import { MODELS, PALETTES } from './models.mjs';
 import { sfx, music } from './sfx.mjs';
+import {
+  DIFFICULTY, DIFFICULTY_NAME, MODEL_KEYS, ACHIEVEMENTS,
+  levelKey, parTime, starsFor, summarize,
+  loadProgress, saveProgress, loadAchievements, saveAchievements,
+  recordResult, evaluateAchievements,
+} from './progress.mjs';
 
 // ---------------- 常量 ----------------
 
@@ -16,9 +22,6 @@ const SNAP_DIST = 0.30;        // 位置吸附距离（米）
 const SNAP_COS = 0.90;         // 旋转吸附余弦阈值（约 25°）
 const GRAB_REACH = 0.85;       // 手柄到碎片的抓取半径（米）
 const SLOPE_PIECES = 9;        // 散落碎片数上限（多于碎片数时随机会重复取用）
-
-const DIFFICULTY = [2, 3, 4, 6];                 // 可选块数（切割标定覆盖 2/3/4/6）
-const DIFFICULTY_NAME = { 2: '入门', 3: '进阶', 4: '挑战', 6: '大师' };
 
 // ---------------- 全局状态 ----------------
 
@@ -69,7 +72,10 @@ function initScene() {
   renderer.xr.enabled = true;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-  document.body.appendChild(VRButton.createButton(renderer));
+  // 给 VR 按钮设置 id，便于样式定位到右下角（避免遮挡菜单底部成就行）
+  const vrBtn = VRButton.createButton(renderer);
+  vrBtn.id = 'vr-button';
+  document.body.appendChild(vrBtn);
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0b1020);
@@ -364,36 +370,25 @@ function clearHint() {
   hint.until = 0;
 }
 
-// ---------------- 关卡进度与星级 ----------------
-// 8 模型 × 3 难度 = 24 关；成绩保存在 localStorage（头盔本地，无需网络）。
-const PROGRESS_KEY = 'pico3d.progress.v1';
-function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch (e) { return {}; }
+// ---------------- 关卡进度与星级（逻辑在 progress.mjs，可单测） ----------------
+
+// 进度读写都带上 localStorage；纯逻辑在 progress.mjs（无 DOM 依赖）
+function readProgress() { return loadProgress(localStorage); }
+function writeProgress(p) { saveProgress(localStorage, p); }
+function readAchievements() { return loadAchievements(localStorage); }
+function writeAchievements(list) { saveAchievements(localStorage, list); }
+
+// 通关结算：写入成绩 → 评估成就 → 返回星级/最佳/新解锁成就
+function commitResult(modelKey, n, secs, hints) {
+  const p = readProgress();
+  const r = recordResult(p, modelKey, n, secs, hints);
+  writeProgress(p);
+  const unlocked = readAchievements();
+  const newly = evaluateAchievements(p, unlocked);
+  if (newly.length) writeAchievements(unlocked.concat(newly));
+  return { ...r, newly };
 }
-function saveProgress(p) {
-  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) { /* 隐私模式等场景忽略 */ }
-}
-function levelKey(mk, n) { return mk + '|' + n; }
-function parTime(n) { return ({ 2: 90, 3: 160, 4: 260, 6: 380 })[n] || 120; }
-function starsFor(secs, n) {
-  const par = parTime(n);
-  if (secs <= par) return 3;
-  if (secs <= par * 1.6) return 2;
-  return 1;
-}
-function recordResult(mk, n, secs, hints) {
-  const p = loadProgress();
-  const k = levelKey(mk, n);
-  const cur = p[k] || { bestTime: 0, stars: 0, plays: 0, hints: 0 };
-  const stars = starsFor(secs, n);
-  cur.plays = (cur.plays || 0) + 1;
-  cur.stars = Math.max(cur.stars || 0, stars);
-  if (!cur.bestTime || secs < cur.bestTime) cur.bestTime = secs;
-  cur.hints = (cur.hints || 0) + (hints || 0);
-  p[k] = cur;
-  saveProgress(p);
-  return { stars, best: cur.bestTime, bestStars: cur.stars, plays: cur.plays };
-}
+
 
 // ---------------- 拼片构建 ----------------
 
@@ -712,12 +707,26 @@ function winGame() {
   const secs = Math.round((state.winTime - state.startTime) / 1000);
   $('win-time').textContent = `${Math.floor(secs / 60)}分${secs % 60}秒`;
   $('win-model').textContent = `${ghostName()} · ${state.pieces.length} 块`;
-  // 成绩入库（本地存储）
-  const rec = recordResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0);
+  // 成绩入库 + 成就评估（本地存储）
+  const res = commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0);
   const starsEl = $('win-stars');
-  if (starsEl) starsEl.textContent = '★'.repeat(rec.stars) + '☆'.repeat(3 - rec.stars);
+  if (starsEl) starsEl.textContent = '★'.repeat(res.stars) + '☆'.repeat(3 - res.stars);
   const bestEl = $('win-best');
-  if (bestEl) bestEl.textContent = `最佳记录 ${Math.floor(rec.best / 60)}分${rec.best % 60}秒 · 已玩 ${rec.plays} 次`;
+  if (bestEl) bestEl.textContent = `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`;
+  // 新解锁成就展示
+  const achEl = $('win-achieve');
+  if (achEl) {
+    if (res.newly.length) {
+      const names = res.newly.map((id) => {
+        const a = ACHIEVEMENTS.find((x) => x.id === id);
+        return a ? `${a.name}` : id;
+      });
+      achEl.textContent = `🏆 解锁成就：${names.join('、')}`;
+      achEl.style.display = 'block';
+    } else {
+      achEl.style.display = 'none';
+    }
+  }
   $('win').classList.remove('hidden');
   clearHint();
   sfx.win();
@@ -764,45 +773,64 @@ function startGame(modelKey, n) {
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
+  // 页脚"随机游走"链接只在封面显示；菜单内容较长，隐藏避免遮挡成就行
   const otherLink = $('other-game-link');
-  if (otherLink) otherLink.style.display = '';
+  if (otherLink) otherLink.style.display = 'none';
   const box = $('difficulty');
   box.innerHTML = '';
   const card = document.createElement('div');
   card.className = 'diff-card';
-  card.innerHTML = '<h2>选择模型与难度</h2><p class="sub" style="color:#8b96b8;font-size:13px;margin:6px 0 12px">先选模型，再选块数</p>';
+  const sum = summarize(readProgress());
+  const unlocked = readAchievements();
+  card.innerHTML = `<h2>选择模型与难度</h2>`
+    + `<p class="sub" style="color:#8b96b8;font-size:13px;margin:6px 0 10px">`
+    + `总进度 ${sum.done}/${sum.total} 关 · 星星 ${sum.stars}/${sum.maxStars} · 成就 ${unlocked.length}/${ACHIEVEMENTS.length}</p>`;
+
   const row1 = document.createElement('div');
   row1.className = 'diff-row';
   for (const [key, def] of Object.entries(MODELS)) {
     const b = document.createElement('button');
     b.className = 'diff-btn';
     b.innerHTML = `<b style="font-size:22px">${def.emoji}</b><span>${def.name}</span>`;
+    if (key === state.modelKey) b.style.borderColor = '#6cd0ff';
     b.onclick = () => {
       state.modelKey = key;
       [...row1.children].forEach((x) => (x.style.borderColor = ''));
       b.style.borderColor = '#6cd0ff';
+      refreshDiffRows(); // 难度按钮显示"当前模型"每关的星级与最佳时间
+      sfx.ui();
     };
     row1.appendChild(b);
   }
   card.appendChild(row1);
+
+  // 难度行：每档显示全模型通关数 + 当前模型的星级/最佳时间
   const row2 = document.createElement('div');
   row2.className = 'diff-row';
   row2.style.marginTop = '10px';
-  const prog = loadProgress();
-  const modelCount = Object.keys(MODELS).length;
+  const diffBtns = [];
+  const refreshDiffRows = () => {
+    const prog = readProgress();
+    for (const { b, n } of diffBtns) {
+      const done = MODEL_KEYS.filter((mk) => ((prog[levelKey(mk, n)] || {}).stars || 0) > 0).length;
+      const rec = prog[levelKey(state.modelKey, n)];
+      const recTxt = rec && rec.stars > 0
+        ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)} ${Math.floor(rec.bestTime / 60)}分${rec.bestTime % 60}秒`
+        : '未挑战';
+      b.innerHTML = `<b style="font-size:18px">${n} 块</b><span>${DIFFICULTY_NAME[n]}</span>`
+        + `<small style="display:block;color:#ffd24d;font-size:12px;margin-top:3px">⭐ ${done}/${MODEL_KEYS.length} 关</small>`
+        + `<small style="display:block;color:#9fb0d8;font-size:11px;margin-top:2px">${recTxt}</small>`;
+    }
+  };
   for (const n of DIFFICULTY) {
-    const done = Object.keys(MODELS).filter((mk) => {
-      const rec = prog[levelKey(mk, n)];
-      return rec && rec.stars > 0;
-    }).length;
     const b = document.createElement('button');
     b.className = 'diff-btn';
-    b.innerHTML = `<b style="font-size:18px">${n} 块</b><span>${DIFFICULTY_NAME[n]}</span>`
-      + `<small style="display:block;color:#ffd24d;font-size:12px;margin-top:3px">⭐ ${done}/${modelCount} 关</small>`;
     b.onclick = () => startGame(state.modelKey, n);
     row2.appendChild(b);
+    diffBtns.push({ b, n });
   }
   card.appendChild(row2);
+  refreshDiffRows();
 
   // 配色皮肤行
   const palLabel = document.createElement('p');
@@ -828,6 +856,26 @@ function showDifficulty() {
     row3.appendChild(b);
   }
   card.appendChild(row3);
+
+  // 成就栏（🔒 未解锁 / 🏆 已解锁，悬停看条件）
+  const achLabel = document.createElement('p');
+  achLabel.className = 'sub';
+  achLabel.style.cssText = 'color:#8b96b8;font-size:13px;margin:12px 0 4px';
+  achLabel.textContent = `成就 ${unlocked.length}/${ACHIEVEMENTS.length}`;
+  card.appendChild(achLabel);
+  const achRow = document.createElement('div');
+  achRow.className = 'diff-row';
+  achRow.style.cssText = 'gap:6px;font-size:12px';
+  for (const a of ACHIEVEMENTS) {
+    const got = unlocked.includes(a.id);
+    const s = document.createElement('span');
+    s.title = a.desc;
+    s.style.cssText = `padding:4px 8px;border-radius:8px;border:1px solid ${got ? 'rgba(255,210,77,.5)' : 'rgba(140,165,255,.18)'};`
+      + `color:${got ? '#ffd24d' : '#6b7699'};background:${got ? 'rgba(255,210,77,.10)' : 'transparent'}`;
+    s.textContent = `${got ? '🏆' : '🔒'} ${a.name}`;
+    achRow.appendChild(s);
+  }
+  card.appendChild(achRow);
 
   box.appendChild(card);
   box.classList.remove('hidden');
@@ -1193,7 +1241,11 @@ window.__pico3d = {
   state, trySnap, startGame, showDifficulty, toggleVrMenu, physics, slopeHeightAt, MODELS, fxList, THREE,
   // 新功能测试钩子
   triggerHint, clearHint, applyStickRotation, positionMenuInFront,
-  loadProgress, recordResult, starsFor, levelKey, onGrab, onRelease, onSqueeze,
+  onGrab, onRelease, onSqueeze,
+  // 进度/成就（读写走 localStorage；纯逻辑在 progress.mjs）
+  loadProgress: readProgress, recordResult: commitResult,
+  readAchievements, starsFor, levelKey, parTime, summarize,
+  ACHIEVEMENTS, DIFFICULTY, MODEL_KEYS, evaluateAchievements,
   applyQualityLevel, getQuality: () => ({ level: quality.level, auto: quality.auto, pixelRatio: renderer.getPixelRatio(), starfieldVisible: !!(starfield && starfield.visible) }),
   setQualityAuto: (on) => { quality.auto = !!on; },
   hasEnv: () => envReady,
