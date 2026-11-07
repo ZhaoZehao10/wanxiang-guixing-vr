@@ -113,7 +113,12 @@ node server.mjs
 | 胜利 | 全部碎片归位，虚影点亮，弹出星级与最佳记录 |
 
 **成长系统**：10 模型 × 2/3/4/6 块 = **40 关**，成绩（星级/最佳时间/游玩次数）
-保存在头盔本地（localStorage，无需联网）；难度菜单显示每档已通关数 ⭐ x/8。
+保存在头盔本地（localStorage，无需联网）。菜单显示总进度（关卡/星星/成就）、
+每档已通关数 ⭐ x/10，以及**当前选中模型每一档的星级与最佳时间**，方便挑未通关的关卡。
+
+**成就（7 个）**：初次拼合 / 入门全通 / 模型收藏家 / 独立思考（6 块不用提示）/
+极速拼手（6 块 300 秒内）/ 大师挑战（10 模型 6 块全通）/ 完美主义（同难度 10 个三星）。
+通关时在结算面板提示新解锁成就，菜单里 🔒/🏆 展示全部成就与解锁状态。
 
 难度：**2 块（入门）/ 3 块（进阶）/ 4 块（挑战）/ 6 块（大师）**，10 个模型任选：
 🚀 小火箭 · 🍄 蘑菇屋 · 💎 宝石星球 · 🏰 梦幻城堡 · 🐧 软萌企鹅 · 🎁 礼物盒子 · 🚗 迷你赛车 · 🎄 圣诞树 · 🐰 软萌小兔 · 🌍 蔚蓝地球。
@@ -135,7 +140,7 @@ public/
     js/graph.mjs      词图生成：主干保证可达 + 相对邻居图旁支（每局随机）
     js/audio.mjs      WebAudio 程序化音效（五声音阶步进旋律，零音频文件）
     js/main.mjs       Three.js r160 场景 / 射线走子 / 滑翔 / VR HUD 与结算面板
-  js/                 【拼图】models.mjs / puzzle.mjs / main.js / sfx.mjs
+  js/                 【拼图】models.mjs / puzzle.mjs / progress.mjs / main.js / sfx.mjs
   vendor/
     three.module.min.js, VRButton.js   本地化依赖（运行时零外网请求）
 cert/                 自签名 HTTPS 证书（SAN 含局域网 IP，10 年有效）
@@ -143,7 +148,8 @@ test/
   rw-e2e.mjs          【随机游走】21 项端到端（流程/连通性/彩蛋/结算/渲染）
   rw-offline-e2e.mjs  【随机游走】离线单文件版 file:// 端到端 + WebXR 接口探测
   rw-perf.mjs         【随机游走】6x CPU 限速性能实测（开局/帧率/重开）
-  run-tests.mjs       【拼图】切割引擎单元测试（水密性 + 体积守恒，200 项）
+  run-tests.mjs       【拼图】切割引擎单元测试（水密性 + 体积守恒，280 项）
+  progress-tests.mjs  【拼图】进度/星级/成就纯逻辑单元测试（31 项）
   fuzz-tests.mjs      【拼图】模糊测试（200 轮随机调用/噪声输入/双重水密校验）
   plane-fuzz.mjs      【拼图】随机平面压力测试（成功必须水密守恒）
   regression.mjs      【拼图】回归基线（40 组合结构指纹；--capture 重建）
@@ -294,6 +300,8 @@ android-sdk\platform-tools\adb.exe install -r "dist\3D拼图VR.apk"
 **测试覆盖**（全部模型自动纳入）：
 - `node test/run-tests.mjs`：10 模型 × 4 块数 × 每片水密/体积为正/守恒/幂等
   + 每模型原始体积 + 4 配色 × 10 模型的水密/守恒/变色校验 = **280 项**；
+- `node test/progress-tests.mjs`：星级阈值 / 成绩写入 / 7 个成就判定 / 存储往返 /
+  损坏数据回退 = **31 项**（纯逻辑，用内存 store 模拟 localStorage）；
 - `node test/plane-fuzz.mjs`：随机轴对齐平面压测（成功必须水密守恒，拒绝属预期保护）；
 - `node test/regression.mjs`：40 组结构指纹基线；
 - `node test/visual-regression.mjs`：3 个场景的帧缓冲感知哈希（32×18 网格平均色），
@@ -301,12 +309,12 @@ android-sdk\platform-tools\adb.exe install -r "dist\3D拼图VR.apk"
   导致哈希不可比）；另外校验 PMREM 环境贴图就绪，并在首次比对失败时自动重采样一次
   以排除软件渲染偶发抖动；`--capture` 更新基线；
 - `node test/e2e-comprehensive.mjs`：40 种组合建局 + 提示/摇杆/菜单跟随/抓取偏移/
-  画质分级/音乐开关/配色切换/物理/吸附/胜利/进度 = **56 项**端到端。
+  画质分级/音乐开关/配色切换/物理/吸附/胜利/进度/成就 = **58 项**端到端。
 
 **一键跑全部测试**：
 
 ```powershell
-node tools\test-all.mjs          # 10 套件串行，自动拉起/关闭 8443 服务器，约 90 秒
+node tools\test-all.mjs          # 11 套件串行，自动拉起/关闭 8443 服务器，约 110 秒
 node tools\test-all.mjs --fast   # 跳过随机平面压力与性能实测（约 45 秒）
 ```
 
