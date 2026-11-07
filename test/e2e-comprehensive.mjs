@@ -150,11 +150,34 @@ check('每日挑战一键开局（模型/块数与挑战一致）',
   dailyStart.mode === 'playing' && dailyStart.modelKey === dailyStart.expect.modelKey && dailyStart.n === dailyStart.expect.n,
   JSON.stringify(dailyStart));
 
+// 1.3) 8 块按模型可用性：火箭支持；圣诞树无解 → 菜单按钮禁用
+const supports = await evalJs(`(() => {
+  const p = window.__pico3d;
+  const rocket = p.supportedCounts('rocket');
+  const xmas = p.supportedCounts('xmas');
+  p.state.modelKey = 'xmas';
+  p.showDifficulty();
+  const btn8 = [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('8 块'));
+  const xmasDisabled = btn8 ? btn8.disabled : null;
+  p.state.modelKey = 'rocket';
+  p.showDifficulty();
+  const btn8b = [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('8 块'));
+  const rocketDisabled = btn8b ? btn8b.disabled : null;
+  return { rocket, xmas, xmasDisabled, rocketDisabled };
+})()`);
+check('8 块按模型可用：火箭支持、圣诞树禁用',
+  supports.rocket.includes(8) && !supports.xmas.includes(8)
+  && supports.xmasDisabled === true && supports.rocketDisabled === false, JSON.stringify(supports));
+
 // 2) 全部模型 × 2/3/4 块建局（模型清单由页面内 MODELS 决定）
 console.log('--- 全部模型组合建局 ---');
 const modelKeys = await evalJs('Object.keys(window.__pico3d.MODELS)');
+const cutTable = await evalJs('window.__pico3d.CUT_TABLE');
 const combos = [];
-for (const mk of modelKeys) for (const n of [2, 3, 4, 6]) combos.push([mk, n]);
+for (const mk of modelKeys) for (const n of [2, 3, 4, 6, 8]) {
+  if (!cutTable[mk] || !cutTable[mk][n]) continue; // 8 块可选档：部分模型无解
+  combos.push([mk, n]);
+}
 let shotsTaken = 0;
 for (const [mk, n] of combos) {
   const st = await evalJs(`(() => {
@@ -420,7 +443,7 @@ const menuProg = await evalJs(`(() => {
   window.__pico3d.showDifficulty();
   return [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent).filter((t) => t.includes('⭐'));
 })()`);
-check('难度菜单显示 ⭐ 关卡进度', menuProg.length === 4 && menuProg.every((t) => /⭐ \d+\/\d+ 关/.test(t)), JSON.stringify(menuProg));
+check('难度菜单显示 ⭐ 关卡进度', menuProg.length === 5 && menuProg.every((t) => /⭐ \d+\/\d+ 关/.test(t)), JSON.stringify(menuProg));
 
 // 7.3) 成就：首通解锁 first_win；胜利面板提示；菜单显示成就栏与每关记录
 const ach = await evalJs(`(() => {

@@ -3,7 +3,7 @@
 //   1. 每个模型 × 每种块数：全部拼片 watertight（有向边一一配对）
 //   2. 体积守恒：拼片有向体积之和 ≈ 原模型有向体积（封盖无遗漏/重叠）
 //   3. 拼片数量正确、三角形数 > 0、坐标有限
-import { splitIntoPieces, isWatertight, parseObj } from '../public/js/puzzle.mjs';
+import { splitIntoPieces, isWatertight, parseObj, CUT_TABLE } from '../public/js/puzzle.mjs';
 import { buildModel, MODELS as MODEL_DEFS } from '../public/js/models.mjs';
 
 function signedVolume(positions, indices) {
@@ -25,7 +25,7 @@ function check(name, cond, detail = '') {
 }
 
 const MODELS = Object.keys(MODEL_DEFS); // 覆盖全部模型（新增模型自动纳入）
-const COUNTS = [2, 3, 4, 6];
+const COUNTS = [2, 3, 4, 6, 8];
 
 for (const mk of MODELS) {
   console.log(`\n=== 模型 ${mk} ===`);
@@ -35,6 +35,7 @@ for (const mk of MODELS) {
   check(`原模型闭合体积为正 (${origV.toFixed(4)})`, origV > 0);
 
   for (const n of COUNTS) {
+    if (!CUT_TABLE[mk] || !CUT_TABLE[mk][n]) { console.log(`  --- 切成 ${n} 块：该模型不支持，跳过 ---`); continue; }
     console.log(`  --- 切成 ${n} 块 ---`);
     let result;
     try { result = splitIntoPieces(mk, n); } catch (e) {

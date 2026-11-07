@@ -2,7 +2,7 @@
 // 首次运行 capture 建基线；之后每次 check 与基线比对，输出漂移即报警。
 // 注意：几何精确值随算法演进而变化——基线漂移时人工确认"变化是否有意"，
 // 确认后用 --capture 重新建基线（与 capture 参数一致）。
-import { splitIntoPieces, isWatertight } from '../public/js/puzzle.mjs';
+import { splitIntoPieces, isWatertight, CUT_TABLE } from '../public/js/puzzle.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,8 +36,11 @@ const MODELS = Object.keys(MODEL_DEFS);
 const current = { capturedAt: new Date().toISOString(), combos: {} };
 let drift = [];
 
-const REG_COUNTS = [2, 3, 4, 6];
-for (const mk of MODELS) for (const n of REG_COUNTS) current.combos[`${mk}|${n}`] = fingerprint(mk, n);
+const REG_COUNTS = [2, 3, 4, 6, 8];
+for (const mk of MODELS) for (const n of REG_COUNTS) {
+  if (!CUT_TABLE[mk] || !CUT_TABLE[mk][n]) continue; // 8 块可选档缺失跳过
+  current.combos[`${mk}|${n}`] = fingerprint(mk, n);
+}
 
 if (capture || !fs.existsSync(BASELINE)) {
   fs.writeFileSync(BASELINE, JSON.stringify(current, null, 1));
