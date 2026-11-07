@@ -6,8 +6,8 @@
 //   - 关卡键 = `${modelKey}|${块数}`，共 10 模型 × 4 难度 = 40 关
 import { MODELS } from './models.mjs';
 
-export const DIFFICULTY = [2, 3, 4, 6];
-export const DIFFICULTY_NAME = { 2: '入门', 3: '进阶', 4: '挑战', 6: '大师' };
+export const DIFFICULTY = [2, 3, 4, 6, 8];
+export const DIFFICULTY_NAME = { 2: '入门', 3: '进阶', 4: '挑战', 6: '大师', 8: '极限' };
 export const MODEL_KEYS = Object.keys(MODELS);
 
 export const PROGRESS_KEY = 'pico3d.progress.v1';
@@ -16,7 +16,7 @@ export const ACHIEVE_KEY = 'pico3d.achievements.v1';
 export function levelKey(modelKey, n) { return modelKey + '|' + n; }
 
 // 三星线：2 块 90s / 3 块 160s / 4 块 260s / 6 块 380s；超过 1.6 倍降为 1 星
-export function parTime(n) { return ({ 2: 90, 3: 160, 4: 260, 6: 380 })[n] || 120; }
+export function parTime(n) { return ({ 2: 90, 3: 160, 4: 260, 6: 380, 8: 520 })[n] || 120; }
 export function starsFor(secs, n) {
   const par = parTime(n);
   if (secs <= par) return 3;
@@ -96,7 +96,7 @@ export function evaluateAchievements(progress, unlockedIds) {
 }
 
 // 统计概览（菜单展示用）
-export function summarize(progress) {
+export function summarize(progress, totalLevels = MODEL_KEYS.length * DIFFICULTY.length) {
   let done = 0, stars = 0, bestTotal = 0;
   for (const mk of MODEL_KEYS) {
     for (const n of DIFFICULTY) {
@@ -104,5 +104,5 @@ export function summarize(progress) {
       if (r && r.stars > 0) { done++; stars += r.stars; bestTotal += r.bestTime || 0; }
     }
   }
-  return { done, total: MODEL_KEYS.length * DIFFICULTY.length, stars, maxStars: MODEL_KEYS.length * DIFFICULTY.length * 3, bestTotal };
+  return { done, total: totalLevels, stars, maxStars: totalLevels * 3, bestTotal };
 }
