@@ -158,3 +158,7 @@ html, body {
 /* 设备自检面板：布局放 CSS（不要内联 display，否则覆盖 .hidden） */
 #selfcheck { display: flex; align-items: center; justify-content: center; }
 #selfcheck.hidden { display: none; }
+
+/* 致命错误/渲染中断覆盖层 */
+#fatal { display: flex; align-items: center; justify-content: center; }
+#fatal.hidden { display: none; }
