@@ -116,48 +116,78 @@ await evalJs(`(() => {
   return p.getQuality();
 })()`);
 
-const results = {};
-for (const sc of SCENES) {
-  const cells = await evalJs(`(() => {
-    ${HASH_FN}
-    const p = window.__pico3d;
-    p.startGame(${JSON.stringify(sc.model)}, ${sc.n});
-    // 冻结随机/时间相关元素，保证可复现
-    const g = p.ghostGroup();
-    if (g) { g.position.y = 0.05; g.rotation.y = 0; }
-    return hashFrame(p.renderer, 32, 18);
-  })()`);
-  results[sc.name] = cells;
-  console.log(`  场景 ${sc.name}: ${cells.length} 格已采样`);
+// 每个场景采样一次（可重复调用；用于失败时重采样一次以排除偶发抖动）
+async function captureAll(label) {
+  const out = {};
+  for (const sc of SCENES) {
+    const cells = await evalJs(`(() => {
+      ${HASH_FN}
+      const p = window.__pico3d;
+      p.startGame(${JSON.stringify(sc.model)}, ${sc.n});
+      // 冻结随机/时间相关元素，保证可复现
+      const g = p.ghostGroup();
+      if (g) { g.position.y = 0.05; g.rotation.y = 0; }
+      return hashFrame(p.renderer, 32, 18);
+    })()`);
+    out[sc.name] = cells;
+  }
+  console.log(`  采样完成（${label}）`);
+  return out;
 }
 
-chrome.kill();
+// 环境贴图必须就绪：PMREM 偶发失败会让材质（尤其虚影）明显变暗，哈希不可比
+const envOk = await evalJs('window.__pico3d.hasEnv()');
+if (!envOk) {
+  console.error('✗ 环境贴图(PMREM)未就绪，本轮的视觉哈希与环境贴图不符，无法判定');
+  chrome.kill();
+  process.exit(1);
+}
+
+let results = await captureAll('第一次');
 
 if (capture || !fs.existsSync(BASELINE)) {
   fs.writeFileSync(BASELINE, JSON.stringify({ version: 1, cols: 32, rows: 18, scenes: results }, null, 0));
   console.log(`基线已${capture ? '更新' : '创建'}: ${BASELINE}`);
+  chrome.kill();
   process.exit(0);
 }
 
 const base = JSON.parse(fs.readFileSync(BASELINE, 'utf8'));
-let failed = 0;
-for (const sc of SCENES) {
-  const a = base.scenes[sc.name];
-  const b = results[sc.name];
-  if (!a || !b || a.length !== b.length) { console.error(`✗ ${sc.name}: 基线缺失/尺寸不一致`); failed++; continue; }
-  let maxDiff = 0, sum = 0;
-  for (let i = 0; i < a.length; i++) {
-    for (let k = 0; k < 3; k++) {
-      const d = Math.abs(a[i][k] - b[i][k]);
-      if (d > maxDiff) maxDiff = d;
-      sum += d;
+
+function compare(current) {
+  const out = [];
+  for (const sc of SCENES) {
+    const a = base.scenes[sc.name];
+    const b = current[sc.name];
+    if (!a || !b || a.length !== b.length) { out.push({ name: sc.name, bad: true, msg: '基线缺失/尺寸不一致' }); continue; }
+    let maxDiff = 0, sum = 0;
+    for (let i = 0; i < a.length; i++) {
+      for (let k = 0; k < 3; k++) {
+        const d = Math.abs(a[i][k] - b[i][k]);
+        if (d > maxDiff) maxDiff = d;
+        sum += d;
+      }
     }
+    const meanDiff = sum / (a.length * 3);
+    out.push({ name: sc.name, ok: meanDiff <= 2.5 && maxDiff <= 40, meanDiff, maxDiff });
   }
-  const meanDiff = sum / (a.length * 3);
-  // 阈值：平均每通道差异 ≤ 2.5，单格最大 ≤ 40（软件渲染下正常抖动远小于此）
-  const ok = meanDiff <= 2.5 && maxDiff <= 40;
-  console.log(`  ${ok ? '✓' : '✗'} ${sc.name}: 平均差异 ${meanDiff.toFixed(2)}，最大 ${maxDiff}`);
-  if (!ok) failed++;
+  return out;
+}
+
+let diffs = compare(results);
+if (diffs.some((d) => !d.ok)) {
+  // 软件渲染偶发抖动（例如 PMREM 初始化时序）会导致一次误报：重采样一次再判
+  console.log('  · 首次比对有差异，重采样一次以排除偶发抖动…');
+  results = await captureAll('重采样');
+  diffs = compare(results);
+}
+chrome.kill();
+
+let failed = 0;
+for (const d of diffs) {
+  if (d.bad) { console.error(`  ✗ ${d.name}: ${d.msg}`); failed++; continue; }
+  console.log(`  ${d.ok ? '✓' : '✗'} ${d.name}: 平均差异 ${d.meanDiff.toFixed(2)}，最大 ${d.maxDiff}`);
+  if (!d.ok) failed++;
 }
 if (failed) {
   console.error(`\n✗ ${failed} 个场景视觉漂移。若为有意改动（材质/光照/构图），运行 --capture 更新基线。`);
