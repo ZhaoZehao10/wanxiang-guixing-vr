@@ -713,15 +713,16 @@ function winGame() {
   if (starsEl) starsEl.textContent = '★'.repeat(res.stars) + '☆'.repeat(3 - res.stars);
   const bestEl = $('win-best');
   if (bestEl) bestEl.textContent = `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`;
-  // 新解锁成就展示
+  // 新解锁成就展示（2D 结算面板 + VR 内浮窗提示）
   const achEl = $('win-achieve');
+  const newNames = res.newly.map((id) => {
+    const a = ACHIEVEMENTS.find((x) => x.id === id);
+    return a ? a.name : id;
+  });
+  if (newNames.length) showVrToast(`🏆 解锁成就：${newNames.join('、')}`);
   if (achEl) {
-    if (res.newly.length) {
-      const names = res.newly.map((id) => {
-        const a = ACHIEVEMENTS.find((x) => x.id === id);
-        return a ? `${a.name}` : id;
-      });
-      achEl.textContent = `🏆 解锁成就：${names.join('、')}`;
+    if (newNames.length) {
+      achEl.textContent = `🏆 解锁成就：${newNames.join('、')}`;
       achEl.style.display = 'block';
     } else {
       achEl.style.display = 'none';
@@ -892,12 +893,12 @@ function buildVrMenu() {
   const BG_W = 1.16, BG_H = 1.02;
   const bg = new THREE.Mesh(
     new THREE.BoxGeometry(BG_W, BG_H, 0.02),
-    new THREE.MeshStandardMaterial({ color: 0x141b33, roughness: 0.7, transparent: true, opacity: 0.92 })
+    new THREE.MeshStandardMaterial({ color: 0x141b33, roughness: 0.7, transparent: true, opacity: 0.96 })
   );
   g.add(bg);
 
   const title = makeTextSprite('选择模型与难度', { size: 56, color: '#dfe7ff' });
-  title.scale.set(0.86, 0.12, 1);
+  fitSprite(title, 0.92, 0.13);
   title.position.set(0, 0.425, 0.02);
   g.add(title);
 
@@ -931,15 +932,16 @@ function buildVrMenu() {
     vrMenu.buttons.push(b);
   });
 
-  // 底部一行：开始 / 提示 / 配色 / 音乐
+  // 底部一行：开始 / 提示 / 配色 / 音乐 / 进度（5 个窄按钮，等距排布）
   const bottomY = -0.31;
-  const bottomX = (i) => (i - 1.5) * 0.275;
+  const BOTTOM_W = 0.20;
+  const bottomX = (i) => (i - 2) * 0.215;
 
   const start = makeVrButton('开始', () => {
     sfx.ui();
     startGame(state.modelKey, state.pieceCount);
     toggleVrMenu(false);
-  });
+  }, BOTTOM_W);
   start.position.set(bottomX(0), bottomY, 0.02);
   start.userData.action = 'start';
   g.add(start);
@@ -949,7 +951,7 @@ function buildVrMenu() {
     sfx.ui();
     triggerHint();
     refreshVrMenu();
-  });
+  }, BOTTOM_W);
   hintBtn.position.set(bottomX(1), bottomY, 0.02);
   hintBtn.userData.action = 'hint';
   g.add(hintBtn);
@@ -966,7 +968,7 @@ function buildVrMenu() {
       startGame(state.modelKey, state.pieceCount); // 立即以新配色重开
       toggleVrMenu(false);
     }
-  });
+  }, BOTTOM_W);
   paletteBtn.position.set(bottomX(2), bottomY, 0.02);
   paletteBtn.userData.action = 'palette';
   g.add(paletteBtn);
@@ -977,18 +979,133 @@ function buildVrMenu() {
     updateMusicButton();
     sfx.ui();
     if (on) music.start();
-  });
+  }, BOTTOM_W);
   musicBtn.position.set(bottomX(3), bottomY, 0.02);
   musicBtn.userData.action = 'music';
   g.add(musicBtn);
   vrMenu.buttons.push(musicBtn);
 
+  // 进度页入口（VR 内查看关卡星级与成就）
+  const progressBtn = makeVrButton('进度', () => {
+    sfx.ui();
+    showVrPage('progress');
+  }, BOTTOM_W);
+  progressBtn.position.set(bottomX(4), bottomY, 0.02);
+  progressBtn.userData.action = 'progress';
+  g.add(progressBtn);
+  vrMenu.buttons.push(progressBtn);
+
+  // 进度页（默认隐藏；与主页面互斥显示）
+  const progressPage = new THREE.Group();
+  progressPage.visible = false;
+  g.add(progressPage);
+  vrMenu.progressPage = progressPage;
+
+  // VR 面板整体缩小 0.42 倍：1.16m 宽面板放在 0.7m 处视场占比过大（约 80°），
+  // 缩小后约 38°，接近 VR 菜单的舒适视角
+  g.scale.setScalar(0.42);
   vrMenu.group = g;
   g.visible = false;
   scene.add(g); // 场景级：位置每次打开时按玩家头部姿态计算
 }
 
-// 把菜单摆到玩家视线前方（水平方向），打开时立即定位，打开期间平滑跟随
+// 主页面 ⇄ 进度页
+function showVrPage(pageName) {
+  const g = vrMenu.group;
+  if (!g || !vrMenu.progressPage) return;
+  vrMenu.page = pageName;
+  if (pageName === 'progress') refreshVrProgress();
+  for (const c of g.children) {
+    c.visible = pageName === 'progress' ? c === vrMenu.progressPage : c !== vrMenu.progressPage;
+  }
+}
+
+// 重建进度页内容（每次打开都刷新，保证数值是最新的）
+function refreshVrProgress() {
+  const page = vrMenu.progressPage;
+  if (!page) return;
+  for (let i = page.children.length - 1; i >= 0; i--) {
+    const c = page.children[i];
+    page.remove(c);
+    if (c.geometry) c.geometry.dispose();
+    if (c.material) {
+      if (c.material.map) c.material.map.dispose();
+      c.material.dispose();
+    }
+  }
+  const lines = [];
+  const bg = new THREE.Mesh(
+    new THREE.BoxGeometry(1.16, 1.32, 0.02),
+    new THREE.MeshStandardMaterial({ color: 0x141b33, roughness: 0.7, transparent: true, opacity: 0.97 })
+  );
+  page.add(bg);
+  const addText = (text, y, opts = {}) => {
+    const sp = makeTextSprite(text, { size: opts.size || 44, color: opts.color || '#dfe7ff' });
+    fitSprite(sp, opts.w || 0.95, opts.h || 0.085);
+    sp.position.set(opts.x || 0, y, 0.02);
+    page.add(sp);
+    lines.push(text);
+  };
+
+  const prog = readProgress();
+  const sum = summarize(prog);
+  const unlocked = readAchievements();
+  addText('进度总览', 0.56, { size: 56, w: 0.66, h: 0.10 });
+  addText(`关卡 ${sum.done}/${sum.total} · 星星 ${sum.stars}/${sum.maxStars}`, 0.43, { color: '#9fd8ff' });
+  addText(`成就 ${unlocked.length}/${ACHIEVEMENTS.length}`, 0.34, { color: '#ffd24d' });
+  const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
+  addText(`${def.emoji} ${def.name}`, 0.23, { size: 48 });
+  DIFFICULTY.forEach((n, i) => {
+    const rec = prog[levelKey(state.modelKey, n)];
+    const has = rec && rec.stars > 0;
+    const txt = has
+      ? `${n} 块 ${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}  ${Math.floor(rec.bestTime / 60)}:${String(rec.bestTime % 60).padStart(2, '0')}`
+      : `${n} 块 未挑战`;
+    addText(txt, 0.12 - i * 0.085, { size: 34, color: has ? '#dfe7ff' : '#7c88a8', w: 0.60, h: 0.055 });
+  });
+  ACHIEVEMENTS.forEach((a, i) => {
+    const col = i % 2, row = Math.floor(i / 2);
+    const got = unlocked.includes(a.id);
+    addText(`${got ? '🏆' : '🔒'} ${a.name}`, -0.27 - row * 0.082, {
+      size: 28, color: got ? '#ffd24d' : '#6b7699', x: col ? 0.24 : -0.24, w: 0.40, h: 0.048,
+    });
+  });
+  const back = makeVrButton('返回', () => { sfx.ui(); showVrPage('main'); }, 0.22);
+  back.position.set(0, -0.6, 0.02);
+  page.add(back);
+  vrMenu.progressLines = lines;
+}
+
+// ---------------- VR 内浮窗提示（成就解锁等） ----------------
+const vrToast = { sprite: null, until: 0, text: '' };
+function clearVrToast() {
+  if (vrToast.sprite) {
+    scene.remove(vrToast.sprite);
+    if (vrToast.sprite.material.map) vrToast.sprite.material.map.dispose();
+    vrToast.sprite.material.dispose();
+    vrToast.sprite = null;
+  }
+  vrToast.until = 0;
+  vrToast.text = '';
+}
+function showVrToast(text, seconds = 3.2) {
+  clearVrToast();
+  const sp = makeTextSprite(text, { size: 44, color: '#ffd24d' });
+  fitSprite(sp, 0.80, 0.09);
+  const cam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
+  const cp = new THREE.Vector3(); cam.getWorldPosition(cp);
+  const cq = new THREE.Quaternion(); cam.getWorldQuaternion(cq);
+  const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(cq);
+  sp.position.copy(cp).addScaledVector(fwd, 0.75);
+  sp.position.y -= 0.06;
+  scene.add(sp);
+  vrToast.sprite = sp;
+  vrToast.text = text;
+  vrToast.until = performance.now() + seconds * 1000;
+}
+
+// 把菜单摆到玩家视线前方：沿视线方向 0.7m，俯仰限幅 [-0.5, -0.05]——
+// 往下看桌子时不会把菜单沉到桌面，平视时略低于视线，始终在视野内。
 function positionMenuInFront(snap = false) {
   if (!vrMenu.group) return;
   const cam = renderer.xr.isPresenting ? renderer.xr.getCamera() : camera;
@@ -997,28 +1114,26 @@ function positionMenuInFront(snap = false) {
   const cq = new THREE.Quaternion();
   cam.getWorldQuaternion(cq);
   const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cq);
-  dir.y = 0;
-  if (dir.lengthSq() < 1e-4) dir.set(0, 0, -1);
+  dir.y = Math.max(-0.5, Math.min(-0.05, dir.y));
   dir.normalize();
-  const target = cp.clone().addScaledVector(dir, 0.82);
-  target.y = cp.y - 0.10;
+  const target = cp.clone().addScaledVector(dir, 0.70);
   if (snap) {
     vrMenu.group.position.copy(target);
   } else {
     vrMenu.group.position.lerp(target, 0.18);
   }
-  vrMenu.group.lookAt(cp.x, cp.y - 0.10, cp.z);
+  vrMenu.group.lookAt(cp.x, cp.y, cp.z); // 面板始终正对玩家
 }
 
-function makeVrButton(label, onClick) {
+function makeVrButton(label, onClick, width = 0.26) {
   const b = new THREE.Group();
   const pad = new THREE.Mesh(
-    new THREE.BoxGeometry(0.26, 0.11, 0.012),
+    new THREE.BoxGeometry(width, 0.11, 0.012),
     new THREE.MeshStandardMaterial({ color: 0x27335e, roughness: 0.5, emissive: 0x000000 })
   );
   b.add(pad);
   const txt = makeTextSprite(label, { size: 48, color: '#dfe7ff' });
-  txt.scale.set(0.22, 0.09, 1);
+  fitSprite(txt, Math.min(0.22, width * 0.86), 0.085);
   txt.position.z = 0.01;
   b.add(txt);
   b.userData.onClick = onClick;
@@ -1028,19 +1143,40 @@ function makeVrButton(label, onClick) {
 }
 
 // 用 canvas 画字 → Sprite（避免引入字体加载依赖）
+// Canvas 文字精灵：画布宽度按文字实测宽度动态生成，避免长文本被裁掉；
+// userData.aspect 供 fitSprite 做等比缩放（否则文字会被拉扁）。
 function makeTextSprite(text, { size = 48, color = '#ffffff' } = {}) {
+  const font = `${size}px "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`;
+  const probe = document.createElement('canvas').getContext('2d');
+  probe.font = font;
+  const textW = Math.ceil(probe.measureText(text).width);
+  const pad = Math.ceil(size * 0.35);
+  const w = Math.max(32, textW + pad * 2);
+  const h = Math.ceil(size * 1.5);
   const cv = document.createElement('canvas');
-  cv.width = 256; cv.height = 64;
+  cv.width = w;
+  cv.height = h;
   const c2d = cv.getContext('2d');
+  c2d.font = font;
   c2d.fillStyle = color;
-  c2d.font = `${size}px "Segoe UI", "PingFang SC", sans-serif`;
   c2d.textAlign = 'center';
   c2d.textBaseline = 'middle';
-  c2d.fillText(text, 128, 34);
+  c2d.fillText(text, w / 2, h / 2 + size * 0.04);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
   sp.renderOrder = 10;
+  sp.userData.aspect = w / h;
+  return sp;
+}
+
+// 等比缩放到给定最大宽/高（保持文字比例）
+function fitSprite(sp, maxW, maxH) {
+  const a = sp.userData.aspect || 4;
+  let w = maxW;
+  let h = w / a;
+  if (h > maxH) { h = maxH; w = h * a; }
+  sp.scale.set(w, h, 1);
   return sp;
 }
 
@@ -1057,6 +1193,7 @@ function toggleVrMenu(on) {
   vrMenu.enabled = on;
   if (vrMenu.group) vrMenu.group.visible = on;
   if (on) {
+    showVrPage('main'); // 每次打开先回主页面（进度页只是二级页）
     refreshVrMenu();
     positionMenuInFront(true); // 打开时立即摆到视线前方
   }
@@ -1148,6 +1285,13 @@ function animate() {
 
   // VR 菜单跟随（打开时平滑跟随头部）
   if (vrMenu.enabled) positionMenuInFront(false);
+
+  // VR 浮窗提示淡出
+  if (vrToast.sprite) {
+    const left = vrToast.until - nowMs;
+    if (left <= 0) clearVrToast();
+    else vrToast.sprite.material.opacity = Math.min(1, left / 600);
+  }
 
   // 计时器
   if (state.mode === 'playing') {
@@ -1249,6 +1393,7 @@ window.__pico3d = {
   applyQualityLevel, getQuality: () => ({ level: quality.level, auto: quality.auto, pixelRatio: renderer.getPixelRatio(), starfieldVisible: !!(starfield && starfield.visible) }),
   setQualityAuto: (on) => { quality.auto = !!on; },
   hasEnv: () => envReady,
+  getStarfield: () => starfield,
   music,
   // 配色皮肤（测试与外部控制用）
   PALETTES, getPalette: () => state.palette,
@@ -1256,5 +1401,10 @@ window.__pico3d = {
   // 视觉回归测试用：暴露渲染器与场景，便于在页面内对帧缓冲取哈希
   renderer, scene, camera, ghostGroup: () => ghostGroup, targetRig,
   getHintInfo: () => ({ active: !!hint.pillar, idx: hint.idx, until: hint.until }),
+  // VR 菜单分页 / 浮窗提示（测试用）
+  showVrPage, refreshVrProgress,
+  getVrPageInfo: () => ({ page: vrMenu.page || 'main', progressVisible: !!(vrMenu.progressPage && vrMenu.progressPage.visible), lines: vrMenu.progressLines || [] }),
+  getVrToast: () => ({ active: !!vrToast.sprite, text: vrToast.text }),
+  showVrToast,
   getMenuInfo: () => ({ enabled: vrMenu.enabled, pos: vrMenu.group ? vrMenu.group.position.toArray() : null }),
 };

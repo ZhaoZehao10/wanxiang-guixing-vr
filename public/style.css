@@ -32,7 +32,7 @@ html, body {
   transition: opacity 0.5s ease;
   padding: 16px;
 }
-#intro.hidden { opacity: 0; pointer-events: none; }
+#intro.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
 .intro-card {
   width: min(560px, 94vw);
@@ -81,7 +81,7 @@ html, body {
   background: rgba(8, 12, 26, 0.55);
   transition: opacity 0.4s ease;
 }
-#difficulty.hidden { opacity: 0; pointer-events: none; }
+#difficulty.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 .diff-card {
   width: min(620px, 92vw);
   max-height: 88vh; overflow-y: auto; /* 菜单内容较长时（成就栏）可滚动，避免被裁掉 */
@@ -126,7 +126,7 @@ html, body {
   background: rgba(6, 9, 20, 0.45);
   transition: opacity 0.6s ease;
 }
-#win.hidden { opacity: 0; pointer-events: none; }
+#win.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 .win-card {
   background: var(--panel); border: 1px solid rgba(109,255,168,.35);
   border-radius: 18px; padding: 34px 46px; text-align: center;
