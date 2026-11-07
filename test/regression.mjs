@@ -36,7 +36,8 @@ const MODELS = Object.keys(MODEL_DEFS);
 const current = { capturedAt: new Date().toISOString(), combos: {} };
 let drift = [];
 
-for (const mk of MODELS) for (const n of [2, 3, 4]) current.combos[`${mk}|${n}`] = fingerprint(mk, n);
+const REG_COUNTS = [2, 3, 4, 6];
+for (const mk of MODELS) for (const n of REG_COUNTS) current.combos[`${mk}|${n}`] = fingerprint(mk, n);
 
 if (capture || !fs.existsSync(BASELINE)) {
   fs.writeFileSync(BASELINE, JSON.stringify(current, null, 1));

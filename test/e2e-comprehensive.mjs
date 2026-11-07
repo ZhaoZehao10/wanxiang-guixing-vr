@@ -83,7 +83,7 @@ check('页面结构完整（canvas/hud/win/difficulty/测试钩子）',
 console.log('--- 全部模型组合建局 ---');
 const modelKeys = await evalJs('Object.keys(window.__pico3d.MODELS)');
 const combos = [];
-for (const mk of modelKeys) for (const n of [2, 3, 4]) combos.push([mk, n]);
+for (const mk of modelKeys) for (const n of [2, 3, 4, 6]) combos.push([mk, n]);
 let shotsTaken = 0;
 for (const [mk, n] of combos) {
   const st = await evalJs(`(() => {
@@ -255,7 +255,7 @@ const menuProg = await evalJs(`(() => {
   window.__pico3d.showDifficulty();
   return [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent).filter((t) => t.includes('⭐'));
 })()`);
-check('难度菜单显示 ⭐ 关卡进度', menuProg.length === 3 && menuProg.every((t) => /⭐ \d+\/\d+ 关/.test(t)), JSON.stringify(menuProg));
+check('难度菜单显示 ⭐ 关卡进度', menuProg.length === 4 && menuProg.every((t) => /⭐ \d+\/\d+ 关/.test(t)), JSON.stringify(menuProg));
 
 // 8) 重开（再来一局回到难度菜单 → 再开局）
 const replay = await evalJs(`(() => {

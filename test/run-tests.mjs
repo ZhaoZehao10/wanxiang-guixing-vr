@@ -25,7 +25,7 @@ function check(name, cond, detail = '') {
 }
 
 const MODELS = Object.keys(MODEL_DEFS); // 覆盖全部模型（新增模型自动纳入）
-const COUNTS = [2, 3, 4];
+const COUNTS = [2, 3, 4, 6];
 
 for (const mk of MODELS) {
   console.log(`\n=== 模型 ${mk} ===`);
