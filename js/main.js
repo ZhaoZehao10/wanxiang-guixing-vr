@@ -53,7 +53,7 @@ const GRAVITY = -4.5;     // 略弱于真实重力，碎片下落更"轻盈"可�
 const RESTITUTION = 0.25;
 const FRAME_DT = 1 / 72; // Pico Neo3 刷新率 72Hz；物理是视觉性的，用固定步长足够
 
-let renderer, scene, camera, ghostGroup;
+let renderer, scene, camera, ghostGroup, envReady = false;
 let targetRig = null; // 承载目标位姿的锚点（放在斜坡上方）
 
 // ---------------- DOM ----------------
@@ -99,6 +99,7 @@ function initScene() {
     envTex.colorSpace = THREE.SRGBColorSpace;
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromEquirectangular(envTex).texture;
+    envReady = true;
     pmrem.dispose();
     envTex.dispose();
   } catch (e) { /* 环境贴图失败不影响可玩性 */ }
@@ -862,7 +863,8 @@ function buildVrMenu() {
       sfx.ui();
     });
     const col = i % COLS, row = Math.floor(i / COLS);
-    b.position.set((col - (COLS - 1) / 2) * 0.275, 0.265 - row * 0.145, 0.02);
+    // 模型数可能增长（当前 10 个 → 4 列 3 行），行距 0.135 保证按钮不重叠
+    b.position.set((col - (COLS - 1) / 2) * 0.275, 0.30 - row * 0.135, 0.02);
     b.userData.modelKey = key;
     g.add(b);
     vrMenu.buttons.push(b);
@@ -1194,6 +1196,7 @@ window.__pico3d = {
   loadProgress, recordResult, starsFor, levelKey, onGrab, onRelease, onSqueeze,
   applyQualityLevel, getQuality: () => ({ level: quality.level, auto: quality.auto, pixelRatio: renderer.getPixelRatio(), starfieldVisible: !!(starfield && starfield.visible) }),
   setQualityAuto: (on) => { quality.auto = !!on; },
+  hasEnv: () => envReady,
   music,
   // 配色皮肤（测试与外部控制用）
   PALETTES, getPalette: () => state.palette,
