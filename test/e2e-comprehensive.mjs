@@ -266,6 +266,25 @@ check('胜利面板可见且有时间/星级/最佳记录',
   winUi.visible && /\d+分\d+秒/.test(winUi.time) && /[★☆]{3}/.test(winUi.stars),
   JSON.stringify(winUi));
 
+// 7.0) VR 内：成就浮窗 + 进度页（主/进度页互斥、内容为最新进度）
+const vrPage = await evalJs(`(() => {
+  const p = window.__pico3d;
+  const toast = p.getVrToast();
+  p.toggleVrMenu(true);
+  p.showVrPage('progress');
+  const info = p.getVrPageInfo();
+  p.showVrPage('main');
+  const main = p.getVrPageInfo();
+  p.toggleVrMenu(false);
+  return { toast, info, main };
+})()`);
+check('成就解锁触发 VR 浮窗提示', vrPage.toast.active && vrPage.toast.text.includes('初次拼合'), JSON.stringify(vrPage.toast));
+check('VR 进度页显示关卡/星星/成就与当前模型记录',
+  vrPage.info.page === 'progress' && vrPage.info.progressVisible
+  && vrPage.info.lines.some((t) => t.includes('关卡')) && vrPage.info.lines.some((t) => t.includes('成就'))
+  && vrPage.info.lines.some((t) => t.includes('块')), JSON.stringify(vrPage.info.lines));
+check('VR 主页面与进度页互斥切换', vrPage.main.page === 'main' && vrPage.main.progressVisible === false, JSON.stringify(vrPage.main));
+
 // 7.1) 成绩写入 localStorage（星级/最佳时间/游玩次数）
 // 注意：按"当前实际关卡"取键（前面的功能测试可能已切换关卡）
 const prog = await evalJs(`(() => {

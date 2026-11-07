@@ -124,7 +124,17 @@ async function captureAll(label) {
       ${HASH_FN}
       const p = window.__pico3d;
       p.startGame(${JSON.stringify(sc.model)}, ${sc.n});
-      // 冻结随机/时间相关元素，保证可复现
+      // 让画面与"随机数序列"彻底解耦：
+      //   three.js 的 generateUUID 也消耗 Math.random，新增/删除任何 Object3D 都会
+      //   移动随机序列，导致星空与碎片散落位置变化（曾因此误报视觉漂移）。
+      //   这里固定碎片摆位并关闭星空，只保留模型/材质/光照/投影的比对。
+      p.state.pieces.forEach((mesh, i) => {
+        mesh.position.set(-0.55 + i * 0.36, 0.80, -0.85 - (i % 2) * 0.18);
+        mesh.quaternion.identity();
+      });
+      const stars = p.getStarfield();
+      if (stars) stars.visible = false;
+      // 冻结虚影呼吸（依赖 performance.now）
       const g = p.ghostGroup();
       if (g) { g.position.y = 0.05; g.rotation.y = 0; }
       return hashFrame(p.renderer, 32, 18);
