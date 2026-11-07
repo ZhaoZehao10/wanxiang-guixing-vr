@@ -154,3 +154,7 @@ html, body {
   transform-origin: bottom right;
   z-index: 25;
 }
+
+/* 设备自检面板：布局放 CSS（不要内联 display，否则覆盖 .hidden） */
+#selfcheck { display: flex; align-items: center; justify-content: center; }
+#selfcheck.hidden { display: none; }
