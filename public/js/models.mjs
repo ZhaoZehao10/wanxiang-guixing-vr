@@ -435,6 +435,57 @@ function buildGlobe(b) {
   frustum(b, [0.55, 0.42, 0.26], { pos: [0, -0.885, 0] }, 0.30, 0.28, 0.03, 32);       // 底座装饰环
 }
 
+// ---------------- 模型 11：南瓜灯 ----------------
+
+function buildPumpkin(b) {
+  const orange = [0.95, 0.48, 0.12], orangeDark = [0.82, 0.36, 0.08];
+  const leafG = [0.28, 0.55, 0.25], stemG = [0.42, 0.32, 0.16], face = [0.10, 0.08, 0.06];
+  // 6 瓣南瓜：绕 Y 轴均布的扁椭球，中心略微外移形成瓜棱
+  for (let k = 0; k < 6; k++) {
+    const a = (Math.PI * 2 * k) / 6;
+    const c = k % 2 === 0 ? orange : orangeDark;
+    sphere(b, c, { pos: [0.24 * Math.cos(a), 0, 0.24 * Math.sin(a)], scale: [0.38, 0.55, 0.32] }, 1.0, 26, 18);
+  }
+  sphere(b, orange, { pos: [0, 0.02, 0], scale: [0.42, 0.56, 0.42] }, 1.0, 24, 16); // 芯
+  // 瓜蒂（斜置）+ 叶子
+  frustum(b, stemG, { pos: [0.03, 0.72, 0], rot: [0.16, 0, 0.18] }, 0.075, 0.05, 0.26, 14);
+  sphere(b, leafG, { pos: [0.26, 0.70, 0.10], scale: [0.22, 0.05, 0.14], rot: [0, 0.5, 0] }, 1.0, 18, 10);
+  // 鬼脸：眼睛（菱形薄盒）+ 锯齿嘴 + 鼻子
+  for (const s of [-1, 1]) {
+    box(b, face, { pos: [s * 0.20, 0.20, 0.575], rot: [0, 0, Math.PI / 4] }, 0.13, 0.13, 0.05);
+  }
+  box(b, face, { pos: [0, 0.03, 0.60], rot: [0, 0, Math.PI / 4] }, 0.09, 0.09, 0.05); // 鼻子
+  for (let k = 0; k < 3; k++) {                                                        // 锯齿嘴
+    box(b, face, { pos: [-0.16 + k * 0.16, -0.16 + (k % 2) * 0.05, 0.575], rot: [0, 0, Math.PI / 4] }, 0.11, 0.11, 0.05);
+  }
+}
+
+// ---------------- 模型 12：小海龟 ----------------
+
+function buildTurtle(b) {
+  const shellG = [0.34, 0.52, 0.30], shellD = [0.26, 0.42, 0.24], skin = [0.46, 0.66, 0.36];
+  const eye = [0.08, 0.08, 0.10], belly = [0.85, 0.82, 0.62];
+  // 龟壳（扁椭球）+ 壳面鳞片 + 腹甲
+  sphere(b, shellG, { pos: [0, 0.05, 0], scale: [0.72, 0.46, 0.92] }, 1.0, 40, 26);
+  sphere(b, belly, { pos: [0, -0.22, 0], scale: [0.55, 0.18, 0.72] }, 1.0, 30, 18);
+  const scutes = [
+    [0, 0.42, 0.05, 0.20], [0.32, 0.34, 0.30, 0.16], [-0.32, 0.34, 0.30, 0.16],
+    [0.32, 0.34, -0.30, 0.16], [-0.32, 0.34, -0.30, 0.16], [0, 0.36, -0.52, 0.15],
+  ];
+  for (const [x, y, z, r] of scutes) sphere(b, shellD, { pos: [x, y, z], scale: [1, 0.35, 1] }, r, 20, 12);
+  // 头 + 眼睛 + 嘴
+  sphere(b, skin, { pos: [0, 0.02, 0.92], scale: [0.24, 0.20, 0.26] }, 1.0, 28, 20);
+  for (const s of [-1, 1]) {
+    sphere(b, eye, { pos: [s * 0.10, 0.10, 1.06], scale: [1, 1, 0.6] }, 0.045, 14, 10);
+  }
+  frustum(b, [0.30, 0.25, 0.15], { pos: [0, -0.02, 1.16], rot: [Math.PI / 2, 0, 0] }, 0.07, 0.02, 0.10, 14); // 嘴
+  // 四爪 + 尾巴
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    sphere(b, skin, { pos: [sx * 0.52, -0.16, sz * 0.50], scale: [0.20, 0.11, 0.28] }, 1.0, 20, 14);
+  }
+  frustum(b, skin, { pos: [0, -0.06, -0.90], rot: [-Math.PI / 2, 0, 0] }, 0.09, 0.02, 0.16, 14);
+}
+
 // ---------------- 配色皮肤 ----------------
 // 只改顶点颜色、不改任何几何：切割平面表按几何标定，因此所有配色共用同一套
 // 切割参数（水密性/体积守恒与颜色无关）。
@@ -500,6 +551,8 @@ export const MODELS = {
   xmas: { name: '圣诞树', emoji: '🎄', build: buildXmas },
   rabbit: { name: '软萌小兔', emoji: '🐰', build: buildRabbit },
   globe: { name: '蔚蓝地球', emoji: '🌍', build: buildGlobe },
+  pumpkin: { name: '南瓜灯', emoji: '🎃', build: buildPumpkin },
+  turtle: { name: '小海龟', emoji: '🐢', build: buildTurtle },
 };
 
 // 构建模型 → { obj, center[3], radius }（包围球自动计算）
