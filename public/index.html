@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=640, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="Qualcomm Snapdragon XR2 Platform">
+<meta name="theme-color" content="#0b1020">
+<title>Pico 3D 拼图 VR</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c3d"></canvas>
+
+<!-- 2D 引导面板（平板模式） -->
+<div id="intro">
+  <div class="intro-card">
+    <h1>🧩 3D 拼图 VR</h1>
+    <p class="sub">把散落的碎片拼回完整模型 · Pico Neo3 WebXR</p>
+    <ul>
+      <li><b>抓取</b> — 扣动扳机抓住面前的碎片，握着走动、放近了会<b>自动吸附</b></li>
+      <li><b>松手</b> — 释放扳机放下碎片，没对上就留在原地</li>
+      <li><b>双手</b> — 左右手柄都能抓，可以一次拿两块</li>
+      <li><b>游戏区</b> — 碎片散在身前的斜坡上，虚影立在斜坡顶端</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 难度选择 -->
+<div id="difficulty" class="hidden"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div>
+    <div id="model-name">…</div>
+    <div id="hint">扣扳机抓碎片 · 松手放下 · 靠近虚影自动吸附</div>
+  </div>
+  <div id="hud-right">
+    <div id="timer">00:00</div>
+    <div id="placed-counter">0 / 0</div>
+  </div>
+</div>
+
+<!-- 胜利面板 -->
+<div id="win" class="hidden">
+  <div class="win-card">
+    <h1>🎉 拼图完成！</h1>
+    <div id="win-stars" style="font-size:30px;letter-spacing:8px;color:#ffd24d;margin:2px 0 6px">★★★</div>
+    <p>用时 <b id="win-time">--</b> · 模型：<b id="win-model">--</b></p>
+    <p id="win-best" style="color:#8b96b8;font-size:13px;margin-bottom:12px"></p>
+    <button id="win-btn" class="win-btn">再来一局</button>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+<div id="other-game-link" style="position:fixed;bottom:70px;left:0;right:0;text-align:center;z-index:20">
+  <a href="/rw/" style="color:#b18cff;font-size:14px;text-decoration:none;background:rgba(16,22,44,0.8);padding:8px 16px;border-radius:999px;border:1px solid rgba(140,165,255,0.25)">🎲 随机游走 VR · 1024 程序员节彩蛋</a>
+</div>
+<button id="music-toggle" style="position:fixed;right:16px;bottom:16px;z-index:30;font:inherit;font-size:13px;color:#dfe7ff;background:rgba(16,22,44,0.85);border:1px solid rgba(140,165,255,0.3);border-radius:999px;padding:8px 14px;cursor:pointer">🎵 音乐开</button>
+</body>
+</html>
