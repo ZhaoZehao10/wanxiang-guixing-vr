@@ -1134,6 +1134,8 @@ window.__pico3d = {
   loadProgress, recordResult, starsFor, levelKey, onGrab, onRelease, onSqueeze,
   applyQualityLevel, getQuality: () => ({ level: quality.level, auto: quality.auto, pixelRatio: renderer.getPixelRatio(), starfieldVisible: !!(starfield && starfield.visible) }),
   music,
+  // 视觉回归测试用：暴露渲染器与场景，便于在页面内对帧缓冲取哈希
+  renderer, scene, camera, ghostGroup: () => ghostGroup, targetRig,
   getHintInfo: () => ({ active: !!hint.pillar, idx: hint.idx, until: hint.until }),
   getMenuInfo: () => ({ enabled: vrMenu.enabled, pos: vrMenu.group ? vrMenu.group.position.toArray() : null }),
 };

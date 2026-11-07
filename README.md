@@ -142,9 +142,11 @@ test/
   rw-e2e.mjs          【随机游走】21 项端到端（流程/连通性/彩蛋/结算/渲染）
   rw-offline-e2e.mjs  【随机游走】离线单文件版 file:// 端到端 + WebXR 接口探测
   rw-perf.mjs         【随机游走】6x CPU 限速性能实测（开局/帧率/重开）
-  run-tests.mjs       【拼图】切割引擎单元测试（水密性 + 体积守恒，48 项）
+  run-tests.mjs       【拼图】切割引擎单元测试（水密性 + 体积守恒，200 项）
   fuzz-tests.mjs      【拼图】模糊测试（200 轮随机调用/噪声输入/双重水密校验）
-  regression.mjs      【拼图】回归基线（9 组合结构指纹；--capture 重建）
+  plane-fuzz.mjs      【拼图】随机平面压力测试（成功必须水密守恒）
+  regression.mjs      【拼图】回归基线（32 组合结构指纹；--capture 重建）
+  visual-regression.mjs 【拼图】视觉回归（3 场景帧缓冲感知哈希；--capture 重建）
   e2e-*.mjs           【拼图】无头浏览器端到端验证（CDP 协议）
   perf-browser.mjs    【拼图】浏览器性能实测（6x CPU 限速模拟移动芯片）
   debug-*.mjs         各类故障诊断脚本（开发期使用，保留作记录）
@@ -288,5 +290,7 @@ android-sdk\platform-tools\adb.exe install -r "dist\3D拼图VR.apk"
 - `node test/run-tests.mjs`：8 模型 × 4 块数 × 每片水密/体积为正/守恒/幂等 = **200 项**；
 - `node test/plane-fuzz.mjs`：随机轴对齐平面压测（成功必须水密守恒，拒绝属预期保护）；
 - `node test/regression.mjs`：32 组结构指纹基线；
-- `node test/e2e-comprehensive.mjs`：24 种组合建局 + 提示/摇杆/菜单跟随/抓取偏移/
+- `node test/visual-regression.mjs`：3 个场景的帧缓冲感知哈希（32×18 网格平均色），
+  固定随机种子 + SwiftShader 软件渲染，本机实测差异 0.00；`--capture` 更新基线；
+- `node test/e2e-comprehensive.mjs`：32 种组合建局 + 提示/摇杆/菜单跟随/抓取偏移/
   画质分级/音乐开关/物理/吸附/胜利/进度 = **47 项**端到端。
