@@ -122,10 +122,10 @@ function combinations(arr, k) {
 // 结果按"均衡度"排序（越均衡越优先），便于先尝试更容易成功的组合。
 function countTriples(k) {
   const out = [];
-  for (let a = 0; a <= Math.min(3, k); a++) {
-    for (let b = 0; b <= Math.min(3, k - a); b++) {
+  for (let a = 0; a <= Math.min(4, k); a++) {
+    for (let b = 0; b <= Math.min(4, k - a); b++) {
       const c = k - a - b;
-      if (c < 0 || c > 3) continue;
+      if (c < 0 || c > 4) continue;
       if (a + b + c !== k) continue;
       const active = [a, b, c].filter((x) => x > 0).length;
       if (k >= 2 && active < 2) continue; // 至少两轴：避免全是平行薄切
@@ -160,7 +160,7 @@ function trySplit(modelKey, planes) {
 
 // 通用搜索：2~8 块。刀数按"均衡三元组"分配（每轴 ≤3 刀、至少两轴），
 // 同轴多刀时在安全候选里取组合并升序排列；DFS 每下一组前先验证部分结果水密。
-function search(modelKey, n, candidateLimit = 3) {
+function search(modelKey, n, candidateLimit = 3, minGapFrac = 0.14) {
   const model = buildModel(modelKey);
   const coords = axisCoords(model);
   const vol0 = modelVolume(model);
@@ -185,7 +185,7 @@ function search(modelKey, n, candidateLimit = 3) {
     if (cands.length < count) return false;
     // 同轴相邻两刀之间至少留 14% 轴长：否则会切出纸片状薄片（体积守恒能过，
     // 但拼片太薄既不好抓也不好看）
-    const minGap = extents[ai] * 0.14;
+    const minGap = extents[ai] * minGapFrac;
     for (const combo of combinations(cands, count)) {
       const sorted = combo.slice().sort((a, b) => a - b);
       let tooClose = false;
@@ -210,7 +210,16 @@ function search(modelKey, n, candidateLimit = 3) {
 }
 
 // ---------- 主流程 ----------
-const COUNTS = [2, 3, 4, 6, 8];
+// 2/3/4/6 四档：8 块在细长锥体模型（圣诞树）上找不到同时满足"水密 + 体积守恒 +
+// 最小刀距"的解，且 8 片在小型模型上会切出过多薄片，收益有限，暂不提供。
+const COUNTS = [2, 3, 4, 6];
+// 逐级放宽：先保证同轴刀距 ≥14% 轴长（碎片均匀好看），失败再放宽
+const LADDER = [
+  { limit: 3, gap: 0.14 },
+  { limit: 5, gap: 0.10 },
+  { limit: 6, gap: 0.07 },
+  { limit: 8, gap: 0.05 },
+];
 const table = {};
 let failed = 0;
 const t0 = Date.now();
@@ -219,12 +228,16 @@ for (const key of Object.keys(MODELS)) {
   table[key] = {};
   for (const n of COUNTS) {
     const t = Date.now();
-    // 先小候选集快速试；失败再扩大候选
-    let planes = search(key, n, 3);
-    if (!planes) planes = search(key, n, 6);
+    let planes = null;
+    let usedLadder = null;
+    for (const rung of LADDER) {
+      attempts = 0;
+      planes = search(key, n, rung.limit, rung.gap);
+      if (planes) { usedLadder = rung; break; }
+    }
     if (!planes) { failed++; console.error(`✗ ${key} x${n} 未找到可行平面`); continue; }
     table[key][n] = planes;
-    console.log(`✓ ${name}(${key}) x${n}: ${JSON.stringify(planes)}  (${Date.now() - t}ms)`);
+    console.log(`✓ ${name}(${key}) x${n}: ${JSON.stringify(planes)}  (${Date.now() - t}ms, 刀距≥${(usedLadder.gap * 100).toFixed(0)}%)`);
   }
 }
 console.log(`\n总耗时 ${((Date.now() - t0) / 1000).toFixed(1)}s`);
