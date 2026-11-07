@@ -66,6 +66,8 @@ await send('Page.enable');
 await send('Runtime.enable');
 await send('Page.navigate', { url: URL });
 await sleep(2200);
+// 测试隔离：清空本地存储（进度/成就/配色/音乐），保证断言与历史运行无关
+await evalJs('localStorage.clear()');
 
 // 1) 页面结构校验
 const struct = await evalJs(`({
@@ -282,6 +284,23 @@ const menuProg = await evalJs(`(() => {
   return [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent).filter((t) => t.includes('⭐'));
 })()`);
 check('难度菜单显示 ⭐ 关卡进度', menuProg.length === 4 && menuProg.every((t) => /⭐ \d+\/\d+ 关/.test(t)), JSON.stringify(menuProg));
+
+// 7.3) 成就：首通解锁 first_win；胜利面板提示；菜单显示成就栏与每关记录
+const ach = await evalJs(`(() => {
+  const p = window.__pico3d;
+  const list = p.readAchievements();
+  const winAch = document.getElementById('win-achieve');
+  const winText = winAch ? winAch.textContent : '';
+  const winVisible = winAch ? winAch.style.display !== 'none' : false;
+  p.showDifficulty();
+  const menuText = document.getElementById('difficulty').innerText;
+  const diffBtns = [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent);
+  const hasRecord = diffBtns.some((t) => t.includes('★') || t.includes('☆')) || diffBtns.some((t) => t.includes('未挑战'));
+  const hasAch = menuText.includes('成就 ') && menuText.includes('/7');
+  return { list, winText, winVisible, hasAch, hasRecord };
+})()`);
+check('首通解锁 first_win 且胜利面板提示', ach.list.includes('first_win') && ach.winVisible && ach.winText.includes('初次拼合'), JSON.stringify(ach));
+check('菜单显示成就进度与每关星级/记录', ach.hasAch && ach.hasRecord, JSON.stringify(ach));
 
 // 8) 重开（再来一局回到难度菜单 → 再开局）
 const replay = await evalJs(`(() => {
