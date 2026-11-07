@@ -43,6 +43,7 @@ function stripModule(src) {
 const vrButtonSrc = stripModule(read(PUB, 'vendor', 'VRButton.js'));
 const gameSrc = [
   'js/models.mjs',
+  'js/progress.mjs',
   'js/puzzle.mjs',
   'js/sfx.mjs',
   'js/main.js',
