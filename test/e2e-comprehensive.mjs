@@ -188,6 +188,30 @@ check('背景音乐：可开关且播放状态正确',
   musicTest.stopped === false && musicTest.on === true && musicTest.playingAfterOn === true
   && musicTest.off === false && musicTest.playingAfterOff === false, JSON.stringify(musicTest));
 
+// 3.7) 配色皮肤：切换后重开同关卡，颜色改变、片数不变；2D 菜单有 4 个配色按钮
+const paletteTest = await evalJs(`(() => {
+  const p = window.__pico3d;
+  p.setPalette('neon');
+  p.startGame('rocket', 2);
+  const colorOf = (mesh) => {
+    const c = mesh.geometry.getAttribute('color');
+    let s = 0;
+    for (let i = 0; i < Math.min(c.array.length, 60); i++) s += c.array[i];
+    return +s.toFixed(4);
+  };
+  const neonSum = colorOf(p.state.pieces[0]);
+  p.setPalette('classic');
+  p.startGame('rocket', 2);
+  const classicSum = colorOf(p.state.pieces[0]);
+  p.showDifficulty();
+  const palBtns = [...document.querySelectorAll('#difficulty .diff-btn')]
+    .filter((b) => /🎨|🌈|🔥|❄️/.test(b.textContent)).length;
+  return { neonSum, classicSum, palBtns, palette: p.getPalette(), pieces: p.state.pieces.length };
+})()`);
+check('配色皮肤：颜色随皮肤改变、片数正确、菜单有 4 种配色',
+  paletteTest.neonSum !== paletteTest.classicSum && paletteTest.palette === 'classic'
+  && paletteTest.pieces === 2 && paletteTest.palBtns === 4, JSON.stringify(paletteTest));
+
 // 4) 物理下落：把一块碎片抛到空中，1 秒后应落回斜坡高度附近并从队列移除
 const phys = await evalJs(`(async () => {
   const s = window.__pico3d.state;
@@ -241,10 +265,12 @@ check('胜利面板可见且有时间/星级/最佳记录',
   JSON.stringify(winUi));
 
 // 7.1) 成绩写入 localStorage（星级/最佳时间/游玩次数）
+// 注意：按"当前实际关卡"取键（前面的功能测试可能已切换关卡）
 const prog = await evalJs(`(() => {
-  const key = window.__pico3d.levelKey('${lastModel}', ${lastN});
+  const s = window.__pico3d.state;
+  const key = window.__pico3d.levelKey(s.modelKey, s.pieceCount);
   const p = window.__pico3d.loadProgress();
-  return { rec: p[key] || null };
+  return { key, rec: p[key] || null };
 })()`);
 check('胜利后成绩写入本地进度（星级≥1、有最佳时间）',
   prog.rec && prog.rec.stars >= 1 && prog.rec.bestTime > 0 && prog.rec.plays >= 1,

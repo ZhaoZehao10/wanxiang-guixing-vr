@@ -108,6 +108,14 @@ const HASH_FN = `
   };
 `;
 
+// 锁定画质：画质自适应会按帧率降像素比/关星空，导致视觉哈希不可比
+await evalJs(`(() => {
+  const p = window.__pico3d;
+  p.setQualityAuto(false);
+  p.applyQualityLevel(2);
+  return p.getQuality();
+})()`);
+
 const results = {};
 for (const sc of SCENES) {
   const cells = await evalJs(`(() => {

@@ -68,5 +68,29 @@ for (const mk of MODELS) {
   }
 }
 
+console.log(`\n=== 配色皮肤（几何不变、仅颜色变化；切割表通用） ===`);
+{
+  const PALETTE_KEYS = ['neon', 'warm', 'mono'];
+  for (const mk of MODELS) {
+    const classic = splitIntoPieces(mk, 6, 'classic');
+    const orig = parseObj(buildModel(mk).obj);
+    const origV = signedVolume(orig.positions, orig.tris);
+    for (const pal of PALETTE_KEYS) {
+      const r = splitIntoPieces(mk, 6, pal);
+      const tight = r.pieces.every((p) => isWatertight(p).ok);
+      const sumVol = r.pieces.reduce((s, p) => s + signedVolume(p.positions, p.indices), 0);
+      const relErr = Math.abs(sumVol - origV) / Math.abs(origV);
+      // 颜色确实改变（对比第一片前 300 个颜色分量）
+      let colorDelta = 0;
+      const a = classic.pieces[0].positions, b = r.pieces[0].positions;
+      const lim = Math.min(a.length, b.length, 1800);
+      for (let i = 3; i < lim; i += 6) colorDelta += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
+      const changed = colorDelta > 1;
+      check(`${mk} × ${pal}: 水密 + 体积守恒 + 颜色已改变`, tight && relErr < 0.005 && changed,
+        `tight=${tight} err=${(relErr * 100).toFixed(3)}% colorDelta=${colorDelta.toFixed(2)}`);
+    }
+  }
+}
+
 console.log(`\n结果: ${passed} 通过, ${failed} 失败`);
 process.exit(failed ? 1 : 0);
