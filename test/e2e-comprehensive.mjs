@@ -188,7 +188,7 @@ for (const [mk, n] of combos) {
     return { count: s.pieces.length, mode: s.mode, placed: s.placedCount, grab: s.grabbing.size };
   })()`);
   check(`${mk} x${n}: ${st.count} 片、playing、0 已归位`, st.count === n && st.mode === 'playing' && st.placed === 0 && st.grab === 0, JSON.stringify(st));
-  if (shotsTaken < 8 && (n === 4 && ['castle', 'penguin', 'gift', 'rabbit', 'globe', 'pumpkin', 'turtle', 'pig', 'heli'].includes(mk))) {
+  if (shotsTaken < 9 && (n === 4 && ['castle', 'penguin', 'gift', 'rabbit', 'globe', 'pumpkin', 'turtle', 'pig', 'heli'].includes(mk))) {
     const shot = await send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(`D:/DSH_Workspace/Pico3D/test/preview-${mk}-${n}.png`, Buffer.from(shot.result.data, 'base64'));
     shotsTaken++;
