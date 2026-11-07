@@ -17,8 +17,8 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.1.0';
-const BUILD_INFO = '12 模型 · 59 关 · 6 套配色';
+const APP_VERSION = '1.2.0';
+const BUILD_INFO = '14 模型 · 68 关 · 6 套配色';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
