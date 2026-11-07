@@ -29,7 +29,7 @@ const AREA_EPS = 1e-12; // 耳切最小三角形面积（投影 2D）
 // 由 tools/calibrate-cuts.mjs 自动标定（安全间隙 + 水密 + 体积守恒三重校验），
 // 不要手工改数值——几何调整后重跑标定工具即可。
 // >>> CUT_TABLE_START（标定工具生成，勿手改）
-const CUT_TABLE = {
+export const CUT_TABLE = {
  'rocket': {
   '2': [
    [

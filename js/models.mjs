@@ -494,6 +494,8 @@ export const PALETTES = {
   neon: { name: '霓虹', emoji: '🌈', hue: 155, sat: 1.45, light: 1.06 },
   warm: { name: '暖冬', emoji: '🔥', hue: -28, sat: 0.92, light: 1.10 },
   mono: { name: '冷银', emoji: '❄️', hue: 0, sat: 0.08, light: 1.02 },
+  festive: { name: '节日', emoji: '🎄', hue: -18, sat: 1.30, light: 1.05 },
+  ocean: { name: '海洋', emoji: '🌊', hue: 170, sat: 1.15, light: 1.02 },
 };
 
 function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
