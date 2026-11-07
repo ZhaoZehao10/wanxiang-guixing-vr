@@ -734,8 +734,9 @@ function makePiece(reg) {
 const cache = new Map();
 
 // 用显式平面序列切一个模型（不做缓存）。供标定工具与 splitIntoPieces 共用。
-export function splitWithPlanes(modelKey, planes) {
-  const model = buildModel(modelKey);
+// palette 只影响顶点颜色，几何与切割平面表完全一致（标定结果对所有配色通用）。
+export function splitWithPlanes(modelKey, planes, palette = 'classic') {
+  const model = buildModel(modelKey, palette);
   const { positions, tris } = parseObj(model.obj);
   if (!positions.length || !tris.length) throw new Error('模型为空');
 
@@ -777,16 +778,18 @@ export function splitWithPlanes(modelKey, planes) {
   return { key: modelKey, name: model.name, emoji: model.emoji, totalTris: tris.length / 3, pieces };
 }
 
-// 把模型切成 n 块（2/3/4）→ { key, name, emoji, totalTris, pieces: [...] }
-export function splitIntoPieces(modelKey, n) {
-  const ck = modelKey + '|' + n;
+// 把模型切成 n 块（2/3/4/6）→ { key, name, emoji, totalTris, pieces: [...] }
+// palette 参与缓存键：同模型同块数不同配色是不同拼片（颜色不同、几何相同）。
+export function splitIntoPieces(modelKey, n, palette = 'classic') {
+  const ck = modelKey + '|' + n + '|' + palette;
   const hit = cache.get(ck);
   if (hit) return hit;
   const planes = CUT_TABLE[modelKey] && CUT_TABLE[modelKey][n];
-  if (!planes) throw new Error(`不支持的块数 ${n}（模型 ${modelKey}，支持 2/3/4）`);
+  if (!planes) throw new Error(`不支持的块数 ${n}（模型 ${modelKey}，支持 2/3/4/6）`);
 
-  const out = splitWithPlanes(modelKey, planes);
+  const out = splitWithPlanes(modelKey, planes, palette);
   if (out.pieces.length !== n) throw new Error('拼片数量不符');
+  out.palette = palette;
   cache.set(ck, out);
   return out;
 }
