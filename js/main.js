@@ -6,7 +6,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { VRButton } from '../vendor/VRButton.js';
 import { splitIntoPieces } from './puzzle.mjs';
-import { MODELS } from './models.mjs';
+import { MODELS, PALETTES } from './models.mjs';
 import { sfx, music } from './sfx.mjs';
 
 // ---------------- 常量 ----------------
@@ -22,10 +22,24 @@ const DIFFICULTY_NAME = { 2: '入门', 3: '进阶', 4: '挑战', 6: '大师' };
 
 // ---------------- 全局状态 ----------------
 
+// 配色皮肤持久化（只影响顶点颜色，不影响几何与切割表）
+const PALETTE_KEY = 'pico3d.palette';
+function loadPalette() {
+  try {
+    const v = localStorage.getItem(PALETTE_KEY);
+    if (v && PALETTES[v]) return v;
+  } catch (e) { /* ignore */ }
+  return 'classic';
+}
+function savePalette(p) {
+  try { localStorage.setItem(PALETTE_KEY, p); } catch (e) { /* ignore */ }
+}
+
 const state = {
   mode: 'intro',        // intro | difficulty | playing | won
   modelKey: 'rocket',
   pieceCount: 2,        // 当前难度（块数），VR 菜单高亮/重开用
+  palette: loadPalette(), // 配色皮肤键（PALETTES）
   pieces: [],           // mesh 本体（userData 挂 target/placed/home 等）
   placedCount: 0,
   startTime: 0,
@@ -393,7 +407,7 @@ function buildGhostAndPieces(modelKey, n) {
   state.placedCount = 0;
   state.grabbing.clear();
 
-  const result = splitIntoPieces(modelKey, n);
+  const result = splitIntoPieces(modelKey, n, state.palette);
 
   // 目标虚影：半透明完整模型
   ghostGroup = new THREE.Group();
@@ -788,6 +802,32 @@ function showDifficulty() {
     row2.appendChild(b);
   }
   card.appendChild(row2);
+
+  // 配色皮肤行
+  const palLabel = document.createElement('p');
+  palLabel.className = 'sub';
+  palLabel.style.cssText = 'color:#8b96b8;font-size:13px;margin:12px 0 6px';
+  palLabel.textContent = '配色皮肤';
+  card.appendChild(palLabel);
+  const row3 = document.createElement('div');
+  row3.className = 'diff-row';
+  for (const [pkey, pdef] of Object.entries(PALETTES)) {
+    const b = document.createElement('button');
+    b.className = 'diff-btn';
+    b.style.cssText = 'min-width:86px;padding:8px 12px';
+    b.innerHTML = `<b style="font-size:16px">${pdef.emoji}</b><span>${pdef.name}</span>`;
+    if (pkey === state.palette) b.style.borderColor = '#6cd0ff';
+    b.onclick = () => {
+      state.palette = pkey;
+      savePalette(pkey);
+      sfx.ui();
+      [...row3.children].forEach((x) => (x.style.borderColor = ''));
+      b.style.borderColor = '#6cd0ff';
+    };
+    row3.appendChild(b);
+  }
+  card.appendChild(row3);
+
   box.appendChild(card);
   box.classList.remove('hidden');
 }
@@ -841,13 +881,16 @@ function buildVrMenu() {
     vrMenu.buttons.push(b);
   });
 
-  // 开始/重开按钮 + 提示按钮 + 音乐开关
+  // 底部一行：开始 / 提示 / 配色 / 音乐
+  const bottomY = -0.31;
+  const bottomX = (i) => (i - 1.5) * 0.275;
+
   const start = makeVrButton('开始', () => {
     sfx.ui();
     startGame(state.modelKey, state.pieceCount);
     toggleVrMenu(false);
   });
-  start.position.set(-0.30, -0.31, 0.02);
+  start.position.set(bottomX(0), bottomY, 0.02);
   start.userData.action = 'start';
   g.add(start);
   vrMenu.buttons.push(start);
@@ -857,10 +900,27 @@ function buildVrMenu() {
     triggerHint();
     refreshVrMenu();
   });
-  hintBtn.position.set(0, -0.31, 0.02);
+  hintBtn.position.set(bottomX(1), bottomY, 0.02);
   hintBtn.userData.action = 'hint';
   g.add(hintBtn);
   vrMenu.buttons.push(hintBtn);
+
+  // 配色：循环切换皮肤；游戏中切换会以新配色重开当前关卡（几何不变，切割表通用）
+  const paletteKeys = Object.keys(PALETTES);
+  const paletteBtn = makeVrButton('配色', () => {
+    const idx = Math.max(0, paletteKeys.indexOf(state.palette));
+    state.palette = paletteKeys[(idx + 1) % paletteKeys.length];
+    savePalette(state.palette);
+    sfx.ui();
+    if (state.mode === 'playing') {
+      startGame(state.modelKey, state.pieceCount); // 立即以新配色重开
+      toggleVrMenu(false);
+    }
+  });
+  paletteBtn.position.set(bottomX(2), bottomY, 0.02);
+  paletteBtn.userData.action = 'palette';
+  g.add(paletteBtn);
+  vrMenu.buttons.push(paletteBtn);
 
   const musicBtn = makeVrButton('音乐', () => {
     const on = music.toggle();
@@ -868,7 +928,7 @@ function buildVrMenu() {
     sfx.ui();
     if (on) music.start();
   });
-  musicBtn.position.set(0.30, -0.31, 0.02);
+  musicBtn.position.set(bottomX(3), bottomY, 0.02);
   musicBtn.userData.action = 'music';
   g.add(musicBtn);
   vrMenu.buttons.push(musicBtn);
@@ -1133,7 +1193,11 @@ window.__pico3d = {
   triggerHint, clearHint, applyStickRotation, positionMenuInFront,
   loadProgress, recordResult, starsFor, levelKey, onGrab, onRelease, onSqueeze,
   applyQualityLevel, getQuality: () => ({ level: quality.level, auto: quality.auto, pixelRatio: renderer.getPixelRatio(), starfieldVisible: !!(starfield && starfield.visible) }),
+  setQualityAuto: (on) => { quality.auto = !!on; },
   music,
+  // 配色皮肤（测试与外部控制用）
+  PALETTES, getPalette: () => state.palette,
+  setPalette: (p) => { if (PALETTES[p]) { state.palette = p; savePalette(p); } },
   // 视觉回归测试用：暴露渲染器与场景，便于在页面内对帧缓冲取哈希
   renderer, scene, camera, ghostGroup: () => ghostGroup, targetRig,
   getHintInfo: () => ({ active: !!hint.pillar, idx: hint.idx, until: hint.until }),
