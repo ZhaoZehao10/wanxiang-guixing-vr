@@ -70,7 +70,7 @@ for (const mk of MODELS) {
 
 console.log(`\n=== 配色皮肤（几何不变、仅颜色变化；切割表通用） ===`);
 {
-  const PALETTE_KEYS = ['neon', 'warm', 'mono'];
+  const PALETTE_KEYS = ['neon', 'warm', 'mono', 'festive', 'ocean'];
   for (const mk of MODELS) {
     const classic = splitIntoPieces(mk, 6, 'classic');
     const orig = parseObj(buildModel(mk).obj);

@@ -206,13 +206,13 @@ const paletteTest = await evalJs(`(() => {
   p.startGame('rocket', 2);
   const classicSum = colorOf(p.state.pieces[0]);
   p.showDifficulty();
-  const palBtns = [...document.querySelectorAll('#difficulty .diff-btn')]
-    .filter((b) => /🎨|🌈|🔥|❄️/.test(b.textContent)).length;
+  const palRow = document.querySelectorAll('#difficulty .diff-row')[2]; // 第 3 行 = 配色皮肤
+  const palBtns = palRow ? palRow.children.length : 0;
   return { neonSum, classicSum, palBtns, palette: p.getPalette(), pieces: p.state.pieces.length };
 })()`);
-check('配色皮肤：颜色随皮肤改变、片数正确、菜单有 4 种配色',
+check('配色皮肤：颜色随皮肤改变、片数正确、菜单有 6 种配色',
   paletteTest.neonSum !== paletteTest.classicSum && paletteTest.palette === 'classic'
-  && paletteTest.pieces === 2 && paletteTest.palBtns === 4, JSON.stringify(paletteTest));
+  && paletteTest.pieces === 2 && paletteTest.palBtns === 6, JSON.stringify(paletteTest));
 
 // 3.8) 抓取高亮 + 磁吸辅助
 const assistTest = await evalJs(`(() => {
