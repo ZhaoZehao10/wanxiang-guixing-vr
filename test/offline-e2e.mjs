@@ -87,7 +87,7 @@ const diff = await evalJs(`({
   visible: !document.getElementById('difficulty').classList.contains('hidden'),
   buttons: [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent.trim()),
 })`);
-check('引导页点击 → 难度菜单出现', diff.visible && diff.buttons.length === 25, JSON.stringify(diff.buttons));
+check('引导页点击 → 难度菜单出现', diff.visible && diff.buttons.length === 26, JSON.stringify(diff.buttons));
 
 await evalJs(`(() => {
   document.querySelectorAll('#difficulty .diff-btn')[0].click(); // 小火箭

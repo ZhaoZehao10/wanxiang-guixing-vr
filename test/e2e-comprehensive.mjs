@@ -355,6 +355,55 @@ check('磁吸辅助：接近目标时逐帧拉近（关闭后停止）',
   assistTest.pulled === 20 && assistTest.d1 < assistTest.d0 * 0.5 && assistTest.assistOff === false,
   JSON.stringify(assistTest));
 
+// 3.9) 全菜单冒烟：点击所有模型/配色/开关按钮，不崩溃、无 fatal
+const smoke = await evalJs(`(() => {
+  const p = window.__pico3d;
+  p.showDifficulty();
+  const rows = [...document.querySelectorAll('#difficulty .diff-row')];
+  const modelBtns = [...rows[0].children];
+  const paletteBtns = [...rows[2].children];
+  let clicks = 0;
+  for (const b of modelBtns) { b.click(); clicks++; }
+  for (const b of paletteBtns) { b.click(); clicks++; }
+  const assist = rows[3].children[0]; assist.click(); assist.click(); clicks += 2;
+  const practiceBtn = rows[3].children[1]; practiceBtn.click(); practiceBtn.click(); clicks += 2;
+  p.setPalette('classic');
+  p.state.modelKey = 'rocket';
+  return {
+    clicks, fatal: p.getFatalInfo().visible,
+    models: modelBtns.length, palettes: paletteBtns.length,
+    practice: p.getPractice(), palette: p.getPalette(),
+  };
+})()`);
+check('全菜单冒烟：12 模型/6 配色/开关按钮点击无异常',
+  smoke.fatal === false && smoke.models === 12 && smoke.palettes === 6
+  && smoke.practice === false && smoke.palette === 'classic', JSON.stringify(smoke));
+
+// 3.10) 练习模式：通关不写入进度
+const practice = await evalJs(`(() => {
+  const p = window.__pico3d, T = p.THREE;
+  const before = JSON.stringify(p.loadProgress());
+  p.setPractice(true);
+  p.startGame('gift', 2);
+  for (const mesh of p.state.pieces) {
+    const tp = new T.Vector3(), tq = new T.Quaternion();
+    mesh.userData.target.getWorldPosition(tp);
+    mesh.userData.target.getWorldQuaternion(tq);
+    mesh.position.copy(tp);
+    mesh.quaternion.copy(tq);
+    p.trySnap(mesh);
+  }
+  const after = JSON.stringify(p.loadProgress());
+  const winTime = document.getElementById('win-time').textContent;
+  const mode = p.state.mode;
+  p.setPractice(false);
+  p.startGame('rocket', 2); // 恢复正常对局，供后续用例使用
+  return { unchanged: before === after, winTime, mode, practice: p.getPractice() };
+})()`);
+check('练习模式：通关不记录成绩、不弹星级',
+  practice.unchanged === true && practice.mode === 'won'
+  && practice.winTime === '练习模式' && practice.practice === false, JSON.stringify(practice));
+
 // 4) 物理下落：把一块碎片抛到空中，1 秒后应落回斜坡高度附近并从队列移除
 const phys = await evalJs(`(async () => {
   const s = window.__pico3d.state;
