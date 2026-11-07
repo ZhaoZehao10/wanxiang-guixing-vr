@@ -214,6 +214,55 @@ check('配色皮肤：颜色随皮肤改变、片数正确、菜单有 4 种配�
   paletteTest.neonSum !== paletteTest.classicSum && paletteTest.palette === 'classic'
   && paletteTest.pieces === 2 && paletteTest.palBtns === 4, JSON.stringify(paletteTest));
 
+// 3.8) 抓取高亮 + 磁吸辅助
+const assistTest = await evalJs(`(() => {
+  const p = window.__pico3d, T = p.THREE;
+  p.startGame('rocket', 2); // 确保处于 playing（上一步菜单把 mode 改成了 difficulty）
+  const s = p.state;
+  // —— 抓取高亮：把一块碎片挪到手柄原点附近（手柄在原点），抓取后虚影对应块应高亮
+  const mesh0 = s.pieces[0];
+  mesh0.userData.placed = false;
+  mesh0.position.set(0.05, 0.05, 0);
+  p.onGrab('right');
+  const hlOnGrab = p.getGhostHighlight();
+  const grabbed = s.grabbing.has('right');
+  p.onRelease('right');
+  const hlAfterRelease = p.getGhostHighlight();
+  p.physics.length = 0;
+  // —— 磁吸：手动构造抓取关系，把碎片放在"接近但未到吸附距离"处
+  const mesh = s.pieces[1];
+  mesh.userData.placed = false;
+  const tp = new T.Vector3(), tq = new T.Quaternion();
+  mesh.userData.target.getWorldPosition(tp);
+  mesh.userData.target.getWorldQuaternion(tq);
+  mesh.position.copy(tp); mesh.quaternion.copy(tq);
+  mesh.position.x += mesh.userData.snapDist * 1.4; // 在 1.6× 磁吸半径内、吸附距离外
+  const c = s.right, cp = new T.Vector3(), cq = new T.Quaternion();
+  c.getWorldPosition(cp); c.getWorldQuaternion(cq);
+  const inv = cq.clone().invert();
+  const grab = {
+    mesh,
+    offset: mesh.position.clone().sub(cp).applyQuaternion(inv),
+    quatOffset: inv.clone().multiply(mesh.quaternion.clone()),
+  };
+  s.grabbing.set('right', grab);
+  const d0 = mesh.position.distanceTo(tp);
+  let pulled = 0;
+  for (let i = 0; i < 20; i++) if (p.magnetStep('right')) pulled++;
+  const d1 = mesh.position.distanceTo(tp);
+  s.grabbing.delete('right');
+  // —— 关闭辅助后不应再拉
+  p.setAssist(false);
+  const assistOff = p.magnetStep('right');
+  p.setAssist(true);
+  return { hlOnGrab, grabbed, hlAfterRelease, d0: +d0.toFixed(4), d1: +d1.toFixed(4), pulled, assistOff };
+})()`);
+check('抓取时高亮虚影对应块，松手取消高亮',
+  assistTest.grabbed && assistTest.hlOnGrab >= 0 && assistTest.hlAfterRelease === -1, JSON.stringify(assistTest));
+check('磁吸辅助：接近目标时逐帧拉近（关闭后停止）',
+  assistTest.pulled === 20 && assistTest.d1 < assistTest.d0 * 0.5 && assistTest.assistOff === false,
+  JSON.stringify(assistTest));
+
 // 4) 物理下落：把一块碎片抛到空中，1 秒后应落回斜坡高度附近并从队列移除
 const phys = await evalJs(`(async () => {
   const s = window.__pico3d.state;
