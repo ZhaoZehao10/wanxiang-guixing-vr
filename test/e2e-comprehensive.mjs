@@ -81,21 +81,24 @@ const struct = await evalJs(`({
 check('页面结构完整（canvas/hud/win/difficulty/测试钩子）',
   struct.hasCanvas && struct.hasHud && struct.hasWin && struct.hasDiff && struct.hasHook, JSON.stringify(struct));
 
-// 1.1) 设备自检面板（点击不应误触"开始游戏"）
+// 1.1) 设备自检面板（点击不应误触"开始游戏"；面板默认隐藏、可正常关闭）
 const selfCheck = await evalJs(`(async () => {
+  const panel = document.getElementById('selfcheck');
+  const initiallyHidden = getComputedStyle(panel).display === 'none';
   document.getElementById('selfcheck-btn').click();
   await new Promise((r) => setTimeout(r, 250));
-  const panel = document.getElementById('selfcheck');
   const text = document.getElementById('selfcheck-body').textContent;
+  const opened = getComputedStyle(panel).display !== 'none';
   const introHidden = document.getElementById('intro').classList.contains('hidden');
   document.getElementById('selfcheck-close').click();
-  const closed = document.getElementById('selfcheck').classList.contains('hidden');
-  return { visible: !panel.classList.contains('hidden'), text, introHidden, closed };
+  const closed = getComputedStyle(panel).display === 'none';
+  return { initiallyHidden, opened, text, introHidden, closed };
 })()`);
-check('设备自检：显示安全上下文/navigator.xr/WebGL，且不误触开局',
-  selfCheck.text.includes('安全上下文') && selfCheck.text.includes('navigator.xr')
+check('设备自检：默认隐藏、显示安全上下文/navigator.xr/WebGL、可关闭且不误触开局',
+  selfCheck.initiallyHidden === true && selfCheck.opened === true
+  && selfCheck.text.includes('安全上下文') && selfCheck.text.includes('navigator.xr')
   && selfCheck.text.includes('WebGL') && selfCheck.closed === true && selfCheck.introHidden === false,
-  JSON.stringify({ text: selfCheck.text.slice(0, 120), introHidden: selfCheck.introHidden, closed: selfCheck.closed }));
+  JSON.stringify({ initiallyHidden: selfCheck.initiallyHidden, opened: selfCheck.opened, closed: selfCheck.closed, introHidden: selfCheck.introHidden }));
 
 // 1.2) 每日挑战：按日期确定性生成，菜单可见且可一键开局
 const daily = await evalJs(`(() => {
