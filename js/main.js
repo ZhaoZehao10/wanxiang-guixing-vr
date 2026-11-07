@@ -5,7 +5,7 @@
 // 碎片接近其目标位姿（平移 + 旋转都接近）时自动吸附；全部归位即胜利。
 import * as THREE from '../vendor/three.module.min.js';
 import { VRButton } from '../vendor/VRButton.js';
-import { splitIntoPieces } from './puzzle.mjs';
+import { splitIntoPieces, CUT_TABLE } from './puzzle.mjs';
 import { MODELS, PALETTES } from './models.mjs';
 import { sfx, music } from './sfx.mjs';
 import {
@@ -17,8 +17,12 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.0.0';
-const BUILD_INFO = '12 模型 · 48 关 · 6 套配色';
+const APP_VERSION = '1.1.0';
+const BUILD_INFO = '12 模型 · 59 关 · 6 套配色';
+
+// 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
+const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
+const totalLevels = () => MODEL_KEYS.reduce((s, mk) => s + supportedCounts(mk).length, 0);
 
 const PIECE_SCALE = 0.42;      // 模型 → 拼图整体缩放（拼图直径约 0.5~0.95m）
 const SNAP_DIST = 0.30;        // 位置吸附距离（米）
@@ -852,6 +856,10 @@ function startGame(modelKey, n) {
     showFatal('关卡加载失败', `未知模型「${modelKey}」。请返回菜单重新选择。`);
     return;
   }
+  if (!CUT_TABLE[modelKey] || !CUT_TABLE[modelKey][n]) {
+    showFatal('关卡不可用', `「${MODELS[modelKey].name}」不支持 ${n} 块难度（8 块为可选档，部分模型无解）。请选择其他难度。`);
+    return;
+  }
   state.modelKey = modelKey;
   state.pieceCount = n;
   state.mode = 'playing';
@@ -885,10 +893,14 @@ function dayKey(d = new Date()) {
 function dailyChallenge(dateStr = dayKey()) {
   let h = 2166136261 >>> 0; // FNV-1a
   for (const ch of dateStr) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
-  const keys = Object.keys(MODELS);
-  const counts = [2, 3, 4, 6];
-  const modelKey = keys[h % keys.length];
-  const n = counts[Math.floor(h / 7) % counts.length];
+  // 只在"该模型实际支持的难度"里抽，避免抽到圣诞树 × 8 块这种无解组合
+  const combos = [];
+  for (const mk of Object.keys(MODELS)) {
+    for (const n of DIFFICULTY) {
+      if (CUT_TABLE[mk] && CUT_TABLE[mk][n]) combos.push([mk, n]);
+    }
+  }
+  const [modelKey, n] = combos[h % combos.length];
   return { date: dateStr, modelKey, name: MODELS[modelKey].name, emoji: MODELS[modelKey].emoji, n };
 }
 
@@ -902,7 +914,7 @@ function showDifficulty() {
   box.innerHTML = '';
   const card = document.createElement('div');
   card.className = 'diff-card';
-  const sum = summarize(readProgress());
+  const sum = summarize(readProgress(), totalLevels());
   const unlocked = readAchievements();
   card.innerHTML = `<h2>选择模型与难度</h2>`
     + `<p class="sub" style="color:#8b96b8;font-size:13px;margin:6px 0 10px">`
@@ -944,13 +956,21 @@ function showDifficulty() {
   const refreshDiffRows = () => {
     const prog = readProgress();
     for (const { b, n } of diffBtns) {
+      const supported = supportedCounts(state.modelKey).includes(n);
+      const supportCount = MODEL_KEYS.filter((mk) => supportedCounts(mk).includes(n)).length;
       const done = MODEL_KEYS.filter((mk) => ((prog[levelKey(mk, n)] || {}).stars || 0) > 0).length;
       const rec = prog[levelKey(state.modelKey, n)];
-      const recTxt = rec && rec.stars > 0
-        ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)} ${Math.floor(rec.bestTime / 60)}分${rec.bestTime % 60}秒`
-        : '未挑战';
+      const recTxt = !supported
+        ? '该模型无此难度'
+        : (rec && rec.stars > 0
+          ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)} ${Math.floor(rec.bestTime / 60)}分${rec.bestTime % 60}秒`
+          : '未挑战');
+      b.disabled = !supported;
+      b.style.opacity = supported ? '1' : '0.45';
+      b.style.cursor = supported ? 'pointer' : 'not-allowed';
+      b.onclick = supported ? () => startGame(state.modelKey, n) : null;
       b.innerHTML = `<b style="font-size:18px">${n} 块</b><span>${DIFFICULTY_NAME[n]}</span>`
-        + `<small style="display:block;color:#ffd24d;font-size:12px;margin-top:3px">⭐ ${done}/${MODEL_KEYS.length} 关</small>`
+        + `<small style="display:block;color:#ffd24d;font-size:12px;margin-top:3px">⭐ ${done}/${supportCount} 关</small>`
         + `<small style="display:block;color:#9fb0d8;font-size:11px;margin-top:2px">${recTxt}</small>`;
     }
   };
@@ -1072,14 +1092,18 @@ function buildVrMenu() {
     vrMenu.buttons.push(b);
   });
 
-  // 块数行（2/3/4/6）
+  // 块数行（2/3/4/6/8，5 个窄按钮）
   DIFFICULTY.forEach((n, i) => {
     const b = makeVrButton(`${n}块`, () => {
+      if (!supportedCounts(state.modelKey).includes(n)) {
+        showVrToast(`「${MODELS[state.modelKey].name}」不支持 ${n} 块`);
+        return;
+      }
       state.pieceCount = n;
       refreshVrMenu();
       sfx.ui();
-    });
-    b.position.set((i - (DIFFICULTY.length - 1) / 2) * 0.275, -0.10, 0.02);
+    }, 0.19);
+    b.position.set((i - (DIFFICULTY.length - 1) / 2) * 0.205, -0.10, 0.02);
     b.userData.count = n;
     g.add(b);
     vrMenu.buttons.push(b);
@@ -1209,12 +1233,15 @@ function refreshVrProgress() {
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
   addText(`${def.emoji} ${def.name}`, 0.23, { size: 48 });
   DIFFICULTY.forEach((n, i) => {
+    const supported = supportedCounts(state.modelKey).includes(n);
     const rec = prog[levelKey(state.modelKey, n)];
     const has = rec && rec.stars > 0;
-    const txt = has
-      ? `${n} 块 ${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}  ${Math.floor(rec.bestTime / 60)}:${String(rec.bestTime % 60).padStart(2, '0')}`
-      : `${n} 块 未挑战`;
-    addText(txt, 0.12 - i * 0.085, { size: 34, color: has ? '#dfe7ff' : '#7c88a8', w: 0.60, h: 0.055 });
+    const txt = !supported
+      ? `${n} 块（该模型不支持）`
+      : (has
+        ? `${n} 块 ${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}  ${Math.floor(rec.bestTime / 60)}:${String(rec.bestTime % 60).padStart(2, '0')}`
+        : `${n} 块 未挑战`);
+    addText(txt, 0.135 - i * 0.075, { size: 32, color: has ? '#dfe7ff' : '#7c88a8', w: 0.55, h: 0.05 });
   });
   ACHIEVEMENTS.forEach((a, i) => {
     const col = i % 2, row = Math.floor(i / 2);
@@ -1600,6 +1627,8 @@ window.__pico3d = {
   getStarfield: () => starfield,
   // 稳定性兜底（测试用）
   showFatal, hideFatal, APP_VERSION, BUILD_INFO,
+  // 难度支持情况（8 块为可选档）
+  supportedCounts, totalLevels, CUT_TABLE,
   getFatalInfo: () => ({
     visible: !$('fatal').classList.contains('hidden'),
     title: $('fatal-title').textContent,
