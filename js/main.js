@@ -914,7 +914,8 @@ function showDifficulty() {
   box.innerHTML = '';
   const card = document.createElement('div');
   card.className = 'diff-card';
-  const sum = summarize(readProgress(), totalLevels());
+  const progNow = readProgress();
+  const sum = summarize(progNow, totalLevels());
   const unlocked = readAchievements();
   card.innerHTML = `<h2>选择模型与难度</h2>`
     + `<p class="sub" style="color:#8b96b8;font-size:13px;margin:6px 0 10px">`
@@ -935,7 +936,11 @@ function showDifficulty() {
   for (const [key, def] of Object.entries(MODELS)) {
     const b = document.createElement('button');
     b.className = 'diff-btn';
-    b.innerHTML = `<b style="font-size:22px">${def.emoji}</b><span>${def.name}</span>`;
+    // 星数进度：该模型所有支持难度的星级合计（帮助挑"还没玩过的模型"）
+    const modelStars = supportedCounts(key).reduce((s, n) => s + (((progNow[levelKey(key, n)] || {}).stars) || 0), 0);
+    const modelMax = supportedCounts(key).length * 3;
+    b.innerHTML = `<b style="font-size:22px">${def.emoji}</b><span>${def.name}</span>`
+      + `<small style="display:block;color:#ffd24d;font-size:11px;margin-top:2px">★ ${modelStars}/${modelMax}</small>`;
     if (key === state.modelKey) b.style.borderColor = '#6cd0ff';
     b.onclick = () => {
       state.modelKey = key;

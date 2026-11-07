@@ -58,11 +58,11 @@ export const ACHIEVEMENTS = [
     test: (p) => Object.values(p).some((r) => r.stars > 0),
   },
   {
-    id: 'all_easy', name: '入门全通', desc: '全部 10 个模型完成 2 块难度',
+    id: 'all_easy', name: '入门全通', desc: '全部 12 个模型完成 2 块难度',
     test: (p) => MODEL_KEYS.every((mk) => (p[levelKey(mk, 2)] || {}).stars > 0),
   },
   {
-    id: 'collector', name: '模型收藏家', desc: '10 个模型各通关至少一次',
+    id: 'collector', name: '模型收藏家', desc: '12 个模型各通关至少一次',
     test: (p) => MODEL_KEYS.every((mk) => DIFFICULTY.some((n) => (p[levelKey(mk, n)] || {}).stars > 0)),
   },
   {
@@ -74,11 +74,22 @@ export const ACHIEVEMENTS = [
     test: (p) => Object.entries(p).some(([k, r]) => k.endsWith('|6') && r.bestTime > 0 && r.bestTime <= 300),
   },
   {
-    id: 'all_master', name: '大师挑战', desc: '全部 10 个模型完成 6 块难度',
+    id: 'all_master', name: '大师挑战', desc: '全部 12 个模型完成 6 块难度',
     test: (p) => MODEL_KEYS.every((mk) => (p[levelKey(mk, 6)] || {}).stars > 0),
   },
   {
-    id: 'perfectionist', name: '完美主义', desc: '同一难度集齐 10 个三星',
+    id: 'first_8', name: '极限初体验', desc: '完成任意 8 块关卡',
+    test: (p) => Object.entries(p).some(([k, r]) => k.endsWith('|8') && r.stars > 0),
+  },
+  {
+    id: 'eight_master', name: '极限大师', desc: '8 个不同模型完成 8 块难度',
+    test: (p) => {
+      const done = MODEL_KEYS.filter((mk) => (p[levelKey(mk, 8)] || {}).stars > 0).length;
+      return done >= 8;
+    },
+  },
+  {
+    id: 'perfectionist', name: '完美主义', desc: '同一难度集齐 12 个三星',
     test: (p) => DIFFICULTY.some((n) => MODEL_KEYS.every((mk) => (p[levelKey(mk, n)] || {}).stars === 3)),
   },
 ];
