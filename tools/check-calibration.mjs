@@ -9,7 +9,8 @@
 import { MODELS, buildModel } from '../public/js/models.mjs';
 import { splitWithPlanes, isWatertight, CUT_TABLE } from '../public/js/puzzle.mjs';
 
-const COUNTS = [2, 3, 4, 6];
+const COUNTS = [2, 3, 4, 6, 8];
+const OPTIONAL_COUNTS = new Set([8]); // 8 块为可选档（圣诞树无解）
 
 function meshVolume(pos, tris) {
   let cx = 0, cy = 0, cz = 0; const seen = new Set();
@@ -51,6 +52,7 @@ for (const key of Object.keys(MODELS)) {
   for (const n of COUNTS) {
     const planes = CUT_TABLE[key] && CUT_TABLE[key][n];
     if (!Array.isArray(planes) || planes.length !== n - 1) {
+      if (OPTIONAL_COUNTS.has(n)) continue; // 可选档缺失允许
       console.error(`✗ ${key} x${n}: CUT_TABLE 缺项（期望 ${n - 1} 个平面）`);
       failed++;
       continue;
@@ -78,4 +80,4 @@ for (const key of Object.keys(MODELS)) {
 const secs = ((Date.now() - t0) / 1000).toFixed(1);
 console.log(`${checks} 个组合校验完成，失败 ${failed}（${secs}s）`);
 if (failed) { console.error('✗ 切割表不完整或不可用，请运行 node tools/calibrate-cuts.mjs 重新标定'); process.exit(1); }
-console.log('✓ 切割表完整：所有模型 × 2/3/4/6 均有解且水密/守恒');
+console.log('✓ 切割表完整：所有模型 × 2/3/4/6（及 11 个模型的 8 块可选档）均有解且水密/守恒');

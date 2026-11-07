@@ -212,7 +212,9 @@ function search(modelKey, n, candidateLimit = 3, minGapFrac = 0.14) {
 // ---------- 主流程 ----------
 // 2/3/4/6 四档：8 块在细长锥体模型（圣诞树）上找不到同时满足"水密 + 体积守恒 +
 // 最小刀距"的解，且 8 片在小型模型上会切出过多薄片，收益有限，暂不提供。
-const COUNTS = [2, 3, 4, 6];
+const COUNTS = [2, 3, 4, 6, 8];
+// 8 块为可选档：细长锥体（圣诞树）无解时不阻断整体标定
+const OPTIONAL_COUNTS = new Set([8]);
 // 逐级放宽：先保证同轴刀距 ≥14% 轴长（碎片均匀好看），失败再放宽
 const LADDER = [
   { limit: 3, gap: 0.14 },
@@ -235,7 +237,12 @@ for (const key of Object.keys(MODELS)) {
       planes = search(key, n, rung.limit, rung.gap);
       if (planes) { usedLadder = rung; break; }
     }
-    if (!planes) { failed++; console.error(`✗ ${key} x${n} 未找到可行平面`); continue; }
+    if (!planes) {
+      if (OPTIONAL_COUNTS.has(n)) { console.warn(`⚠ ${key} x${n} 无解（可选档，跳过）`); continue; }
+      failed++;
+      console.error(`✗ ${key} x${n} 未找到可行平面`);
+      continue;
+    }
     table[key][n] = planes;
     console.log(`✓ ${name}(${key}) x${n}: ${JSON.stringify(planes)}  (${Date.now() - t}ms, 刀距≥${(usedLadder.gap * 100).toFixed(0)}%)`);
   }
