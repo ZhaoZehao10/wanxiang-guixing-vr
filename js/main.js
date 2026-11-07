@@ -17,6 +17,9 @@ const SNAP_COS = 0.90;         // 旋转吸附余弦阈值（约 25°）
 const GRAB_REACH = 0.85;       // 手柄到碎片的抓取半径（米）
 const SLOPE_PIECES = 9;        // 散落碎片数上限（多于碎片数时随机会重复取用）
 
+const DIFFICULTY = [2, 3, 4, 6];                 // 可选块数（切割标定覆盖 2/3/4/6）
+const DIFFICULTY_NAME = { 2: '入门', 3: '进阶', 4: '挑战', 6: '大师' };
+
 // ---------------- 全局状态 ----------------
 
 const state = {
@@ -356,7 +359,7 @@ function saveProgress(p) {
   try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) { /* 隐私模式等场景忽略 */ }
 }
 function levelKey(mk, n) { return mk + '|' + n; }
-function parTime(n) { return ({ 2: 90, 3: 160, 4: 260 })[n] || 120; }
+function parTime(n) { return ({ 2: 90, 3: 160, 4: 260, 6: 380 })[n] || 120; }
 function starsFor(secs, n) {
   const par = parTime(n);
   if (secs <= par) return 3;
@@ -772,14 +775,14 @@ function showDifficulty() {
   row2.style.marginTop = '10px';
   const prog = loadProgress();
   const modelCount = Object.keys(MODELS).length;
-  for (const n of [2, 3, 4]) {
+  for (const n of DIFFICULTY) {
     const done = Object.keys(MODELS).filter((mk) => {
       const rec = prog[levelKey(mk, n)];
       return rec && rec.stars > 0;
     }).length;
     const b = document.createElement('button');
     b.className = 'diff-btn';
-    b.innerHTML = `<b style="font-size:18px">${n} 块</b><span>${['', '', '入门', '进阶', '挑战'][n]}</span>`
+    b.innerHTML = `<b style="font-size:18px">${n} 块</b><span>${DIFFICULTY_NAME[n]}</span>`
       + `<small style="display:block;color:#ffd24d;font-size:12px;margin-top:3px">⭐ ${done}/${modelCount} 关</small>`;
     b.onclick = () => startGame(state.modelKey, n);
     row2.appendChild(b);
@@ -825,14 +828,14 @@ function buildVrMenu() {
     vrMenu.buttons.push(b);
   });
 
-  // 块数行（2/3/4）
-  [2, 3, 4].forEach((n, i) => {
+  // 块数行（2/3/4/6）
+  DIFFICULTY.forEach((n, i) => {
     const b = makeVrButton(`${n}块`, () => {
       state.pieceCount = n;
       refreshVrMenu();
       sfx.ui();
     });
-    b.position.set((i - 1) * 0.275, -0.10, 0.02);
+    b.position.set((i - (DIFFICULTY.length - 1) / 2) * 0.275, -0.10, 0.02);
     b.userData.count = n;
     g.add(b);
     vrMenu.buttons.push(b);
