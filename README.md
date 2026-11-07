@@ -151,15 +151,22 @@ test/
   rw-e2e.mjs          【随机游走】21 项端到端（流程/连通性/彩蛋/结算/渲染）
   rw-offline-e2e.mjs  【随机游走】离线单文件版 file:// 端到端 + WebXR 接口探测
   rw-perf.mjs         【随机游走】6x CPU 限速性能实测（开局/帧率/重开）
-  run-tests.mjs       【拼图】切割引擎单元测试（水密性 + 体积守恒，336 项）
+  run-tests.mjs       【拼图】切割引擎单元测试（水密性 + 体积守恒，360 项）
   progress-tests.mjs  【拼图】进度/星级/成就纯逻辑单元测试（31 项）
   fuzz-tests.mjs      【拼图】模糊测试（200 轮随机调用/噪声输入/双重水密校验）
   plane-fuzz.mjs      【拼图】随机平面压力测试（成功必须水密守恒）
-  regression.mjs      【拼图】回归基线（40 组合结构指纹；--capture 重建）
+  regression.mjs      【拼图】回归基线（48 组合结构指纹；--capture 重建）
   visual-regression.mjs 【拼图】视觉回归（3 场景帧缓冲感知哈希；--capture 重建）
   e2e-*.mjs           【拼图】无头浏览器端到端验证（CDP 协议）
   perf-browser.mjs    【拼图】浏览器性能实测（6x CPU 限速模拟移动芯片）
   debug-*.mjs         各类故障诊断脚本（开发期使用，保留作记录）
+tools/
+  make-offline-puzzle.mjs  【拼图】单文件离线版打包（three/VRButton/全部模块内联）
+  make-icons-puzzle.mjs    【拼图】APK 启动图标（拼图块风格，纯 Node PNG 编码）
+  build-apk-puzzle.ps1     【拼图】APK 一键构建（与随机游走完全隔离）
+  calibrate-cuts.mjs       【拼图】切割平面自动标定（48 组合，写回 puzzle.mjs）
+  check-calibration.mjs    【拼图】切割表完整性校验（每次 test-all 必跑）
+  test-all.mjs             一键跑全部 12 套测试（自动管理 8443 服务器）
 ```
 
 **3D 切割引擎**（`puzzle.mjs`）是本项目的核心：
@@ -299,14 +306,16 @@ android-sdk\platform-tools\adb.exe install -r "dist\3D拼图VR.apk"
   关星空），稳定高于 70fps 再逐级升回，保证 Pico Neo3 的 72Hz 稳定；
 - **程序化背景音乐**：Am-F-C-G 缓慢和弦 Pad（WebAudio 实时合成，带呼吸 LFO），
   2D 按钮 / VR 菜单「音乐」开关，音量与开关存本地；
-- **配色皮肤**：经典 / 霓虹 / 暖冬 / 冷银（HSL 变换重映射顶点颜色）。
+- **配色皮肤**：经典 / 霓虹 / 暖冬 / 冷银 / 节日 / 海洋（HSL 变换重映射顶点颜色）。
   配色只改颜色不改几何，因此 48 组切割表对所有皮肤通用；选择记忆在本地。
 
 **测试覆盖**（全部模型自动纳入）：
 - `node test/run-tests.mjs`：12 模型 × 4 块数 × 每片水密/体积为正/守恒/幂等
-  + 每模型原始体积 + 4 配色 × 12 模型的水密/守恒/变色校验 = **336 项**；
+  + 每模型原始体积 + 5 配色 × 12 模型的水密/守恒/变色校验 = **360 项**；
 - `node test/progress-tests.mjs`：星级阈值 / 成绩写入 / 7 个成就判定 / 存储往返 /
   损坏数据回退 = **31 项**（纯逻辑，用内存 store 模拟 localStorage）；
+- `node tools/check-calibration.mjs`：切割表完整性校验——12 模型 × 4 难度共 48 组合
+  必须全部有解、片数正确、水密且体积守恒（约 2 秒，每次测试必跑）；
 - `node test/plane-fuzz.mjs`：随机轴对齐平面压测（成功必须水密守恒，拒绝属预期保护）；
 - `node test/regression.mjs`：48 组结构指纹基线；
 - `node test/visual-regression.mjs`：3 个场景的帧缓冲感知哈希（32×18 网格平均色），
@@ -321,7 +330,7 @@ android-sdk\platform-tools\adb.exe install -r "dist\3D拼图VR.apk"
 **一键跑全部测试**：
 
 ```powershell
-node tools\test-all.mjs          # 11 套件串行，自动拉起/关闭 8443 服务器，约 110 秒
+node tools\test-all.mjs          # 12 套件串行，自动拉起/关闭 8443 服务器，约 130 秒
 node tools\test-all.mjs --fast   # 跳过随机平面压力与性能实测（约 45 秒）
 ```
 
