@@ -100,6 +100,33 @@ check('设备自检：默认隐藏、显示安全上下文/navigator.xr/WebGL、
   && selfCheck.text.includes('WebGL') && selfCheck.closed === true && selfCheck.introHidden === false,
   JSON.stringify({ initiallyHidden: selfCheck.initiallyHidden, opened: selfCheck.opened, closed: selfCheck.closed, introHidden: selfCheck.introHidden }));
 
+// 1.15) 稳定性：版本信息 / WebGL 上下文丢失 / 关卡加载失败兜底
+const stability = await evalJs(`(async () => {
+  const p = window.__pico3d;
+  const buildInfo = document.getElementById('build-info').textContent;
+  // 模拟 WebGL 上下文丢失与恢复
+  const canvas = document.getElementById('c3d');
+  canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+  const lost = p.getFatalInfo();
+  canvas.dispatchEvent(new Event('webglcontextrestored'));
+  const restored = p.getFatalInfo();
+  // 加载不存在的模型：应被兜底，不抛异常
+  let threw = false;
+  try { p.startGame('not_a_model', 2); } catch (e) { threw = true; }
+  const bad = p.getFatalInfo();
+  document.getElementById('fatal-back').click();
+  const afterBack = p.getFatalInfo();
+  return { buildInfo, lost, restored, threw, bad, afterBack, mode: p.state.mode };
+})()`);
+check('封面显示版本与构建信息', /v\d+\.\d+\.\d+/.test(stability.buildInfo) && stability.buildInfo.includes('模型'), JSON.stringify(stability.buildInfo));
+check('WebGL 上下文丢失提示与恢复',
+  stability.lost.visible === true && stability.lost.title.includes('渲染中断') && stability.restored.visible === false,
+  JSON.stringify({ lost: stability.lost, restored: stability.restored }));
+check('关卡加载失败兜底：不抛异常、可返回菜单',
+  stability.threw === false && stability.bad.visible === true && stability.bad.title.includes('加载失败')
+  && stability.afterBack.visible === false && stability.mode === 'difficulty',
+  JSON.stringify({ threw: stability.threw, bad: stability.bad, afterBack: stability.afterBack, mode: stability.mode }));
+
 // 1.2) 每日挑战：按日期确定性生成，菜单可见且可一键开局
 const daily = await evalJs(`(() => {
   const p = window.__pico3d;
