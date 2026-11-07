@@ -1,0 +1,411 @@
+// 程序化 3D 模型库 — 纯 JS 生成带顶点颜色的 OBJ 文本
+//
+// 8 个模型：小火箭 / 蘑菇屋 / 宝石星球 / 梦幻城堡 / 软萌企鹅 / 礼物盒子 / 迷你赛车 / 圣诞树
+//
+// 生成约定：右手坐标系、Y 向上、三角形绕向从外看逆时针（法线朝外）。
+// 顶点颜色直接写进 v 行（v x y z r g b），拆分与渲染两端共用。
+//
+// 重要约束（切割引擎拓扑依赖）：
+//   1) 每个图元必须是独立的封闭壳（本文件所有生成器均已验证）；
+//   2) 不同图元之间不得有"位置完全重合"的顶点——splitIntoPieces 会按位置
+//      焊接顶点，若两个壳共享顶点位置，两壳会被错误地拓扑连接，补面行走断链。
+//      所以各图元的尺寸/位置一律错开（即使视觉上互相穿插也没问题：几何相交
+//      但拓扑独立是允许的）。
+//   3) 圆环面/球体/圆锥的接缝顶点均已做取模处理，无重复顶点。
+
+function f4(n) { return (Math.round(n * 10000) / 10000).toString(); }
+
+class ObjBuilder {
+  constructor() { this.verts = []; this.faces = []; }
+  vert(p, c) { this.verts.push([p[0], p[1], p[2], c[0], c[1], c[2]]); return this.verts.length; } // 1-based
+  tri(a, b, c) { this.faces.push([a, b, c]); }
+  toString() {
+    const out = [];
+    for (const v of this.verts) out.push(`v ${f4(v[0])} ${f4(v[1])} ${f4(v[2])} ${f4(v[3])} ${f4(v[4])} ${f4(v[5])}`);
+    for (const f of this.faces) out.push(`f ${f[0]} ${f[1]} ${f[2]}`);
+    return out.join('\n') + '\n';
+  }
+}
+
+// 变换：scale → 旋转(Rz·Ry·Rx，即先 X 后 Y 后 Z) → 平移
+// 顺序说明：rot=[φ,θ,0] 时 v'=Ry(θ)·Rx(φ)·v，可使 +Y 轴指向 (sinφsinθ, cosφ, sinφcosθ)，
+// 即"先绕 X 倾斜 φ、再绕 Y 转方位 θ"——宝石星球尖刺的方向依赖此顺序。
+function xform(t, p) {
+  let [x, y, z] = p;
+  if (t.scale) { x *= t.scale[0]; y *= t.scale[1]; z *= t.scale[2]; }
+  const r = t.rot;
+  if (r) {
+    if (r[0]) { const cx = Math.cos(r[0]), sx = Math.sin(r[0]); const y1 = y * cx - z * sx, z1 = y * sx + z * cx; y = y1; z = z1; }
+    if (r[1]) { const cy = Math.cos(r[1]), sy = Math.sin(r[1]); const x1 = x * cy + z * sy, z1 = -x * sy + z * cy; x = x1; z = z1; }
+    if (r[2]) { const cz = Math.cos(r[2]), sz = Math.sin(r[2]); const x3 = x * cz - y * sz, y3 = x * sz + y * cz; x = x3; y = y3; }
+  }
+  if (t.pos) { x += t.pos[0]; y += t.pos[1]; z += t.pos[2]; }
+  return [x, y, z];
+}
+
+function put(b, color, t, p) { return b.vert(xform(t, p), color); }
+
+// 截锥体（圆柱 = rb===rt）。零半径端自动改为单一顶点（圆锥尖），避免退化三角形。
+// 已验证绕向：侧面/端盖/锥扇形法线均朝外。
+function frustum(b, color, t, rb, rt, h, seg = 36) {
+  const EPS_R = 1e-6;
+  const rows = 4;
+  const yAt = (j) => -h / 2 + (h * j) / rows;
+  const rAt = (j) => rb + ((rt - rb) * j) / rows;
+  const ringAt = (j) => {
+    const r = rAt(j), y = yAt(j), row = [];
+    for (let i = 0; i < seg; i++) {
+      const a = (2 * Math.PI * i) / seg;
+      row.push(put(b, color, t, [r * Math.cos(a), y, r * Math.sin(a)]));
+    }
+    return row;
+  };
+  const bottomApex = rb <= EPS_R, topApex = rt <= EPS_R;
+  const j0 = bottomApex ? 1 : 0;
+  const j1 = topApex ? rows - 1 : rows;
+  const rings = [];
+  for (let j = j0; j <= j1; j++) rings.push(ringAt(j));
+  const apexB = bottomApex ? put(b, color, t, [0, yAt(0), 0]) : -1;
+  const apexT = topApex ? put(b, color, t, [0, yAt(rows), 0]) : -1;
+
+  for (let k = 0; k < rings.length - 1; k++) {
+    const lo = rings[k], hi = rings[k + 1];
+    for (let i = 0; i < seg; i++) {
+      const i2 = (i + 1) % seg;
+      b.tri(lo[i], hi[i2], lo[i2]);
+      b.tri(lo[i], hi[i], hi[i2]);
+    }
+  }
+  if (bottomApex) { // 锥底扇形（尖朝下）
+    const r0 = rings[0];
+    for (let i = 0; i < seg; i++) b.tri(apexB, r0[i], r0[(i + 1) % seg]);
+  } else {
+    const c = put(b, color, t, [0, yAt(0), 0]);
+    for (let i = 0; i < seg; i++) b.tri(c, rings[0][i], rings[0][(i + 1) % seg]);
+  }
+  if (topApex) { // 锥顶扇形（尖朝上）
+    const rN = rings[rings.length - 1];
+    for (let i = 0; i < seg; i++) b.tri(apexT, rN[(i + 1) % seg], rN[i]);
+  } else {
+    const rN = rings[rings.length - 1];
+    const c = put(b, color, t, [0, yAt(rows), 0]);
+    for (let i = 0; i < seg; i++) b.tri(c, rN[(i + 1) % seg], rN[i]);
+  }
+}
+
+// 球体（低分段 = 宝石棱面感）。scale 可压扁。
+// 单极点拓扑：上下极各 1 个顶点 + 扇形三角化，两极无重合顶点。
+function sphere(b, color, t, r, wSeg = 40, hSeg = 26) {
+  const grid = [];
+  for (let j = 1; j < hSeg; j++) {
+    const phi = (Math.PI * j) / hSeg, row = [];
+    for (let i = 0; i < wSeg; i++) {
+      const th = (2 * Math.PI * i) / wSeg;
+      row.push(put(b, color, t, [r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)]));
+    }
+    grid.push(row);
+  }
+  const top = put(b, color, t, [0, r, 0]);
+  const bot = put(b, color, t, [0, -r, 0]);
+  for (let i = 0; i < wSeg; i++) {
+    b.tri(top, grid[0][(i + 1) % wSeg], grid[0][i]);           // 顶扇
+    b.tri(bot, grid[hSeg - 2][i], grid[hSeg - 2][(i + 1) % wSeg]); // 底扇
+  }
+  for (let j = 0; j < hSeg - 2; j++) {
+    for (let i = 0; i < wSeg; i++) {
+      const i2 = (i + 1) % wSeg;
+      b.tri(grid[j][i], grid[j + 1][i2], grid[j + 1][i]);
+      b.tri(grid[j][i], grid[j][i2], grid[j + 1][i2]);
+    }
+  }
+}
+
+// 圆环（默认躺在 XZ 平面，中轴 = Y）。u/v 均取模环绕，无重合接缝顶点。
+function torus(b, color, t, R, r, uSeg = 64, vSeg = 20) {
+  const P = (u, v) => [(R + r * Math.cos(v)) * Math.cos(u), r * Math.sin(v), (R + r * Math.cos(v)) * Math.sin(u)];
+  const g = [];
+  for (let i = 0; i < uSeg; i++) {
+    const row = [];
+    for (let j = 0; j < vSeg; j++) row.push(put(b, color, t, P((2 * Math.PI * i) / uSeg, (2 * Math.PI * j) / vSeg)));
+    g.push(row);
+  }
+  for (let i = 0; i < uSeg; i++) {
+    const i2 = (i + 1) % uSeg;
+    for (let j = 0; j < vSeg; j++) {
+      const j2 = (j + 1) % vSeg;
+      b.tri(g[i][j], g[i2][j2], g[i2][j]);
+      b.tri(g[i][j], g[i][j2], g[i2][j2]);
+    }
+  }
+}
+
+// 轴对齐盒子（6 面绕向已逐一验证）
+function box(b, color, t, sx, sy, sz) {
+  const hx = sx / 2, hy = sy / 2, hz = sz / 2;
+  const F = [
+    [[hx, -hy, hz], [hx, -hy, -hz], [hx, hy, -hz], [hx, hy, hz]],   // +X
+    [[-hx, -hy, -hz], [-hx, -hy, hz], [-hx, hy, hz], [-hx, hy, -hz]], // -X
+    [[-hx, hy, hz], [hx, hy, hz], [hx, hy, -hz], [-hx, hy, -hz]],   // +Y
+    [[-hx, -hy, -hz], [hx, -hy, -hz], [hx, -hy, hz], [-hx, -hy, hz]], // -Y
+    [[-hx, -hy, hz], [hx, -hy, hz], [hx, hy, hz], [-hx, hy, hz]],   // +Z
+    [[hx, -hy, -hz], [-hx, -hy, -hz], [-hx, hy, -hz], [hx, hy, -hz]], // -Z
+  ];
+  for (const [a, c, d, e] of F) {
+    const ia = put(b, color, t, a), ib = put(b, color, t, c), ic = put(b, color, t, d), id = put(b, color, t, e);
+    b.tri(ia, ib, ic); b.tri(ia, ic, id);
+  }
+}
+
+// ---------------- 模型 1：小火箭（精修版） ----------------
+
+function buildRocket(b) {
+  const white = [0.94, 0.95, 0.97], red = [0.90, 0.22, 0.28], grey = [0.36, 0.39, 0.44];
+  const blue = [0.20, 0.45, 0.95], cyan = [0.55, 0.90, 1.00], orange = [1.00, 0.55, 0.12];
+  const gold = [0.95, 0.80, 0.35];
+  frustum(b, orange, { pos: [0, -1.22, 0] }, 0.20, 0.02, 0.34, 28);           // 尾焰外焰
+  frustum(b, [1.0, 0.85, 0.35], { pos: [0, -1.26, 0] }, 0.10, 0.01, 0.26, 20); // 尾焰内焰
+  frustum(b, grey, { pos: [0, -0.96, 0] }, 0.18, 0.30, 0.22, 48);              // 喷口
+  frustum(b, white, { pos: [0, -0.32, 0] }, 0.34, 0.30, 1.10, 48);             // 机身
+  frustum(b, red, { pos: [0, 0.22, 0] }, 0.315, 0.315, 0.06, 48);              // 装饰环 1
+  frustum(b, red, { pos: [0, -0.52, 0] }, 0.325, 0.325, 0.05, 48);             // 装饰环 2
+  frustum(b, red, { pos: [0, 0.51, 0] }, 0.30, 0.02, 0.55, 48);                // 头锥
+  sphere(b, gold, { pos: [0, 0.79, 0] }, 0.045, 16, 10);                       // 顶端小珠
+  sphere(b, blue, { pos: [0, -0.18, 0.325], rot: [Math.PI / 2, 0, 0] }, 0.14, 28, 16); // 舷窗框
+  sphere(b, cyan, { pos: [0, -0.18, 0.315], scale: [1, 1, 0.45] }, 0.11, 24, 14);      // 舷窗玻璃
+  for (let k = 0; k < 6; k++) {                                                // 舷窗铆钉
+    const a = (Math.PI / 3) * k + 0.3;
+    sphere(b, grey, { pos: [0.155 * Math.cos(a), -0.18 + 0.155 * Math.sin(a), 0.30] }, 0.022, 10, 8);
+  }
+  for (let k = 0; k < 3; k++) {                                                // 三片尾翼
+    const a = (2 * Math.PI * k) / 3;
+    box(b, red, { pos: [0.38 * Math.sin(a), -0.72, 0.38 * Math.cos(a)], rot: [0, a, 0] }, 0.07, 0.52, 0.36);
+  }
+  for (let k = 0; k < 3; k++) {                                                // 尾翼铆钉条
+    const a = (2 * Math.PI * k) / 3 + Math.PI / 3;
+    sphere(b, grey, { pos: [0.36 * Math.sin(a), -0.60, 0.36 * Math.cos(a)] }, 0.028, 10, 8);
+  }
+}
+
+// ---------------- 模型 2：蘑菇屋（精修版） ----------------
+
+function buildMushroom(b) {
+  const cream = [0.96, 0.92, 0.80], capRed = [0.85, 0.25, 0.28], spot = [0.97, 0.96, 0.94];
+  const brown = [0.55, 0.36, 0.20], grass = [0.36, 0.74, 0.40], brick = [0.70, 0.40, 0.32];
+  const grassDark = [0.28, 0.60, 0.32];
+  frustum(b, grass, { pos: [0, -0.85, 0] }, 0.98, 0.95, 0.14, 56);             // 草地底盘
+  frustum(b, cream, { pos: [0, -0.35, 0] }, 0.42, 0.50, 0.90, 48);             // 菌柄
+  box(b, brown, { pos: [0, -0.38, 0.42] }, 0.34, 0.50, 0.09);                  // 木门
+  sphere(b, [0.95, 0.80, 0.30], { pos: [0.10, -0.38, 0.48] }, 0.032, 12, 8);   // 门把手
+  sphere(b, [0.55, 0.85, 0.95], { pos: [0.26, -0.08, 0.435], rot: [Math.PI / 2, 0, 0], scale: [1, 1, 0.4] }, 0.09, 20, 12); // 右窗
+  sphere(b, [0.55, 0.85, 0.95], { pos: [-0.26, -0.08, 0.435], rot: [Math.PI / 2, 0, 0], scale: [1, 1, 0.4] }, 0.09, 20, 12); // 左窗
+  sphere(b, capRed, { pos: [0, 0.15, 0], scale: [1, 0.62, 1] }, 0.95, 48, 30); // 菌盖
+  const spots = [];
+  for (let k = 0; k < 6; k++) {                                                // 盖面斑点（两圈）
+    const a = (Math.PI / 3) * k + 0.4;
+    const ring = k % 2 === 0 ? 0.62 : 0.34;
+    const yy = 0.15 + 0.59 * Math.sqrt(Math.max(0, 1 - (ring / 0.95) ** 2));
+    spots.push([ring * Math.cos(a), yy, ring * Math.sin(a), k % 2 === 0 ? 0.10 : 0.075]);
+  }
+  spots.push([0, 0.15 + 0.59, 0, 0.11]);                                       // 顶斑
+  for (const [x, y, z, r] of spots) sphere(b, spot, { pos: [x, y, z], scale: [1, 0.35, 1] }, r, 18, 10);
+  box(b, brick, { pos: [0.42, 0.62, -0.28], rot: [0, 0.5, -0.10] }, 0.15, 0.30, 0.15); // 烟囱
+  for (let k = 0; k < 3; k++) {                                                // 烟囱轻烟
+    sphere(b, [0.85, 0.85, 0.88], { pos: [0.40 + k * 0.04, 0.82 + k * 0.13, -0.30 - k * 0.03] }, 0.055 + k * 0.015, 14, 10);
+  }
+  const petals = [[1.00, 0.60, 0.75], [1.00, 0.85, 0.40], [0.90, 0.50, 1.00], [0.55, 0.85, 1.00]]; // 底座小花
+  for (let k = 0; k < 4; k++) {
+    const a = 1.9 + k * 1.55;
+    sphere(b, petals[k], { pos: [0.76 * Math.cos(a), -0.76, 0.76 * Math.sin(a)] }, 0.055, 12, 8);
+  }
+  for (let k = 0; k < 6; k++) {                                                // 草丛
+    const a = (Math.PI / 3) * k + 0.15;
+    frustum(b, grassDark, { pos: [0.88 * Math.cos(a), -0.78, 0.88 * Math.sin(a)] }, 0.035, 0.0, 0.14, 8);
+  }
+}
+
+// ---------------- 模型 3：宝石星球（精修版） ----------------
+
+function buildGemPlanet(b) {
+  const teal = [0.20, 0.78, 0.72], purple = [0.72, 0.42, 0.95], gold = [0.95, 0.78, 0.25], moon = [0.95, 0.95, 1.00];
+  const goldLight = [1.00, 0.90, 0.55];
+  sphere(b, teal, {}, 0.62, 14, 9);                                            // 核心（略细分的棱面宝石）
+  const spikes = [ // [极角φ, 方位角θ, 半径, 高]
+    [0.25, 0.3, 0.15, 0.60], [0.80, 1.6, 0.13, 0.50], [0.50, 3.0, 0.16, 0.65],
+    [1.20, 4.2, 0.12, 0.45], [1.90, 0.8, 0.14, 0.55], [2.60, 3.6, 0.15, 0.58],
+    [1.55, 5.4, 0.10, 0.38], [2.20, 2.2, 0.11, 0.42],
+  ];
+  for (const [phi, th, r, h] of spikes) {
+    const dir = [Math.sin(phi) * Math.sin(th), Math.cos(phi), Math.sin(phi) * Math.cos(th)];
+    frustum(b, purple, { pos: [dir[0] * 0.50, dir[1] * 0.50, dir[2] * 0.50], rot: [phi, th, 0] }, r, 0.0, h, 18);
+    // 每根刺底部一圈小晶粒
+    for (let k = 0; k < 3; k++) {
+      const a = (2 * Math.PI * k) / 3 + phi;
+      sphere(b, goldLight, {
+        pos: [dir[0] * 0.50 + 0.09 * Math.cos(a) * Math.sin(th), dir[1] * 0.50 + 0.09 * Math.cos(a) * Math.cos(phi), dir[2] * 0.50 + 0.09 * Math.sin(a) * Math.sin(phi)],
+      }, 0.022, 8, 6);
+    }
+  }
+  torus(b, gold, {}, 1.00, 0.07, 72, 22);                                      // 金环
+  torus(b, goldLight, { rot: [0.55, 0.35, 0] }, 0.84, 0.025, 56, 12);          // 倾斜细环
+  for (let k = 0; k < 3; k++) {                                                // 环上的小月亮
+    const a = (2 * Math.PI * k) / 3;
+    sphere(b, moon, { pos: [Math.cos(a), 0, Math.sin(a)] }, 0.095, 22, 14);
+  }
+  for (let k = 0; k < 3; k++) {                                                // 漂浮晶簇（双锥）
+    const a = 1.0 + k * 2.1;
+    const r = 1.28;
+    const y = 0.55 - k * 0.45;
+    frustum(b, purple, { pos: [r * Math.cos(a) * 0.55, y + 0.10, r * Math.sin(a) * 0.55] }, 0.09, 0.0, 0.22, 12);
+    frustum(b, [0.55, 0.30, 0.80], { pos: [r * Math.cos(a) * 0.55, y - 0.02, r * Math.sin(a) * 0.55], rot: [Math.PI, 0, 0] }, 0.085, 0.0, 0.20, 12);
+  }
+}
+
+// ---------------- 模型 4：梦幻城堡 ----------------
+
+function buildCastle(b) {
+  const stone = [0.62, 0.60, 0.56], stoneDark = [0.48, 0.46, 0.44], roof = [0.72, 0.24, 0.30];
+  const roofBlue = [0.28, 0.42, 0.78], wood = [0.42, 0.28, 0.18], flag = [0.95, 0.80, 0.25];
+  const grass = [0.42, 0.66, 0.36];
+  frustum(b, grass, { pos: [0, -0.98, 0] }, 1.12, 1.02, 0.16, 56);             // 草地
+  box(b, stone, { pos: [0, -0.57, 0] }, 1.02, 0.62, 0.92);                     // 主城墙
+  for (let i = 0; i < 4; i++) {                                                // 城垛（前后两排）
+    const x = -0.36 + i * 0.24;
+    box(b, stoneDark, { pos: [x, -0.23, 0.40] }, 0.12, 0.10, 0.10);
+    box(b, stoneDark, { pos: [x, -0.23, -0.40] }, 0.12, 0.10, 0.10);
+  }
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {                        // 四角塔楼
+    frustum(b, stone, { pos: [sx * 0.58, -0.48, sz * 0.50] }, 0.17, 0.17, 0.78, 28);
+    frustum(b, roof, { pos: [sx * 0.58, -0.02, sz * 0.50] }, 0.235, 0.0, 0.34, 28);
+    sphere(b, flag, { pos: [sx * 0.58, 0.20, sz * 0.50] }, 0.035, 10, 8);
+  }
+  frustum(b, stone, { pos: [0, -0.30, 0], rot: [0, 0, 0] }, 0.26, 0.26, 0.85, 28); // 中央主塔
+  frustum(b, roofBlue, { pos: [0, 0.26, 0] }, 0.34, 0.0, 0.42, 28);            // 主塔尖顶
+  sphere(b, flag, { pos: [0, 0.51, 0] }, 0.05, 12, 8);                         // 塔顶金球
+  frustum(b, [0.55, 0.55, 0.6], { pos: [0, 0.65, 0] }, 0.018, 0.012, 0.24, 10); // 旗杆
+  box(b, flag, { pos: [0.09, 0.72, 0] }, 0.18, 0.10, 0.02);                    // 旗帜
+  box(b, wood, { pos: [0, -0.78, 0.46] }, 0.30, 0.34, 0.07);                   // 城门
+  sphere(b, [0.90, 0.75, 0.35], { pos: [0.10, -0.76, 0.50] }, 0.028, 10, 8);   // 门环
+  for (let i = 0; i < 5; i++) {                                                // 窗
+    box(b, [0.25, 0.25, 0.28], { pos: [-0.30 + i * 0.15, -0.50, 0.465] }, 0.07, 0.10, 0.02);
+  }
+}
+
+// ---------------- 模型 5：软萌企鹅 ----------------
+
+function buildPenguin(b) {
+  const black = [0.10, 0.12, 0.16], white = [0.95, 0.95, 0.93], orange = [1.00, 0.62, 0.15];
+  const pink = [0.95, 0.55, 0.55];
+  sphere(b, black, { pos: [0, -0.22, 0], scale: [0.66, 1.0, 0.56] }, 1.0, 44, 28);  // 身体
+  // 肚皮：必须明显凸出身体表面（z 前移），否则两壳近共面会 Z-fighting
+  sphere(b, white, { pos: [0, -0.28, 0.34], scale: [0.50, 0.80, 0.30] }, 1.0, 40, 26);
+  sphere(b, black, { pos: [0, 0.78, 0.03], scale: [1, 0.95, 1] }, 0.44, 40, 26);    // 头
+  frustum(b, orange, { pos: [0, 0.72, 0.46], rot: [Math.PI / 2, 0, 0] }, 0.13, 0.0, 0.24, 20); // 嘴
+  for (const s of [-1, 1]) {
+    // 眼睛/腮红都要凸出头表面（头前缘 z≈0.47）
+    sphere(b, white, { pos: [s * 0.17, 0.86, 0.45], scale: [1, 1, 0.55] }, 0.10, 20, 14);
+    sphere(b, black, { pos: [s * 0.17, 0.86, 0.51], scale: [1, 1, 0.6] }, 0.048, 16, 10);
+    sphere(b, pink, { pos: [s * 0.32, 0.72, 0.44], scale: [1, 0.6, 0.5] }, 0.05, 14, 8);
+    sphere(b, black, { pos: [s * 0.66, -0.18, 0.02], scale: [0.16, 0.62, 0.34] }, 1.0, 24, 16); // 翅膀
+    box(b, orange, { pos: [s * 0.24, -1.16, 0.20], rot: [0, s * 0.15, 0] }, 0.24, 0.09, 0.32);  // 脚
+  }
+  sphere(b, black, { pos: [0, -0.95, -0.42], scale: [0.30, 0.18, 0.30] }, 1.0, 20, 12); // 尾巴
+}
+
+// ---------------- 模型 6：礼物盒子 ----------------
+
+function buildGift(b) {
+  const red = [0.85, 0.22, 0.28], gold = [0.95, 0.78, 0.30], cream = [0.97, 0.93, 0.80];
+  const deepRed = [0.65, 0.15, 0.20];
+  box(b, red, { pos: [0, -0.50, 0] }, 0.92, 0.78, 0.92);                        // 盒身
+  box(b, deepRed, { pos: [0, -0.02, 0] }, 1.00, 0.16, 1.00);                    // 盒盖
+  box(b, cream, { pos: [0, -0.02, 0] }, 0.13, 0.20, 1.01);                      // 竖向丝带（盖）
+  box(b, cream, { pos: [0, -0.02, 0] }, 1.01, 0.20, 0.13);                      // 横向丝带（盖）
+  box(b, cream, { pos: [0, -0.50, 0] }, 0.13, 0.80, 0.94);                      // 竖向丝带（身）
+  box(b, cream, { pos: [0, -0.50, 0] }, 0.94, 0.80, 0.13);                      // 横向丝带（身）
+  torus(b, gold, { pos: [-0.13, 0.16, 0], rot: [0, 0, 0.55] }, 0.15, 0.045, 40, 14); // 蝴蝶结左环
+  torus(b, gold, { pos: [0.13, 0.16, 0], rot: [0, 0, -0.55] }, 0.15, 0.045, 40, 14); // 蝴蝶结右环
+  sphere(b, deepRed, { pos: [0, 0.16, 0] }, 0.075, 18, 12);                     // 结心
+  for (let k = 0; k < 4; k++) {                                                 // 盒角小饰球
+    const a = (Math.PI / 2) * k + 0.3;
+    sphere(b, gold, { pos: [0.47 * Math.cos(a), -0.86, 0.47 * Math.sin(a)] }, 0.035, 10, 8);
+  }
+}
+
+// ---------------- 模型 7：迷你赛车 ----------------
+
+function buildCar(b) {
+  const red = [0.85, 0.20, 0.22], blue = [0.25, 0.45, 0.85], dark = [0.12, 0.12, 0.14];
+  const glass = [0.55, 0.80, 0.95], yellow = [1.00, 0.92, 0.55], silver = [0.78, 0.80, 0.85];
+  box(b, red, { pos: [0, -0.40, 0] }, 1.34, 0.30, 0.64);                        // 底盘
+  box(b, blue, { pos: [0, -0.10, -0.04] }, 0.64, 0.36, 0.54);                   // 座舱
+  box(b, glass, { pos: [0, -0.09, 0.235] }, 0.56, 0.24, 0.04);                  // 前挡风
+  box(b, glass, { pos: [0, -0.09, -0.315] }, 0.56, 0.22, 0.04);                 // 后窗
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {                          // 四轮
+    frustum(b, dark, { pos: [sx * 0.60, -0.60, sz * 0.40], rot: [0, 0, Math.PI / 2] }, 0.185, 0.185, 0.14, 24);
+    frustum(b, silver, { pos: [sx * 0.60, -0.60, sz * 0.40], rot: [0, 0, Math.PI / 2] }, 0.085, 0.085, 0.15, 16);
+  }
+  for (const sx of [-1, 1]) {                                                   // 前大灯 / 尾灯
+    sphere(b, yellow, { pos: [sx * 0.46, -0.42, 0.335] }, 0.065, 14, 10);
+    sphere(b, [0.90, 0.15, 0.15], { pos: [sx * 0.46, -0.42, -0.335] }, 0.055, 14, 10);
+  }
+  box(b, silver, { pos: [0, -0.24, 0.35] }, 0.30, 0.06, 0.04);                  // 前格栅
+  box(b, dark, { pos: [0, -0.66, 0.36] }, 0.9, 0.06, 0.22);                     // 前保险杠
+  box(b, dark, { pos: [0, -0.66, -0.36] }, 0.9, 0.06, 0.22);                    // 后保险杠
+}
+
+// ---------------- 模型 8：圣诞树 ----------------
+
+function buildXmas(b) {
+  const green1 = [0.15, 0.50, 0.28], green2 = [0.20, 0.60, 0.34], green3 = [0.26, 0.68, 0.38];
+  const trunkC = [0.45, 0.30, 0.18], snow = [0.95, 0.96, 1.00], gold = [0.95, 0.80, 0.30];
+  const ballCols = [[0.90, 0.25, 0.30], [0.95, 0.75, 0.25], [0.30, 0.55, 0.95], [0.85, 0.45, 0.90]];
+  frustum(b, trunkC, { pos: [0, -1.02, 0] }, 0.15, 0.13, 0.36, 24);             // 树干
+  frustum(b, green1, { pos: [0, -0.72, 0] }, 0.78, 0.015, 0.58, 48);            // 底层
+  frustum(b, green2, { pos: [0, -0.30, 0] }, 0.60, 0.015, 0.52, 44);            // 中层
+  frustum(b, green3, { pos: [0, 0.10, 0] }, 0.42, 0.012, 0.46, 40);             // 顶层
+  sphere(b, gold, { pos: [0, 0.40, 0] }, 0.10, 20, 14);                         // 树顶星（金球）
+  for (let k = 0; k < 14; k++) {                                                // 彩球（三层交错）
+    const layer = k % 3;
+    const a = k * 2.4;
+    const y0 = [-1.01, -0.56, -0.13][layer];
+    const r0 = [0.78, 0.60, 0.42][layer];
+    const t = 0.35 + (k % 4) * 0.12;
+    const y = y0 + t * [0.58, 0.52, 0.46][layer];
+    const rr = r0 * (1 - t) * 0.95;
+    sphere(b, ballCols[k % 4], { pos: [rr * Math.cos(a), y, rr * Math.sin(a)] }, 0.055, 12, 8);
+  }
+  for (let k = 0; k < 6; k++) {                                                 // 底部雪堆
+    const a = (Math.PI / 3) * k + 0.2;
+    sphere(b, snow, { pos: [0.95 * Math.cos(a), -1.10, 0.95 * Math.sin(a)], scale: [1, 0.35, 1] }, 0.14, 14, 8);
+  }
+}
+
+// ---------------- 导出 ----------------
+
+export const MODELS = {
+  rocket: { name: '小火箭', emoji: '🚀', build: buildRocket },
+  mushroom: { name: '蘑菇屋', emoji: '🍄', build: buildMushroom },
+  gemplanet: { name: '宝石星球', emoji: '💎', build: buildGemPlanet },
+  castle: { name: '梦幻城堡', emoji: '🏰', build: buildCastle },
+  penguin: { name: '软萌企鹅', emoji: '🐧', build: buildPenguin },
+  gift: { name: '礼物盒子', emoji: '🎁', build: buildGift },
+  car: { name: '迷你赛车', emoji: '🚗', build: buildCar },
+  xmas: { name: '圣诞树', emoji: '🎄', build: buildXmas },
+};
+
+// 构建模型 → { obj, center[3], radius }（包围球自动计算）
+export function buildModel(key) {
+  const def = MODELS[key];
+  if (!def) throw new Error(`unknown model: ${key}`);
+  const b = new ObjBuilder();
+  def.build(b);
+  let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+  for (const v of b.verts) for (let k = 0; k < 3; k++) { if (v[k] < mn[k]) mn[k] = v[k]; if (v[k] > mx[k]) mx[k] = v[k]; }
+  const center = [(mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2];
+  let radius = 0;
+  for (const v of b.verts) {
+    const d = Math.hypot(v[0] - center[0], v[1] - center[1], v[2] - center[2]);
+    if (d > radius) radius = d;
+  }
+  return { key, name: def.name, emoji: def.emoji, obj: b.toString(), center, radius };
+}
