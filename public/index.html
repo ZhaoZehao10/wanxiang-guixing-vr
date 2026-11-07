@@ -22,6 +22,16 @@
       <li><b>双手</b> — 左右手柄都能抓，可以一次拿两块</li>
       <li><b>游戏区</b> — 碎片散在身前的斜坡上，虚影立在斜坡顶端</li>
     </ul>
+    <button id="selfcheck-btn" style="margin-top:10px;font:inherit;font-size:13px;color:#dfe7ff;background:rgba(108,208,255,.12);border:1px solid rgba(140,165,255,.35);border-radius:10px;padding:8px 14px;cursor:pointer">🔍 设备自检</button>
+  </div>
+</div>
+
+<!-- 设备自检面板 -->
+<div id="selfcheck" class="hidden" style="position:fixed;inset:0;z-index:40;background:rgba(4,8,18,.75);display:flex;align-items:center;justify-content:center">
+  <div class="diff-card" style="max-width:620px;text-align:left">
+    <h2 style="text-align:center">🔍 设备自检</h2>
+    <pre id="selfcheck-body" style="white-space:pre-wrap;font-size:13px;line-height:1.75;color:#cfd9f5;max-height:60vh;overflow:auto"></pre>
+    <div style="text-align:center;margin-top:12px"><button id="selfcheck-close" class="win-btn">关闭</button></div>
   </div>
 </div>
 
