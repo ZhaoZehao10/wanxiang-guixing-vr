@@ -308,6 +308,24 @@ check('配色皮肤：颜色随皮肤改变、片数正确、菜单有 6 种配�
   paletteTest.neonSum !== paletteTest.classicSum && paletteTest.palette === 'classic'
   && paletteTest.pieces === 2 && paletteTest.palBtns === 6, JSON.stringify(paletteTest));
 
+// 3.75) 场景主题：切换背景/雾颜色并可恢复
+const themeTest = await evalJs(`(() => {
+  const p = window.__pico3d;
+  const before = p.getThemeInfo();
+  p.setTheme('snow');
+  const snow = p.getThemeInfo();
+  p.setTheme('sunset');
+  const sunset = p.getThemeInfo();
+  p.setTheme('night');
+  const back = p.getThemeInfo();
+  return { before, snow, sunset, back };
+})()`);
+check('场景主题切换：背景与雾颜色变化、可恢复',
+  themeTest.before.theme === 'night' && themeTest.snow.bg !== themeTest.before.bg
+  && themeTest.sunset.bg !== themeTest.snow.bg && themeTest.back.bg === themeTest.before.bg
+  && themeTest.snow.fog !== themeTest.before.fog,
+  JSON.stringify(themeTest));
+
 // 3.8) 抓取高亮 + 磁吸辅助
 const assistTest = await evalJs(`(() => {
   const p = window.__pico3d, T = p.THREE;
