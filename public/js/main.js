@@ -63,6 +63,24 @@ function savePractice(on) {
   try { localStorage.setItem(PRACTICE_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
 }
 
+// 场景主题（背景/雾/灯光/地面色调），只影响视觉不影响玩法
+const THEME_KEY = 'pico3d.theme';
+function loadTheme() {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    if (v && SCENE_THEMES[v]) return v;
+  } catch (e) { /* ignore */ }
+  return 'night';
+}
+function saveTheme(k) {
+  try { localStorage.setItem(THEME_KEY, k); } catch (e) { /* ignore */ }
+}
+const SCENE_THEMES = {
+  night: { name: '夜空', emoji: '🌙', bg: 0x0b1020, fog: 0x0b1020, floor: 0x1a2340, slope: 0x27335e, hemiSky: 0xbfd8ff, hemiGround: 0x3a2f2a, dir: 0xffffff, dir2: 0x88aaff, rim: 0xb18cff, starOpacity: 0.95 },
+  snow: { name: '雪夜', emoji: '❄️', bg: 0x101b2e, fog: 0x101b2e, floor: 0x27405f, slope: 0x33507a, hemiSky: 0xd8e8ff, hemiGround: 0x4a5568, dir: 0xffffff, dir2: 0x99c4ff, rim: 0x88aaff, starOpacity: 0.45 },
+  sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
+};
+
 const state = {
   mode: 'intro',        // intro | difficulty | playing | won
   modelKey: 'rocket',
@@ -70,6 +88,7 @@ const state = {
   palette: loadPalette(), // 配色皮肤键（PALETTES）
   assist: loadAssist(),   // 磁吸辅助开关
   practice: loadPractice(), // 练习模式（不记录成绩）
+  theme: loadTheme(),      // 场景主题（night/snow/sunset）
   pieces: [],           // mesh 本体（userData 挂 target/placed/home 等）
   placedCount: 0,
   startTime: 0,
@@ -84,6 +103,7 @@ const RESTITUTION = 0.25;
 const FRAME_DT = 1 / 72; // Pico Neo3 刷新率 72Hz；物理是视觉性的，用固定步长足够
 
 let renderer, scene, camera, ghostGroup, envReady = false;
+const sceneRefs = {}; // 主题可修改的场景对象引用（灯光/地面/斜坡）
 let targetRig = null; // 承载目标位姿的锚点（放在斜坡上方）
 
 // ---------------- DOM ----------------
@@ -164,15 +184,20 @@ function initScene() {
 
   const hemi = new THREE.HemisphereLight(0xbfd8ff, 0x3a2f2a, 0.85);
   scene.add(hemi);
+  sceneRefs.hemi = hemi;
   const dir = new THREE.DirectionalLight(0xffffff, 1.5);
   dir.position.set(2, 4, 2);
   scene.add(dir);
+  sceneRefs.dir = dir;
   const dir2 = new THREE.DirectionalLight(0x88aaff, 0.45);
   dir2.position.set(-3, 2, -2);
   scene.add(dir2);
+  sceneRefs.dir2 = dir2;
   const rim = new THREE.DirectionalLight(0xb18cff, 0.35); // 背侧紫色轮廓光
   rim.position.set(0, 1.5, -4);
   scene.add(rim);
+  sceneRefs.rim = rim;
+  sceneRefs.scene = scene;
 
   buildStarfield();
   buildWorld();
@@ -194,6 +219,7 @@ function buildWorld() {
   );
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
+  sceneRefs.floor = floor;
 
   // 环形网格线（低调装饰）
   const grid = new THREE.PolarGridHelper(9, 12, 6, 48, 0x2a3a66, 0x223055);
@@ -208,6 +234,7 @@ function buildWorld() {
   slope.position.set(0, 0.55, -0.95);
   slope.rotation.x = SLOPE_TILT;
   scene.add(slope);
+  sceneRefs.slope = slope;
 
   // 目标锚点：斜坡上方的空中
   targetRig = new THREE.Object3D();
@@ -245,6 +272,24 @@ function buildStarfield() {
   });
   starfield = new THREE.Points(g, m);
   scene.add(starfield);
+}
+
+// 应用场景主题：只改颜色/雾/星空透明度，不触碰几何与玩法
+function applyTheme(key) {
+  const t = SCENE_THEMES[key] || SCENE_THEMES.night;
+  state.theme = SCENE_THEMES[key] ? key : 'night';
+  saveTheme(state.theme);
+  if (!sceneRefs.scene) return; // 场景尚未初始化（启动早期调用）
+  sceneRefs.scene.background.setHex(t.bg);
+  if (sceneRefs.scene.fog) sceneRefs.scene.fog.color.setHex(t.fog);
+  sceneRefs.hemi.color.setHex(t.hemiSky);
+  sceneRefs.hemi.groundColor.setHex(t.hemiGround);
+  sceneRefs.dir.color.setHex(t.dir);
+  sceneRefs.dir2.color.setHex(t.dir2);
+  sceneRefs.rim.color.setHex(t.rim);
+  sceneRefs.floor.material.color.setHex(t.floor);
+  sceneRefs.slope.material.color.setHex(t.slope);
+  if (starfield && starfield.material) starfield.material.opacity = t.starOpacity;
 }
 
 // ---------------- 画质自适应 ----------------
@@ -1030,6 +1075,28 @@ function showDifficulty() {
   }
   card.appendChild(row3);
 
+  // 场景主题（背景/雾/灯光色调）
+  const row3b = document.createElement('div');
+  row3b.className = 'diff-row';
+  row3b.style.marginTop = '8px';
+  const themeBtns = [];
+  for (const [tkey, tdef] of Object.entries(SCENE_THEMES)) {
+    const b = document.createElement('button');
+    b.className = 'diff-btn';
+    b.style.cssText = 'min-width:80px;padding:8px 10px';
+    b.innerHTML = `<b style="font-size:16px">${tdef.emoji}</b><span>${tdef.name}</span>`;
+    if (tkey === state.theme) b.style.borderColor = '#6cd0ff';
+    b.onclick = () => {
+      applyTheme(tkey);
+      themeBtns.forEach((x) => (x.style.borderColor = ''));
+      b.style.borderColor = '#6cd0ff';
+      sfx.ui();
+    };
+    themeBtns.push(b);
+    row3b.appendChild(b);
+  }
+  card.appendChild(row3b);
+
   // 磁吸辅助开关（接近目标时轻拉对齐，降低精细对准难度）
   const row4 = document.createElement('div');
   row4.className = 'diff-row';
@@ -1618,6 +1685,7 @@ async function runSelfCheck() {
 }
 
 initScene();
+applyTheme(state.theme); // 应用持久化的场景主题
 // 封面版本信息
 if ($('build-info')) $('build-info').textContent = `v${APP_VERSION} · ${BUILD_INFO}`;
 // 致命错误覆盖层按钮
@@ -1684,6 +1752,9 @@ window.__pico3d = {
   getAssist: () => state.assist,
   setAssist: (on) => { state.assist = !!on; saveAssist(state.assist); },
   getPractice: () => state.practice,
+  getTheme: () => state.theme,
+  setTheme: (k) => applyTheme(k),
+  getThemeInfo: () => ({ theme: state.theme, bg: scene.background.getHexString(), fog: scene.fog.color.getHexString() }),
   setPractice: (on) => { state.practice = !!on; savePractice(state.practice); },
   music,
   // 配色皮肤（测试与外部控制用）
