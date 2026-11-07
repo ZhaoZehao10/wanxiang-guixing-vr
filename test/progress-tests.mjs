@@ -82,7 +82,14 @@ console.log('\n=== 成就判定 ===');
   const u6 = evaluateAchievements(p2, ['first_win', 'all_easy', 'collector', 'perfectionist']);
   check('已解锁成就不会重复返回', u6.length === 0, JSON.stringify(u6));
 
-  check('成就总数 = 7', ACHIEVEMENTS.length === 7);
+  // 8 块成就（极限档）
+  const p8a = {};
+  recordResult(p8a, 'rocket', 8, 600, 0);
+  check('完成 8 块 → first_8', evaluateAchievements(p8a, []).includes('first_8'), JSON.stringify(evaluateAchievements(p8a, [])));
+  const p8b = {};
+  for (const mk of MODEL_KEYS.slice(0, 8)) recordResult(p8b, mk, 8, 700, 0);
+  check('8 个模型完成 8 块 → eight_master', evaluateAchievements(p8b, []).includes('eight_master'), JSON.stringify(evaluateAchievements(p8b, [])));
+  check('成就总数 = 9', ACHIEVEMENTS.length === 9);
 }
 
 // ---------------- 统计概览 ----------------

@@ -456,7 +456,7 @@ const ach = await evalJs(`(() => {
   const menuText = document.getElementById('difficulty').innerText;
   const diffBtns = [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent);
   const hasRecord = diffBtns.some((t) => t.includes('★') || t.includes('☆')) || diffBtns.some((t) => t.includes('未挑战'));
-  const hasAch = menuText.includes('成就 ') && menuText.includes('/7');
+  const hasAch = menuText.includes('成就 ') && menuText.includes('/9');
   return { list, winText, winVisible, hasAch, hasRecord };
 })()`);
 check('首通解锁 first_win 且胜利面板提示', ach.list.includes('first_win') && ach.winVisible && ach.winText.includes('初次拼合'), JSON.stringify(ach));
