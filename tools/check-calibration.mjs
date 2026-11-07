@@ -77,7 +77,8 @@ for (const key of Object.keys(MODELS)) {
     }
   }
 }
+const with8 = Object.keys(MODELS).filter((k) => CUT_TABLE[k] && CUT_TABLE[k][8]).length;
 const secs = ((Date.now() - t0) / 1000).toFixed(1);
 console.log(`${checks} 个组合校验完成，失败 ${failed}（${secs}s）`);
 if (failed) { console.error('✗ 切割表不完整或不可用，请运行 node tools/calibrate-cuts.mjs 重新标定'); process.exit(1); }
-console.log('✓ 切割表完整：所有模型 × 2/3/4/6（及 11 个模型的 8 块可选档）均有解且水密/守恒');
+console.log(`✓ 切割表完整：所有模型 × 2/3/4/6（及 ${with8} 个模型的 8 块可选档）均有解且水密/守恒`);
