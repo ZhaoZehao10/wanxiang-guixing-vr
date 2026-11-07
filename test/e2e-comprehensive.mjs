@@ -157,11 +157,13 @@ const supports = await evalJs(`(() => {
   const xmas = p.supportedCounts('xmas');
   p.state.modelKey = 'xmas';
   p.showDifficulty();
-  const btn8 = [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('8 块'));
+  const diffRow = document.querySelectorAll('#difficulty .diff-row')[1];
+  const btn8 = [...diffRow.children].find((b) => b.textContent.includes('8 块'));
   const xmasDisabled = btn8 ? btn8.disabled : null;
   p.state.modelKey = 'rocket';
   p.showDifficulty();
-  const btn8b = [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('8 块'));
+  const diffRow2 = document.querySelectorAll('#difficulty .diff-row')[1];
+  const btn8b = [...diffRow2.children].find((b) => b.textContent.includes('8 块'));
   const rocketDisabled = btn8b ? btn8b.disabled : null;
   return { rocket, xmas, xmasDisabled, rocketDisabled };
 })()`);
@@ -186,7 +188,7 @@ for (const [mk, n] of combos) {
     return { count: s.pieces.length, mode: s.mode, placed: s.placedCount, grab: s.grabbing.size };
   })()`);
   check(`${mk} x${n}: ${st.count} 片、playing、0 已归位`, st.count === n && st.mode === 'playing' && st.placed === 0 && st.grab === 0, JSON.stringify(st));
-  if (shotsTaken < 8 && (n === 4 && ['castle', 'penguin', 'gift', 'rabbit', 'globe', 'pumpkin', 'turtle'].includes(mk))) {
+  if (shotsTaken < 8 && (n === 4 && ['castle', 'penguin', 'gift', 'rabbit', 'globe', 'pumpkin', 'turtle', 'pig', 'heli'].includes(mk))) {
     const shot = await send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(`D:/DSH_Workspace/Pico3D/test/preview-${mk}-${n}.png`, Buffer.from(shot.result.data, 'base64'));
     shotsTaken++;
@@ -375,8 +377,8 @@ const smoke = await evalJs(`(() => {
     practice: p.getPractice(), palette: p.getPalette(),
   };
 })()`);
-check('全菜单冒烟：12 模型/6 配色/开关按钮点击无异常',
-  smoke.fatal === false && smoke.models === 12 && smoke.palettes === 6
+check('全菜单冒烟：14 模型/6 配色/开关按钮点击无异常',
+  smoke.fatal === false && smoke.models === 14 && smoke.palettes === 6
   && smoke.practice === false && smoke.palette === 'classic', JSON.stringify(smoke));
 
 // 3.10) 练习模式：通关不写入进度

@@ -25,7 +25,7 @@ for (const n of DIFFICULTY) {
   check(`${n} 块：1.6×par+1s → 1 星`, starsFor(Math.floor(par * 1.6) + 1, n) === 1);
 }
 check('levelKey 格式', levelKey('rocket', 4) === 'rocket|4');
-check('模型数/难度数正确（12 模型 × 5 难度，59 关）', MODEL_KEYS.length === 12 && DIFFICULTY.length === 5);
+check('模型数/难度数正确（14 模型 × 5 难度，68 关）', MODEL_KEYS.length === 14 && DIFFICULTY.length === 5);
 
 // ---------------- 成绩写入 ----------------
 console.log('\n=== 成绩写入 ===');
@@ -98,9 +98,9 @@ console.log('\n=== 统计概览 ===');
   const p = {};
   recordResult(p, 'rocket', 2, 30, 0); // 3 星
   recordResult(p, 'gift', 4, 300, 0);   // 2 星
-  const s = summarize(p, 59);
+  const s = summarize(p, 68);
   check('summarize：2 关 / 5 星 / 总关数与满星按传入总数计算',
-    s.done === 2 && s.stars === 5 && s.total === 59 && s.maxStars === 177, JSON.stringify(s));
+    s.done === 2 && s.stars === 5 && s.total === 68 && s.maxStars === 204, JSON.stringify(s));
   check('summarize 空进度全 0', summarize({}).done === 0 && summarize({}).stars === 0);
 }
 
