@@ -54,12 +54,22 @@ function saveAssist(on) {
   try { localStorage.setItem(ASSIST_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
 }
 
+// 练习模式（默认关）：不计时、不记录成绩与成就，纯休闲拼图
+const PRACTICE_KEY = '{{SECRET_nt2f8rwm}}';
+function loadPractice() {
+  try { return localStorage.getItem(PRACTICE_KEY) === '1'; } catch (e) { return false; }
+}
+function savePractice(on) {
+  try { localStorage.setItem(PRACTICE_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
+}
+
 const state = {
   mode: 'intro',        // intro | difficulty | playing | won
   modelKey: 'rocket',
   pieceCount: 2,        // 当前难度（块数），VR 菜单高亮/重开用
   palette: loadPalette(), // 配色皮肤键（PALETTES）
   assist: loadAssist(),   // 磁吸辅助开关
+  practice: loadPractice(), // 练习模式（不记录成绩）
   pieces: [],           // mesh 本体（userData 挂 target/placed/home 等）
   placedCount: 0,
   startTime: 0,
@@ -803,14 +813,20 @@ function winGame() {
   state.mode = 'won';
   state.winTime = performance.now();
   const secs = Math.round((state.winTime - state.startTime) / 1000);
-  $('win-time').textContent = `${Math.floor(secs / 60)}分${secs % 60}秒`;
-  $('win-model').textContent = `${ghostName()} · ${state.pieces.length} 块`;
-  // 成绩入库 + 成就评估（本地存储）
-  const res = commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0);
+  $('win-time').textContent = state.practice ? '练习模式' : `${Math.floor(secs / 60)}分${secs % 60}秒`;
+  $('win-model').textContent = `${ghostName()} · ${state.pieces.length} 块${state.practice ? ' · 练习' : ''}`;
+  // 成绩入库 + 成就评估（练习模式跳过，不污染记录）
+  const res = state.practice
+    ? { stars: 0, rec: { bestTime: 0, plays: 0 }, newly: [] }
+    : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0);
   const starsEl = $('win-stars');
-  if (starsEl) starsEl.textContent = '★'.repeat(res.stars) + '☆'.repeat(3 - res.stars);
+  if (starsEl) starsEl.textContent = state.practice ? '—' : '★'.repeat(res.stars) + '☆'.repeat(3 - res.stars);
   const bestEl = $('win-best');
-  if (bestEl) bestEl.textContent = `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`;
+  if (bestEl) {
+    bestEl.textContent = state.practice
+      ? '练习模式 · 不计时、不记录成绩'
+      : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`;
+  }
   // 新解锁成就展示（2D 结算面板 + VR 内浮窗提示）
   const achEl = $('win-achieve');
   const newNames = res.newly.map((id) => {
@@ -1034,6 +1050,24 @@ function showDifficulty() {
     sfx.ui();
   };
   row4.appendChild(assistBtn);
+
+  // 练习模式开关（不计时、不记录成绩，纯休闲）
+  const practiceBtn = document.createElement('button');
+  practiceBtn.className = 'diff-btn';
+  practiceBtn.style.cssText = 'min-width:170px;padding:8px 12px';
+  const refreshPracticeBtn = () => {
+    practiceBtn.innerHTML = `<b style="font-size:14px">练习模式：${state.practice ? '开' : '关'}</b>`
+      + `<span style="font-size:12px;color:#8b96b8">不计时、不记录成绩</span>`;
+    practiceBtn.style.borderColor = state.practice ? '#6cd0ff' : '';
+  };
+  refreshPracticeBtn();
+  practiceBtn.onclick = () => {
+    state.practice = !state.practice;
+    savePractice(state.practice);
+    refreshPracticeBtn();
+    sfx.ui();
+  };
+  row4.appendChild(practiceBtn);
   card.appendChild(row4);
 
   // 成就栏（🔒 未解锁 / 🏆 已解锁，悬停看条件）
@@ -1483,7 +1517,9 @@ function animate() {
   // 计时器
   if (state.mode === 'playing') {
     const s = Math.floor((performance.now() - state.startTime) / 1000);
-    $('timer').textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    $('timer').textContent = state.practice
+      ? '练习中'
+      : `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   }
 
   // 碎片投影：贴在斜坡表面上（已吸附/被抓住的碎片不投影）
@@ -1647,6 +1683,8 @@ window.__pico3d = {
   getGhostHighlight: () => ghostHighlight.idx,
   getAssist: () => state.assist,
   setAssist: (on) => { state.assist = !!on; saveAssist(state.assist); },
+  getPractice: () => state.practice,
+  setPractice: (on) => { state.practice = !!on; savePractice(state.practice); },
   music,
   // 配色皮肤（测试与外部控制用）
   PALETTES, getPalette: () => state.palette,
