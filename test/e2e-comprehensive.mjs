@@ -81,6 +81,45 @@ const struct = await evalJs(`({
 check('页面结构完整（canvas/hud/win/difficulty/测试钩子）',
   struct.hasCanvas && struct.hasHud && struct.hasWin && struct.hasDiff && struct.hasHook, JSON.stringify(struct));
 
+// 1.1) 设备自检面板（点击不应误触"开始游戏"）
+const selfCheck = await evalJs(`(async () => {
+  document.getElementById('selfcheck-btn').click();
+  await new Promise((r) => setTimeout(r, 250));
+  const panel = document.getElementById('selfcheck');
+  const text = document.getElementById('selfcheck-body').textContent;
+  const introHidden = document.getElementById('intro').classList.contains('hidden');
+  document.getElementById('selfcheck-close').click();
+  const closed = document.getElementById('selfcheck').classList.contains('hidden');
+  return { visible: !panel.classList.contains('hidden'), text, introHidden, closed };
+})()`);
+check('设备自检：显示安全上下文/navigator.xr/WebGL，且不误触开局',
+  selfCheck.text.includes('安全上下文') && selfCheck.text.includes('navigator.xr')
+  && selfCheck.text.includes('WebGL') && selfCheck.closed === true && selfCheck.introHidden === false,
+  JSON.stringify({ text: selfCheck.text.slice(0, 120), introHidden: selfCheck.introHidden, closed: selfCheck.closed }));
+
+// 1.2) 每日挑战：按日期确定性生成，菜单可见且可一键开局
+const daily = await evalJs(`(() => {
+  const p = window.__pico3d;
+  p.showDifficulty();
+  const a = p.dailyChallenge('2026-11-08');
+  const b = p.dailyChallenge('2026-11-08');
+  const btn = [...document.querySelectorAll('#difficulty .diff-btn')].find((x) => x.textContent.includes('今日挑战'));
+  return { a, b, hasBtn: !!btn, btnText: btn ? btn.textContent : '' };
+})()`);
+check('每日挑战：同日期结果确定且菜单展示',
+  daily.hasBtn && JSON.stringify(daily.a) === JSON.stringify(daily.b) && daily.btnText.includes(daily.a.name),
+  JSON.stringify(daily));
+const dailyStart = await evalJs(`(() => {
+  const p = window.__pico3d;
+  const d = p.dailyChallenge();
+  const btn = [...document.querySelectorAll('#difficulty .diff-btn')].find((x) => x.textContent.includes('今日挑战'));
+  btn.click();
+  return { mode: p.state.mode, modelKey: p.state.modelKey, n: p.state.pieceCount, expect: d };
+})()`);
+check('每日挑战一键开局（模型/块数与挑战一致）',
+  dailyStart.mode === 'playing' && dailyStart.modelKey === dailyStart.expect.modelKey && dailyStart.n === dailyStart.expect.n,
+  JSON.stringify(dailyStart));
+
 // 2) 全部模型 × 2/3/4 块建局（模型清单由页面内 MODELS 决定）
 console.log('--- 全部模型组合建局 ---');
 const modelKeys = await evalJs('Object.keys(window.__pico3d.MODELS)');
