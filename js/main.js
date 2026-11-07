@@ -841,6 +841,22 @@ function startGame(modelKey, n) {
   buildGhostAndPieces(modelKey, n);
 }
 
+// ---------------- 每日挑战 ----------------
+// 按日期确定性选模型 + 难度（无需联网）：同一天所有人/所有设备拿到同一个组合。
+function dayKey(d = new Date()) {
+  const p = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function dailyChallenge(dateStr = dayKey()) {
+  let h = 2166136261 >>> 0; // FNV-1a
+  for (const ch of dateStr) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  const keys = Object.keys(MODELS);
+  const counts = [2, 3, 4, 6];
+  const modelKey = keys[h % keys.length];
+  const n = counts[Math.floor(h / 7) % counts.length];
+  return { date: dateStr, modelKey, name: MODELS[modelKey].name, emoji: MODELS[modelKey].emoji, n };
+}
+
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
@@ -856,6 +872,16 @@ function showDifficulty() {
   card.innerHTML = `<h2>选择模型与难度</h2>`
     + `<p class="sub" style="color:#8b96b8;font-size:13px;margin:6px 0 10px">`
     + `总进度 ${sum.done}/${sum.total} 关 · 星星 ${sum.stars}/${sum.maxStars} · 成就 ${unlocked.length}/${ACHIEVEMENTS.length}</p>`;
+
+  // 每日挑战（按日期确定性生成）
+  const dc = dailyChallenge();
+  const dcBtn = document.createElement('button');
+  dcBtn.className = 'diff-btn';
+  dcBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#ffd24d;background:rgba(255,210,77,.10)';
+  dcBtn.innerHTML = `<b style="font-size:15px">🎯 今日挑战 · ${dc.emoji} ${dc.name} · ${dc.n} 块</b>`
+    + `<span style="font-size:12px;color:#8b96b8">${dc.date} · 每天自动更换</span>`;
+  dcBtn.onclick = () => startGame(dc.modelKey, dc.n);
+  card.appendChild(dcBtn);
 
   const row1 = document.createElement('div');
   row1.className = 'diff-row';
@@ -1457,6 +1483,36 @@ function updateMusicButton() {
   if (b) b.textContent = music.isEnabled() ? '🎵 音乐开' : '🔇 音乐关';
 }
 
+// 设备自检：进 VR 前确认安全上下文 / WebXR / WebGL 状态（真机排查用）
+async function runSelfCheck() {
+  const body = $('selfcheck-body');
+  if (!body) return;
+  const L = [];
+  const mark = (ok, label, detail) => L.push(`${ok === null ? 'ℹ️' : ok ? '✅' : '❌'} ${label}${detail ? '：' + detail : ''}`);
+  mark(window.isSecureContext === true, '安全上下文（HTTPS / localhost）',
+    window.isSecureContext ? '是' : '否 — 浏览器不会暴露 WebXR');
+  const hasXR = typeof navigator.xr !== 'undefined';
+  mark(hasXR, 'navigator.xr', hasXR ? '存在' : '不存在');
+  let immersive = '未知';
+  if (hasXR) {
+    try { immersive = await navigator.xr.isSessionSupported('immersive-vr'); } catch (e) { immersive = '查询失败：' + e.message; }
+  }
+  mark(immersive === true, 'immersive-vr 会话', String(immersive));
+  try {
+    const gl = renderer.getContext();
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    mark(true, 'WebGL', `${gl.getParameter(gl.VERSION)} · ${dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '渲染器信息不可用'}`);
+  } catch (e) { mark(false, 'WebGL', '读取失败'); }
+  mark(null, '屏幕', `${screen.width}×${screen.height} @${(window.devicePixelRatio || 1).toFixed(2)}x`);
+  mark(null, 'UA', navigator.userAgent);
+  L.push('');
+  L.push(immersive === true
+    ? '建议：可直接点击 ENTER VR 进入游戏。'
+    : '建议：确认使用 https:// 地址且浏览器允许 WebXR；若头显内仍不可用，请改用 APK 版。');
+  body.textContent = L.join('\n');
+  $('selfcheck').classList.remove('hidden');
+}
+
 initScene();
 $('win-btn').onclick = () => showDifficulty();
 // 2D 预览：点击画布任意处进入难度选择（进入 VR 后仍可用手柄游玩）
@@ -1464,6 +1520,19 @@ $('intro').addEventListener('click', () => {
   try { if (music.isEnabled()) music.start(); } catch (e) { /* ignore */ }
   showDifficulty();
 });
+if ($('selfcheck-btn')) {
+  // 阻止冒泡：否则点"设备自检"会同时触发 intro 的"开始游戏"
+  $('selfcheck-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sfx.ui();
+    runSelfCheck();
+  });
+  $('selfcheck-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sfx.ui();
+    $('selfcheck').classList.add('hidden');
+  });
+}
 if ($('music-toggle')) {
   $('music-toggle').onclick = () => {
     music.toggle();
@@ -1488,6 +1557,9 @@ window.__pico3d = {
   setQualityAuto: (on) => { quality.auto = !!on; },
   hasEnv: () => envReady,
   getStarfield: () => starfield,
+  // 每日挑战 / 设备自检（测试用）
+  dailyChallenge, dayKey, runSelfCheck,
+  getSelfCheckText: () => (selfcheck-body ? selfcheck-body.textContent : ''),
   // 抓取高亮 / 磁吸辅助（测试用）
   setGhostHighlight, clearGhostHighlight, magnetStep,
   getGhostHighlight: () => ghostHighlight.idx,
