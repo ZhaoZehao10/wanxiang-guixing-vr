@@ -17,6 +17,7 @@ const NO_SERVER = process.argv.includes('--no-server');
 
 const SUITES = [
   { name: '模型几何自检', file: 'tools/check-models.mjs' },
+  { name: '切割表完整性', file: 'tools/check-calibration.mjs' },
   { name: '切割单元测试', file: 'test/run-tests.mjs' },
   { name: '进度成就逻辑', file: 'test/progress-tests.mjs' },
   { name: '模糊测试', file: 'test/fuzz-tests.mjs' },
