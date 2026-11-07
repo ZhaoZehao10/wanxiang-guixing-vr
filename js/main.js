@@ -38,11 +38,21 @@ function savePalette(p) {
   try { localStorage.setItem(PALETTE_KEY, p); } catch (e) { /* ignore */ }
 }
 
+// 磁吸辅助（默认开）：持有碎片接近目标位姿时轻拉对齐，降低精细对准难度
+const ASSIST_KEY = '{{SECRET_k8d2m9xq}}';
+function loadAssist() {
+  try { return localStorage.getItem(ASSIST_KEY) !== '0'; } catch (e) { return true; }
+}
+function saveAssist(on) {
+  try { localStorage.setItem(ASSIST_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
+}
+
 const state = {
   mode: 'intro',        // intro | difficulty | playing | won
   modelKey: 'rocket',
   pieceCount: 2,        // 当前难度（块数），VR 菜单高亮/重开用
   palette: loadPalette(), // 配色皮肤键（PALETTES）
+  assist: loadAssist(),   // 磁吸辅助开关
   pieces: [],           // mesh 本体（userData 挂 target/placed/home 等）
   placedCount: 0,
   startTime: 0,
@@ -370,6 +380,60 @@ function clearHint() {
   hint.until = 0;
 }
 
+// ---------------- 抓取高亮：手里的碎片对应虚影的哪一块 ----------------
+// 抓起来时把虚影中对应块点亮成青绿色，玩家一眼知道该往哪放。
+const ghostHighlight = { idx: -1, savedMat: null };
+
+function setGhostHighlight(idx) {
+  if (ghostHighlight.idx === idx) return;
+  clearGhostHighlight();
+  if (idx >= 0 && ghostGroup && ghostGroup.children[idx]) {
+    const gm = ghostGroup.children[idx];
+    ghostHighlight.idx = idx;
+    ghostHighlight.savedMat = gm.material;
+    gm.material = new THREE.MeshStandardMaterial({
+      color: 0x7dffc0, transparent: true, opacity: 0.5,
+      emissive: 0x2fbf6a, emissiveIntensity: 1.4, depthWrite: false, side: THREE.DoubleSide,
+    });
+  }
+}
+
+function clearGhostHighlight() {
+  if (ghostHighlight.idx >= 0 && ghostGroup && ghostGroup.children[ghostHighlight.idx]) {
+    const gm = ghostGroup.children[ghostHighlight.idx];
+    if (ghostHighlight.savedMat) gm.material = ghostHighlight.savedMat;
+  }
+  ghostHighlight.idx = -1;
+  ghostHighlight.savedMat = null;
+}
+
+// ---------------- 磁吸辅助 ----------------
+// 持握时若已接近目标位姿（位置 ≤1.6×吸附距离、朝向差 ≤~41°），每帧朝目标轻拉 10%，
+// 并把结果写回抓取偏移（否则下一帧会被手柄拉回原位）。吸附判定阈值本身不变。
+function magnetStep(hand, rate = 0.10) {
+  if (!state.assist) return false;
+  const grab = state.grabbing.get(hand);
+  const c = state[hand];
+  if (!grab || !c) return false;
+  const mesh = grab.mesh;
+  if (mesh.userData.placed) return false;
+  const tp = new THREE.Vector3(), tq = new THREE.Quaternion();
+  mesh.userData.target.getWorldPosition(tp);
+  mesh.userData.target.getWorldQuaternion(tq);
+  const dist = mesh.position.distanceTo(tp);
+  const dot = Math.abs(mesh.quaternion.dot(tq));
+  if (dist > mesh.userData.snapDist * 1.6 || dot < 0.75) return false;
+  mesh.position.lerp(tp, rate);
+  mesh.quaternion.slerp(tq, rate);
+  // 同步回抓取偏移，保持"磁吸后的位姿"作为下一帧基准
+  c.getWorldPosition(_tp);
+  c.getWorldQuaternion(_tq);
+  const inv = _tq.clone().invert();
+  grab.offset.copy(mesh.position).sub(_tp).applyQuaternion(inv);
+  grab.quatOffset.copy(inv).multiply(mesh.quaternion);
+  return true;
+}
+
 // ---------------- 关卡进度与星级（逻辑在 progress.mjs，可单测） ----------------
 
 // 进度读写都带上 localStorage；纯逻辑在 progress.mjs（无 DOM 依赖）
@@ -394,6 +458,7 @@ function commitResult(modelKey, n, secs, hints) {
 
 function buildGhostAndPieces(modelKey, n) {
   // 清理旧对象（state.pieces 里存的就是 mesh 本身；投影是独立对象要一起删）
+  clearGhostHighlight(); // 虚影即将重建，先恢复被高亮/提示替换过的材质
   if (ghostGroup) { targetRig.remove(ghostGroup); ghostGroup = null; }
   for (const p of state.pieces) {
     scene.remove(p);
@@ -606,6 +671,9 @@ function onGrab(hand) {
     state.grabbing.set(hand, { mesh: best, offset, quatOffset });
     best.userData.grabbedBy = hand;
     c.userData.tip.material.color.set(0x6dffa8);
+    // 高亮虚影中对应的那一块（先清提示态，避免两套材质替换互相踩）
+    clearHint();
+    setGhostHighlight(best.userData.pieceIndex);
     sfx.grab();
     haptic(hand, 0.45, 45);
   }
@@ -618,6 +686,7 @@ function onRelease(hand) {
     const mesh = grab.mesh;
     state.grabbing.delete(hand);
     mesh.userData.grabbedBy = null;
+    clearGhostHighlight();
     if (c) c.userData.tip.material.color.set(0xb18cff);
     sfx.drop();
     const placed = trySnap(mesh, hand);
@@ -639,6 +708,7 @@ function onSqueeze(hand) {
     const mesh = grab.mesh;
     state.grabbing.delete(hand);
     mesh.userData.grabbedBy = null;
+    clearGhostHighlight();
     if (c) c.userData.tip.material.color.set(0xb18cff);
     const pi = physics.findIndex((p) => p.mesh === mesh);
     if (pi >= 0) physics.splice(pi, 1);
@@ -857,6 +927,28 @@ function showDifficulty() {
     row3.appendChild(b);
   }
   card.appendChild(row3);
+
+  // 磁吸辅助开关（接近目标时轻拉对齐，降低精细对准难度）
+  const row4 = document.createElement('div');
+  row4.className = 'diff-row';
+  row4.style.marginTop = '8px';
+  const assistBtn = document.createElement('button');
+  assistBtn.className = 'diff-btn';
+  assistBtn.style.cssText = 'min-width:170px;padding:8px 12px';
+  const refreshAssistBtn = () => {
+    assistBtn.innerHTML = `<b style="font-size:14px">磁吸辅助：${state.assist ? '开' : '关'}</b>`
+      + `<span style="font-size:12px;color:#8b96b8">接近目标时轻拉对齐</span>`;
+    assistBtn.style.borderColor = state.assist ? '#6cd0ff' : '';
+  };
+  refreshAssistBtn();
+  assistBtn.onclick = () => {
+    state.assist = !state.assist;
+    saveAssist(state.assist);
+    refreshAssistBtn();
+    sfx.ui();
+  };
+  row4.appendChild(assistBtn);
+  card.appendChild(row4);
 
   // 成就栏（🔒 未解锁 / 🏆 已解锁，悬停看条件）
   const achLabel = document.createElement('p');
@@ -1255,6 +1347,8 @@ function animate() {
     const mesh = grab.mesh;
     mesh.position.copy(_tp).add(grab.offset.clone().applyQuaternion(_tq));
     mesh.quaternion.copy(_tq).multiply(grab.quatOffset);
+    // 磁吸辅助：接近目标时朝目标轻拉（可在菜单关闭）
+    magnetStep(hand);
     // 距目标足够近时给提示色（快吸附了）
     const tp = new THREE.Vector3();
     mesh.userData.target.getWorldPosition(tp);
@@ -1394,6 +1488,11 @@ window.__pico3d = {
   setQualityAuto: (on) => { quality.auto = !!on; },
   hasEnv: () => envReady,
   getStarfield: () => starfield,
+  // 抓取高亮 / 磁吸辅助（测试用）
+  setGhostHighlight, clearGhostHighlight, magnetStep,
+  getGhostHighlight: () => ghostHighlight.idx,
+  getAssist: () => state.assist,
+  setAssist: (on) => { state.assist = !!on; saveAssist(state.assist); },
   music,
   // 配色皮肤（测试与外部控制用）
   PALETTES, getPalette: () => state.palette,
