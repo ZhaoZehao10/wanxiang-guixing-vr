@@ -17,6 +17,9 @@ import {
 
 // ---------------- 常量 ----------------
 
+const APP_VERSION = '1.0.0';
+const BUILD_INFO = '12 模型 · 48 关 · 6 套配色';
+
 const PIECE_SCALE = 0.42;      // 模型 → 拼图整体缩放（拼图直径约 0.5~0.95m）
 const SNAP_DIST = 0.30;        // 位置吸附距离（米）
 const SNAP_COS = 0.90;         // 旋转吸附余弦阈值（约 25°）
@@ -73,6 +76,20 @@ let targetRig = null; // 承载目标位姿的锚点（放在斜坡上方）
 
 const $ = (id) => document.getElementById(id);
 
+// 致命错误 / 渲染中断覆盖层（真机切换应用后 WebGL 上下文可能丢失）
+function showFatal(title, msg) {
+  const el = $('fatal');
+  if (!el) return;
+  const t = $('fatal-title'), m = $('fatal-msg');
+  if (t) t.textContent = title;
+  if (m) m.textContent = msg;
+  el.classList.remove('hidden');
+}
+function hideFatal() {
+  const el = $('fatal');
+  if (el) el.classList.add('hidden');
+}
+
 // ---------------- 场景搭建 ----------------
 
 function initScene() {
@@ -81,6 +98,13 @@ function initScene() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.xr.enabled = true;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  // WebGL 上下文丢失保护：Pico 浏览器切到其他应用再回来时常见，给出明确恢复引导
+  renderer.domElement.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    showFatal('渲染中断', '浏览器回收了 WebGL 上下文（常见于切换到其他应用后返回）。点击「重新加载」即可恢复游戏，进度已保存在本地。');
+  });
+  renderer.domElement.addEventListener('webglcontextrestored', () => hideFatal());
 
   // 给 VR 按钮设置 id，便于样式定位到右下角（避免遮挡菜单底部成就行）
   const vrBtn = VRButton.createButton(renderer);
@@ -824,6 +848,10 @@ function ghostName() {
 
 function startGame(modelKey, n) {
   try { if (music.isEnabled()) music.start(); } catch (e) { /* 音频不可用 */ }
+  if (!MODELS[modelKey]) {
+    showFatal('关卡加载失败', `未知模型「${modelKey}」。请返回菜单重新选择。`);
+    return;
+  }
   state.modelKey = modelKey;
   state.pieceCount = n;
   state.mode = 'playing';
@@ -838,7 +866,14 @@ function startGame(modelKey, n) {
   const otherLink = $('other-game-link');
   if (otherLink) otherLink.style.display = 'none'; // 游戏中隐藏"随机游走"入口，避免遮挡视野
   ghostNameCache = MODELS[modelKey] ? `${MODELS[modelKey].emoji} ${MODELS[modelKey].name}` : '';
-  buildGhostAndPieces(modelKey, n);
+  try {
+    buildGhostAndPieces(modelKey, n);
+  } catch (err) {
+    // 切割/几何异常不应让页面白屏：回菜单并给出明确错误
+    console.error('[startGame]', err);
+    state.mode = 'difficulty';
+    showFatal('关卡加载失败', `「${modelKey}」${n} 块加载失败：${err.message}。请返回菜单选择其他关卡。`);
+  }
 }
 
 // ---------------- 每日挑战 ----------------
@@ -1504,6 +1539,7 @@ async function runSelfCheck() {
     mark(true, 'WebGL', `${gl.getParameter(gl.VERSION)} · ${dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '渲染器信息不可用'}`);
   } catch (e) { mark(false, 'WebGL', '读取失败'); }
   mark(null, '屏幕', `${screen.width}×${screen.height} @${(window.devicePixelRatio || 1).toFixed(2)}x`);
+  mark(null, '版本', `${APP_VERSION} · ${BUILD_INFO}`);
   mark(null, 'UA', navigator.userAgent);
   L.push('');
   L.push(immersive === true
@@ -1514,6 +1550,11 @@ async function runSelfCheck() {
 }
 
 initScene();
+// 封面版本信息
+if ($('build-info')) $('build-info').textContent = `v${APP_VERSION} · ${BUILD_INFO}`;
+// 致命错误覆盖层按钮
+if ($('fatal-reload')) $('fatal-reload').onclick = () => location.reload();
+if ($('fatal-back')) $('fatal-back').onclick = () => { hideFatal(); showDifficulty(); };
 $('win-btn').onclick = () => showDifficulty();
 // 2D 预览：点击画布任意处进入难度选择（进入 VR 后仍可用手柄游玩）
 $('intro').addEventListener('click', () => {
@@ -1557,6 +1598,13 @@ window.__pico3d = {
   setQualityAuto: (on) => { quality.auto = !!on; },
   hasEnv: () => envReady,
   getStarfield: () => starfield,
+  // 稳定性兜底（测试用）
+  showFatal, hideFatal, APP_VERSION, BUILD_INFO,
+  getFatalInfo: () => ({
+    visible: !$('fatal').classList.contains('hidden'),
+    title: $('fatal-title').textContent,
+    msg: $('fatal-msg').textContent,
+  }),
   // 每日挑战 / 设备自检（测试用）
   dailyChallenge, dayKey, runSelfCheck,
   getSelfCheckText: () => (selfcheck-body ? selfcheck-body.textContent : ''),
