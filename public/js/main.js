@@ -1007,7 +1007,7 @@ function showDifficulty() {
   dcBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#ffd24d;background:rgba(255,210,77,.10)';
   dcBtn.innerHTML = `<b style="font-size:15px">🎯 今日挑战 · ${dc.emoji} ${dc.name} · ${dc.n} 块</b>`
     + `<span style="font-size:12px;color:#8b96b8">${dc.date} · 每天自动更换</span>`;
-  dcBtn.onclick = () => startGame(dc.modelKey, dc.n);
+  dcBtn.onclick = () => startGameUI(dc.modelKey, dc.n);
   card.appendChild(dcBtn);
 
   // 排行榜入口：当前模型各难度的本地前三成绩
@@ -1060,7 +1060,7 @@ function showDifficulty() {
       b.disabled = !supported;
       b.style.opacity = supported ? '1' : '0.45';
       b.style.cursor = supported ? 'pointer' : 'not-allowed';
-      b.onclick = supported ? () => startGame(state.modelKey, n) : null;
+      b.onclick = supported ? () => startGameUI(state.modelKey, n) : null;
       b.innerHTML = `<b style="font-size:18px">${n} 块</b><span>${DIFFICULTY_NAME[n]}</span>`
         + `<small style="display:block;color:#ffd24d;font-size:12px;margin-top:3px">⭐ ${done}/${supportCount} 关</small>`
         + `<small style="display:block;color:#9fb0d8;font-size:11px;margin-top:2px">${recTxt}</small>`;
@@ -1069,7 +1069,7 @@ function showDifficulty() {
   for (const n of DIFFICULTY) {
     const b = document.createElement('button');
     b.className = 'diff-btn';
-    b.onclick = () => startGame(state.modelKey, n);
+    b.onclick = () => startGameUI(state.modelKey, n);
     row2.appendChild(b);
     diffBtns.push({ b, n });
   }
@@ -1248,7 +1248,7 @@ function buildVrMenu() {
 
   const start = makeVrButton('开始', () => {
     sfx.ui();
-    startGame(state.modelKey, state.pieceCount);
+    startGameUI(state.modelKey, state.pieceCount);
     toggleVrMenu(false);
   }, BOTTOM_W);
   start.position.set(bottomX(0), bottomY, 0.02);
@@ -1274,7 +1274,7 @@ function buildVrMenu() {
     savePalette(state.palette);
     sfx.ui();
     if (state.mode === 'playing') {
-      startGame(state.modelKey, state.pieceCount); // 立即以新配色重开
+      startGameUI(state.modelKey, state.pieceCount); // 立即以新配色重开
       toggleVrMenu(false);
     }
   }, BOTTOM_W);
@@ -1746,6 +1746,12 @@ function buildBoardUI() {
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
   if ($('board-title')) $('board-title').textContent = `🏆 ${def.emoji} ${def.name} · 本地排行`;
   body.innerHTML = '';
+  const sum = summarize(prog, totalLevels());
+  const head = document.createElement('div');
+  head.style.cssText = 'margin:0 0 10px;color:#9fb0d8;font-size:13px;text-align:center';
+  head.textContent = `总进度 ${sum.done}/${sum.total} 关 · 星星 ${sum.stars}/${sum.maxStars} · 最佳总时长 `
+    + (sum.bestTotal ? `${Math.floor(sum.bestTotal / 60)}分${sum.bestTotal % 60}秒` : '—');
+  body.appendChild(head);
   for (const n of supportedCounts(state.modelKey)) {
     const rec = prog[levelKey(state.modelKey, n)];
     const top = (rec && Array.isArray(rec.top)) ? rec.top : [];
@@ -1754,6 +1760,7 @@ function buildBoardUI() {
       : '暂无记录';
     const starTxt = rec && rec.stars ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}` : '未挑战';
     const row = document.createElement('div');
+    row.className = 'board-level';
     row.style.cssText = 'margin:8px 0;padding:8px 10px;border:1px solid rgba(140,165,255,.25);border-radius:10px;background:rgba(39,51,94,.35)';
     row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">`
       + `<b>${n} 块 · ${DIFFICULTY_NAME[n] || ''}</b><span style="color:#ffd24d">${starTxt}</span></div>`
@@ -1767,6 +1774,38 @@ function buildBoardUI() {
 
 function openBoard() { buildBoardUI(); $('board').classList.remove('hidden'); }
 function closeBoard() { $('board').classList.add('hidden'); }
+
+// ---------------- 首次上手引导 ----------------
+// 只在"真实 UI 开局"时出现一次；测试/脚本直接调 startGame 不触发，避免干扰自动化。
+const TUTORIAL_KEY = '{{SECRET_9m4qv7ta}}';
+let pendingStart = null;
+
+function tutorialSeen() {
+  try { return localStorage.getItem(TUTORIAL_KEY) === '1'; } catch (e) { return true; }
+}
+function openTutorial() {
+  const el = $('tutorial');
+  if (el) el.classList.remove('hidden');
+}
+function closeTutorial() {
+  try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch (e) { /* ignore */ }
+  const el = $('tutorial');
+  if (el) el.classList.add('hidden');
+  const p = pendingStart;
+  pendingStart = null;
+  if (p) startGame(p.modelKey, p.n);
+}
+function startGameUI(modelKey, n) {
+  // 2D 覆盖层在 VR 里看不见：已进入沉浸式说明是头显内操作，直接开局，避免卡住
+  const inVr = !!(renderer && renderer.xr && renderer.xr.isPresenting);
+  if (!inVr && !tutorialSeen()) {
+    pendingStart = { modelKey, n };
+    openTutorial();
+    sfx.ui();
+    return;
+  }
+  startGame(modelKey, n);
+}
 
 // ---------------- 启动 ----------------
 
@@ -1852,6 +1891,13 @@ if ($('board-close')) {
     closeBoard();
   });
 }
+if ($('tutorial-ok')) {
+  $('tutorial-ok').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sfx.ui();
+    closeTutorial();
+  });
+}
 // 打开方式提示（file:// / 非本机 http://）
 const _protoHint = protocolHint(location.protocol, location.hostname);
 if (_protoHint && $('env-warn')) {
@@ -1906,6 +1952,9 @@ window.__pico3d = {
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard,
   getBoardText: () => ($('board-body') ? $('board-body').textContent : ''),
+  startGameUI, openTutorial, closeTutorial,
+  resetTutorial: () => { try { localStorage.removeItem(TUTORIAL_KEY); } catch (e) { /* ignore */ } },
+  getTutorialVisible: () => ($('tutorial') ? !$('tutorial').classList.contains('hidden') : false),
   setTheme: (k) => applyTheme(k),
   getThemeInfo: () => ({ theme: state.theme, bg: scene.background.getHexString(), fog: scene.fog.color.getHexString() }),
   setPractice: (on) => { state.practice = !!on; savePractice(state.practice); },
