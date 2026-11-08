@@ -46,6 +46,11 @@ export function recordResult(progress, modelKey, n, secs, hints) {
   cur.stars = Math.max(cur.stars || 0, stars);
   if (!cur.bestTime || secs < cur.bestTime) cur.bestTime = secs;
   cur.hints = (cur.hints || 0) + (hints || 0);
+  // 本地 Top3 最佳成绩（秒，升序去重）
+  const top = Array.isArray(cur.top) ? cur.top.slice() : [];
+  if (!top.includes(secs)) top.push(secs);
+  top.sort((a, b) => a - b);
+  cur.top = top.slice(0, 3);
   progress[k] = cur;
   return { rec: cur, stars };
 }
