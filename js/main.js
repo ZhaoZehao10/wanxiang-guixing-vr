@@ -63,6 +63,19 @@ function savePractice(on) {
   try { localStorage.setItem(PRACTICE_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
 }
 
+// 手感参数（磁吸强度/震动强度/菜单距离与大小），持久化到本地
+const TUNING_KEY = '{{SECRET_3zq9w4rt}}';
+const DEFAULT_TUNING = { magnet: 0.10, haptic: 1, menuDist: 0.70, menuScale: 0.42 };
+function loadTuning() {
+  try {
+    const v = JSON.parse(localStorage.getItem(TUNING_KEY) || '{}');
+    return { ...DEFAULT_TUNING, ...v };
+  } catch (e) { return { ...DEFAULT_TUNING }; }
+}
+function saveTuning(t) {
+  try { localStorage.setItem(TUNING_KEY, JSON.stringify(t)); } catch (e) { /* ignore */ }
+}
+
 // 场景主题（背景/雾/灯光/地面色调），只影响视觉不影响玩法
 const THEME_KEY = 'pico3d.theme';
 function loadTheme() {
@@ -89,6 +102,7 @@ const state = {
   assist: loadAssist(),   // 磁吸辅助开关
   practice: loadPractice(), // 练习模式（不记录成绩）
   theme: loadTheme(),      // 场景主题（night/snow/sunset）
+  tuning: loadTuning(),    // 手感参数（磁吸/震动/菜单距离与大小）
   pieces: [],           // mesh 本体（userData 挂 target/placed/home 等）
   placedCount: 0,
   startTime: 0,
@@ -493,8 +507,8 @@ function clearGhostHighlight() {
 // ---------------- 磁吸辅助 ----------------
 // 持握时若已接近目标位姿（位置 ≤1.6×吸附距离、朝向差 ≤~41°），每帧朝目标轻拉 10%，
 // 并把结果写回抓取偏移（否则下一帧会被手柄拉回原位）。吸附判定阈值本身不变。
-function magnetStep(hand, rate = 0.10) {
-  if (!state.assist) return false;
+function magnetStep(hand, rate = (state.tuning ? state.tuning.magnet : 0.10)) {
+  if (!state.assist || rate <= 0) return false;
   const grab = state.grabbing.get(hand);
   const c = state[hand];
   if (!grab || !c) return false;
@@ -717,10 +731,12 @@ function buildControllers() {
 // 手柄震动（haptics）：Pico 手柄支持 gamepad.hapticActuators，不支持时静默忽略
 function haptic(hand, intensity = 0.5, ms = 50) {
   try {
+    const k = state.tuning && typeof state.tuning.haptic === 'number' ? state.tuning.haptic : 1;
+    if (k <= 0) return;
     const c = state[hand];
     const gp = c && c.userData.inputSource && c.userData.inputSource.gamepad;
     const act = gp && gp.hapticActuators && gp.hapticActuators[0];
-    if (act && typeof act.pulse === 'function') act.pulse(intensity, ms);
+    if (act && typeof act.pulse === 'function') act.pulse(Math.min(1, intensity * k), Math.round(ms * k));
   } catch (e) { /* 部分浏览器/手柄不支持震动 */ }
 }
 
@@ -870,7 +886,8 @@ function winGame() {
   if (bestEl) {
     bestEl.textContent = state.practice
       ? '练习模式 · 不计时、不记录成绩'
-      : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`;
+      : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`
+        + (res.rec.top && res.rec.top.length ? ` · 前三 ${res.rec.top.map((t) => `${Math.floor(t / 60)}分${t % 60}秒`).join(' / ')}` : '');
   }
   // 新解锁成就展示（2D 结算面板 + VR 内浮窗提示）
   const achEl = $('win-achieve');
@@ -1286,7 +1303,7 @@ function buildVrMenu() {
 
   // VR 面板整体缩小 0.42 倍：1.16m 宽面板放在 0.7m 处视场占比过大（约 80°），
   // 缩小后约 38°，接近 VR 菜单的舒适视角
-  g.scale.setScalar(0.42);
+  g.scale.setScalar((state.tuning && state.tuning.menuScale) || 0.42);
   vrMenu.group = g;
   g.visible = false;
   scene.add(g); // 场景级：位置每次打开时按玩家头部姿态计算
@@ -1402,7 +1419,8 @@ function positionMenuInFront(snap = false) {
   const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cq);
   dir.y = Math.max(-0.5, Math.min(-0.05, dir.y));
   dir.normalize();
-  const target = cp.clone().addScaledVector(dir, 0.70);
+  const dist = (state.tuning && state.tuning.menuDist) || 0.70;
+  const target = cp.clone().addScaledVector(dir, dist);
   if (snap) {
     vrMenu.group.position.copy(target);
   } else {
@@ -1645,6 +1663,71 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+// ---------------- 手感设置面板 ----------------
+
+const TUNING_OPTIONS = [
+  { key: 'magnet', label: '磁吸强度', opts: [['关', 0], ['弱', 0.05], ['中', 0.10], ['强', 0.18]] },
+  { key: 'haptic', label: '震动强度', opts: [['关', 0], ['弱', 0.6], ['中', 1], ['强', 1.5]] },
+  { key: 'menuDist', label: 'VR 菜单距离', opts: [['近', 0.55], ['标准', 0.70], ['远', 0.85]] },
+  { key: 'menuScale', label: 'VR 菜单大小', opts: [['小', 0.36], ['标准', 0.42], ['大', 0.50]] },
+];
+
+function buildSettingsUI() {
+  const body = $('settings-body');
+  if (!body) return;
+  body.innerHTML = '';
+  for (const row of TUNING_OPTIONS) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+    const label = document.createElement('span');
+    label.textContent = row.label;
+    label.style.cssText = 'font-size:14px;color:#cfd9f5;min-width:96px';
+    wrap.appendChild(label);
+    const btns = [];
+    for (const [txt, val] of row.opts) {
+      const b = document.createElement('button');
+      b.className = 'diff-btn';
+      b.style.cssText = 'padding:6px 10px;min-width:56px';
+      b.textContent = txt;
+      const refresh = () => { b.style.borderColor = state.tuning[row.key] === val ? '#6cd0ff' : ''; };
+      refresh();
+      b.onclick = () => {
+        state.tuning[row.key] = val;
+        saveTuning(state.tuning);
+        btns.forEach((x) => x.refresh());
+        applyTuning();
+        sfx.ui();
+      };
+      b.refresh = refresh;
+      btns.push(b);
+      wrap.appendChild(b);
+    }
+    body.appendChild(wrap);
+  }
+  const p = document.createElement('p');
+  p.style.cssText = 'font-size:12px;color:#8b96b8;margin:12px 0 0;line-height:1.6';
+  p.textContent = '磁吸强度影响"接近目标时轻拉"的力度；震动强度作用于抓取/吸附/松手反馈；VR 菜单距离与大小立即生效。';
+  body.appendChild(p);
+}
+
+function openSettings() { buildSettingsUI(); $('settings').classList.remove('hidden'); }
+function closeSettings() { $('settings').classList.add('hidden'); }
+
+// 应用手感参数（菜单缩放；菜单开启时重新定位）
+function applyTuning() {
+  if (vrMenu.group) vrMenu.group.scale.setScalar(state.tuning.menuScale);
+  if (vrMenu.enabled) positionMenuInFront(true);
+}
+
+// 打开方式提示：file:// 或非本机 http:// 下 WebXR 可能不可用
+function protocolHint(protocol, hostname) {
+  if (protocol === 'file:') return '⚠️ 当前通过 file:// 打开：Pico 浏览器可能不提供 WebXR。建议安装 APK 版，或改用 https:// 地址。';
+  if (protocol === 'http:' && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    return '⚠️ 当前通过 http:// 打开：非本机地址需要 HTTPS 才能使用 WebXR。请改用 https:// 或 APK 版。';
+  }
+  return '';
+}
+
 // ---------------- 启动 ----------------
 
 // 2D 界面里的音乐开关（VR 内用菜单里的「音乐」按钮）
@@ -1710,6 +1793,24 @@ if ($('selfcheck-btn')) {
     $('selfcheck').classList.add('hidden');
   });
 }
+if ($('settings-btn')) {
+  $('settings-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sfx.ui();
+    openSettings();
+  });
+  $('settings-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sfx.ui();
+    closeSettings();
+  });
+}
+// 打开方式提示（file:// / 非本机 http://）
+const _protoHint = protocolHint(location.protocol, location.hostname);
+if (_protoHint && $('env-warn')) {
+  $('env-warn').textContent = _protoHint;
+  $('env-warn').style.display = 'block';
+}
 if ($('music-toggle')) {
   $('music-toggle').onclick = () => {
     music.toggle();
@@ -1753,6 +1854,9 @@ window.__pico3d = {
   setAssist: (on) => { state.assist = !!on; saveAssist(state.assist); },
   getPractice: () => state.practice,
   getTheme: () => state.theme,
+  getTuning: () => ({ ...state.tuning }),
+  setTuningValue: (k, v) => { state.tuning[k] = v; saveTuning(state.tuning); applyTuning(); },
+  openSettings, closeSettings, protocolHint,
   setTheme: (k) => applyTheme(k),
   getThemeInfo: () => ({ theme: state.theme, bg: scene.background.getHexString(), fog: scene.fog.color.getHexString() }),
   setPractice: (on) => { state.practice = !!on; savePractice(state.practice); },
