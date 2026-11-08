@@ -92,6 +92,10 @@ check('引导页点击 → 难度菜单出现', diff.visible && diff.buttons.len
 await evalJs(`(() => {
   document.querySelectorAll('#difficulty .diff-btn')[0].click(); // 小火箭
   [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('3 块')).click();
+  // 首次 UI 开局会先弹上手引导：确认后才会真正开局
+  if (window.__pico3d.getTutorialVisible && window.__pico3d.getTutorialVisible()) {
+    document.getElementById('tutorial-ok').click();
+  }
 })()`);
 await sleep(800);
 const started = await evalJs(`({ mode: window.__pico3d.state.mode, n: window.__pico3d.state.pieces.length, counter: document.getElementById('placed-counter').textContent })`);

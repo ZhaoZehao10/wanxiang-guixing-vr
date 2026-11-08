@@ -113,7 +113,7 @@ check('HTTP loopback 下 navigator.xr 存在（免证书出 WebXR）', env.hasXR
 check('页脚已被 Java 壳替换为 APK 版提示', env.footer === true);
 
 await evalJs(`document.getElementById('intro').click()`); await sleep(300);
-await evalJs(`(() => { document.querySelectorAll('#difficulty .diff-btn')[2].click(); [...document.querySelectorAll('#difficulty .diff-btn')].find(b=>b.textContent.includes('4 块')).click(); })()`);
+await evalJs(`(() => { document.querySelectorAll('#difficulty .diff-btn')[2].click(); [...document.querySelectorAll('#difficulty .diff-btn')].find(b=>b.textContent.includes('4 块')).click(); if (window.__pico3d.getTutorialVisible && window.__pico3d.getTutorialVisible()) document.getElementById('tutorial-ok').click(); })()`);
 await sleep(900);
 const st = await evalJs(`({ mode: window.__pico3d.state.mode, n: window.__pico3d.state.pieces.length })`);
 check('APK 内嵌页面 4 块开局成功', st.mode === 'playing' && st.n === 4, JSON.stringify(st));

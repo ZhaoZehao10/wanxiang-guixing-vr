@@ -178,6 +178,8 @@ const dailyStart = await evalJs(`(() => {
   const d = p.dailyChallenge();
   const btn = [...document.querySelectorAll('#difficulty .diff-btn')].find((x) => x.textContent.includes('今日挑战'));
   btn.click();
+  // 首次 UI 开局会先弹上手引导：确认后才会真正开局
+  if (p.getTutorialVisible()) document.getElementById('tutorial-ok').click();
   return { mode: p.state.mode, modelKey: p.state.modelKey, n: p.state.pieceCount, expect: d };
 })()`);
 check('每日挑战一键开局（模型/块数与挑战一致）',
@@ -193,7 +195,7 @@ const board = await evalJs(`(() => {
   if (btn) btn.click();
   const visible = !document.getElementById('board').classList.contains('hidden');
   const text = p.getBoardText();
-  const rows = document.querySelectorAll('#board-body > div').length;
+  const rows = document.querySelectorAll('#board-body .board-level').length;
   const supported = p.supportedCounts('rocket').length;
   document.getElementById('board-close').click();
   const closed = document.getElementById('board').classList.contains('hidden');
@@ -203,6 +205,24 @@ check('排行榜：当前模型各难度前三成绩可查看且可关闭',
   board.hasBtn === true && board.visible === true && board.closed === true
   && board.rows === board.supported && board.text.includes('前三'),
   JSON.stringify({ hasBtn: board.hasBtn, visible: board.visible, rows: board.rows, supported: board.supported, closed: board.closed }));
+
+// 1.27) 首次上手引导：仅首次 UI 开局出现一次
+const tutorial = await evalJs(`(() => {
+  const p = window.__pico3d;
+  p.resetTutorial();
+  p.startGameUI('rocket', 2);
+  const visible = p.getTutorialVisible();
+  document.getElementById('tutorial-ok').click();
+  const modeAfterOk = p.state.mode;
+  const visibleAfterOk = p.getTutorialVisible();
+  p.startGameUI('rocket', 2); // 第二次不应再出现
+  const visibleSecond = p.getTutorialVisible();
+  return { visible, modeAfterOk, visibleAfterOk, visibleSecond };
+})()`);
+check('首次上手引导：仅在首次 UI 开局出现一次，确认后开局',
+  tutorial.visible === true && tutorial.modeAfterOk === 'playing'
+  && tutorial.visibleAfterOk === false && tutorial.visibleSecond === false,
+  JSON.stringify(tutorial));
 
 // 1.3) 8 块按模型可用性：火箭支持；圣诞树无解 → 菜单按钮禁用
 const supports = await evalJs(`(() => {
@@ -365,6 +385,7 @@ check('配色皮肤：颜色随皮肤改变、片数正确、菜单有 6 种配�
 // 3.75) 场景主题：切换背景/雾颜色并可恢复
 const themeTest = await evalJs(`(() => {
   const p = window.__pico3d;
+  p.setTheme('night'); // 显式回到默认主题，避免上一次运行残留的本地主题影响基线
   const before = p.getThemeInfo();
   p.setTheme('snow');
   const snow = p.getThemeInfo();
