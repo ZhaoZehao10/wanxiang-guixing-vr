@@ -94,6 +94,14 @@ export const ACHIEVEMENTS = [
     },
   },
   {
+    id: 'star_50', name: '星光收集者', desc: '累计获得 50 颗星',
+    test: (p) => Object.values(p).reduce((s, r) => s + (r.stars || 0), 0) >= 50,
+  },
+  {
+    id: 'eight_three', name: '极限三连', desc: '任意 3 个模型在 8 块难度拿到三星',
+    test: (p) => MODEL_KEYS.filter((mk) => (p[levelKey(mk, 8)] || {}).stars === 3).length >= 3,
+  },
+  {
     id: 'perfectionist', name: '完美主义', desc: '同一难度集齐 12 个三星',
     test: (p) => DIFFICULTY.some((n) => MODEL_KEYS.every((mk) => (p[levelKey(mk, n)] || {}).stars === 3)),
   },

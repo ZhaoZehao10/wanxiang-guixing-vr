@@ -166,3 +166,7 @@ html, body {
 /* 手感设置面板 */
 #settings { display: flex; align-items: center; justify-content: center; }
 #settings.hidden { display: none; }
+
+/* 排行榜面板 */
+#board { display: flex; align-items: center; justify-content: center; }
+#board.hidden { display: none; }
