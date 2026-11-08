@@ -17,8 +17,8 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.3.0';
-const BUILD_INFO = '16 模型 · 78 关 · 6 配色 · 4 主题';
+const APP_VERSION = '1.4.0';
+const BUILD_INFO = '18 模型 · 88 关 · 6 配色 · 5 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -93,6 +93,7 @@ const SCENE_THEMES = {
   snow: { name: '雪夜', emoji: '❄️', bg: 0x101b2e, fog: 0x101b2e, floor: 0x27405f, slope: 0x33507a, hemiSky: 0xd8e8ff, hemiGround: 0x4a5568, dir: 0xffffff, dir2: 0x99c4ff, rim: 0x88aaff, starOpacity: 0.45 },
   sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
   dawn: { name: '樱花', emoji: '🌸', bg: 0x2b1e2c, fog: 0x2b1e2c, floor: 0x3d2a42, slope: 0x50355a, hemiSky: 0xffd8ea, hemiGround: 0x5c4050, dir: 0xffe8f2, dir2: 0xff9ec9, rim: 0xff7ab0, starOpacity: 0.5 },
+  sea: { name: '深海', emoji: '🌊', bg: 0x062029, fog: 0x062029, floor: 0x0c3a44, slope: 0x155a66, hemiSky: 0xbff4ff, hemiGround: 0x0e2c34, dir: 0xffffff, dir2: 0x66e0ff, rim: 0x2fd6b0, starOpacity: 0.25 },
 };
 
 const state = {
@@ -1739,12 +1740,25 @@ function protocolHint(protocol, hostname) {
 
 // ---------------- 本地排行榜面板 ----------------
 
-function buildBoardUI() {
+let boardMode = 'model';
+
+function fmtTime(t) {
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
+
+function buildBoardUI(mode = boardMode) {
   const body = $('board-body');
   if (!body) return;
+  boardMode = mode === 'global' ? 'global' : 'model';
   const prog = readProgress();
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
-  if ($('board-title')) $('board-title').textContent = `🏆 ${def.emoji} ${def.name} · 本地排行`;
+  if ($('board-title')) {
+    $('board-title').textContent = boardMode === 'global'
+      ? '🏆 全模型总榜 · 各难度最快'
+      : `🏆 ${def.emoji} ${def.name} · 本地排行`;
+  }
+  if ($('board-tab-model')) $('board-tab-model').style.borderColor = boardMode === 'model' ? '#6cd0ff' : '';
+  if ($('board-tab-global')) $('board-tab-global').style.borderColor = boardMode === 'global' ? '#6cd0ff' : '';
   body.innerHTML = '';
   const sum = summarize(prog, totalLevels());
   const head = document.createElement('div');
@@ -1752,27 +1766,45 @@ function buildBoardUI() {
   head.textContent = `总进度 ${sum.done}/${sum.total} 关 · 星星 ${sum.stars}/${sum.maxStars} · 最佳总时长 `
     + (sum.bestTotal ? `${Math.floor(sum.bestTotal / 60)}分${sum.bestTotal % 60}秒` : '—');
   body.appendChild(head);
-  for (const n of supportedCounts(state.modelKey)) {
-    const rec = prog[levelKey(state.modelKey, n)];
-    const top = (rec && Array.isArray(rec.top)) ? rec.top : [];
-    const topTxt = top.length
-      ? top.map((t, i) => `${i + 1}. ${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`).join('　')
-      : '暂无记录';
-    const starTxt = rec && rec.stars ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}` : '未挑战';
+
+  const mkRow = (title, right, line) => {
     const row = document.createElement('div');
     row.className = 'board-level';
     row.style.cssText = 'margin:8px 0;padding:8px 10px;border:1px solid rgba(140,165,255,.25);border-radius:10px;background:rgba(39,51,94,.35)';
     row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">`
-      + `<b>${n} 块 · ${DIFFICULTY_NAME[n] || ''}</b><span style="color:#ffd24d">${starTxt}</span></div>`
-      + `<div style="color:#9fb0d8;font-size:12px;margin-top:4px">前三：${topTxt}</div>`;
+      + `<b>${title}</b><span style="color:#ffd24d">${right}</span></div>`
+      + `<div style="color:#9fb0d8;font-size:12px;margin-top:4px">${line}</div>`;
     body.appendChild(row);
-  }
-  if (!supportedCounts(state.modelKey).length) {
-    body.textContent = '该模型暂无可玩难度';
+  };
+
+  if (boardMode === 'global') {
+    // 全模型总榜：每个难度取所有模型里的最快 3 条
+    for (const n of DIFFICULTY) {
+      const items = [];
+      for (const mk of MODEL_KEYS) {
+        const rec = prog[levelKey(mk, n)];
+        if (rec && rec.bestTime) items.push({ mk, t: rec.bestTime, stars: rec.stars || 0 });
+      }
+      items.sort((a, b) => a.t - b.t);
+      const top = items.slice(0, 3);
+      const line = top.length
+        ? top.map((it, i) => `${i + 1}. ${MODELS[it.mk] ? MODELS[it.mk].emoji : ''}${MODELS[it.mk] ? MODELS[it.mk].name : it.mk} ${fmtTime(it.t)}`).join('　')
+        : '暂无记录';
+      mkRow(`${n} 块 · ${DIFFICULTY_NAME[n] || ''}`, `${items.length} 个模型有记录`, `前三：${line}`);
+    }
+  } else {
+    for (const n of supportedCounts(state.modelKey)) {
+      const rec = prog[levelKey(state.modelKey, n)];
+      const top = (rec && Array.isArray(rec.top)) ? rec.top : [];
+      const topTxt = top.length ? top.map((t, i) => `${i + 1}. ${fmtTime(t)}`).join('　') : '暂无记录';
+      const starTxt = rec && rec.stars ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}` : '未挑战';
+      mkRow(`${n} 块 · ${DIFFICULTY_NAME[n] || ''}`, starTxt, `前三：${topTxt}`);
+    }
+    if (!supportedCounts(state.modelKey).length) body.textContent = '该模型暂无可玩难度';
   }
 }
 
-function openBoard() { buildBoardUI(); $('board').classList.remove('hidden'); }
+function openBoard() { boardMode = 'model'; buildBoardUI(); $('board').classList.remove('hidden'); }
 function closeBoard() { $('board').classList.add('hidden'); }
 
 // ---------------- 首次上手引导 ----------------
@@ -1890,6 +1922,12 @@ if ($('board-close')) {
     sfx.ui();
     closeBoard();
   });
+}
+if ($('board-tab-model')) {
+  $('board-tab-model').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('model'); });
+}
+if ($('board-tab-global')) {
+  $('board-tab-global').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('global'); });
 }
 if ($('tutorial-ok')) {
   $('tutorial-ok').addEventListener('click', (e) => {
