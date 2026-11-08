@@ -17,7 +17,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const BUILD_INFO = '18 模型 · 88 关 · 6 配色 · 5 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -951,8 +951,6 @@ function startGame(modelKey, n) {
   $('difficulty').classList.add('hidden');
   $('win').classList.add('hidden');
   $('hud').classList.remove('hidden');
-  const otherLink = $('other-game-link');
-  if (otherLink) otherLink.style.display = 'none'; // 游戏中隐藏"随机游走"入口，避免遮挡视野
   ghostNameCache = MODELS[modelKey] ? `${MODELS[modelKey].emoji} ${MODELS[modelKey].name}` : '';
   try {
     buildGhostAndPieces(modelKey, n);
@@ -987,9 +985,6 @@ function dailyChallenge(dateStr = dayKey()) {
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
-  // 页脚"随机游走"链接只在封面显示；菜单内容较长，隐藏避免遮挡成就行
-  const otherLink = $('other-game-link');
-  if (otherLink) otherLink.style.display = 'none';
   const box = $('difficulty');
   box.innerHTML = '';
   const card = document.createElement('div');
