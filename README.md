@@ -4,6 +4,9 @@
 18 个模型 / 88 个关卡 / 5 档难度 / 6 套配色 / 5 套场景主题 / 11 个成就，
 完整离线可玩（浏览器 HTTPS、单文件 HTML、独立 APK 三种形态）。
 
+> 作者：**ZhaoZehao10** · GitHub: <https://github.com/ZhaoZehao10>
+> 许可证：[MIT](LICENSE)（第三方依赖 three.js r160 亦为 MIT）
+
 > 本仓库只包含「3D 拼图 VR」。另一款「随机游走 VR」在独立仓库
 > `../RandomWalkVR`（端口 8543），两套游戏分别独立维护。
 
@@ -152,3 +155,7 @@ cert/              本地证书（gitignore，make-cert.mjs 生成）
 - 真机（Pico Neo3）完整验证需实机操作，本仓库测试覆盖到浏览器/离线/APK 链路模拟；
 - 圣诞树与小猪的 8 块难度无解（几何限制，已在 UI 中禁用）；
 - 8 块关卡切割耗时高于其他难度（首切约 1~2 秒，有缓存）。
+
+## 📄 许可证
+
+[MIT License](LICENSE) © 2026 [ZhaoZehao10](https://github.com/ZhaoZehao10)
