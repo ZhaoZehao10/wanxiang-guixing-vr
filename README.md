@@ -163,7 +163,7 @@ test/
   fuzz-tests.mjs      【拼图】模糊测试（200 轮随机调用/噪声输入/双重水密校验）
   plane-fuzz.mjs      【拼图】随机平面压力测试（成功必须水密守恒）
   regression.mjs      【拼图】回归基线（68 组合结构指纹；--capture 重建）
-  visual-regression.mjs 【拼图】视觉回归（3 场景帧缓冲感知哈希；--capture 重建）
+  visual-regression.mjs 【拼图】视觉回归（3 场景 × 2 画幅感知哈希；--capture 重建）
   e2e-*.mjs           【拼图】无头浏览器端到端验证（CDP 协议）
   perf-browser.mjs    【拼图】浏览器性能实测（6x CPU 限速模拟移动芯片）
   debug-*.mjs         各类故障诊断脚本（开发期使用，保留作记录）

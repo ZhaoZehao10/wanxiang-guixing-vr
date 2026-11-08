@@ -31,6 +31,12 @@ const SCENES = [
   { name: 'castle-x2', model: 'castle', n: 2 },
 ];
 
+// 两种画幅：同时校验宽屏与窄屏下的构图/投影（哈希网格固定 32×18）
+const VIEWPORTS = [
+  { w: 960, h: 540, label: '960x540' },
+  { w: 1280, h: 720, label: '1280x720' },
+];
+
 const chrome = spawn(CHROME, [
   '--headless=new', '--no-first-run', '--disable-gpu-sandbox',
   '--use-angle=swiftshader', // 软件渲染：跨机器可复现性更好
@@ -116,30 +122,38 @@ await evalJs(`(() => {
   return p.getQuality();
 })()`);
 
-// 每个场景采样一次（可重复调用；用于失败时重采样一次以排除偶发抖动）
+// 每个视口 × 场景采样一次（可重复调用；用于失败时重采样一次以排除偶发抖动）
 async function captureAll(label) {
   const out = {};
-  for (const sc of SCENES) {
-    const cells = await evalJs(`(() => {
-      ${HASH_FN}
-      const p = window.__pico3d;
-      p.startGame(${JSON.stringify(sc.model)}, ${sc.n});
-      // 让画面与"随机数序列"彻底解耦：
-      //   three.js 的 generateUUID 也消耗 Math.random，新增/删除任何 Object3D 都会
-      //   移动随机序列，导致星空与碎片散落位置变化（曾因此误报视觉漂移）。
-      //   这里固定碎片摆位并关闭星空，只保留模型/材质/光照/投影的比对。
-      p.state.pieces.forEach((mesh, i) => {
-        mesh.position.set(-0.55 + i * 0.36, 0.80, -0.85 - (i % 2) * 0.18);
-        mesh.quaternion.identity();
-      });
-      const stars = p.getStarfield();
-      if (stars) stars.visible = false;
-      // 冻结虚影呼吸（依赖 performance.now）
-      const g = p.ghostGroup();
-      if (g) { g.position.y = 0.05; g.rotation.y = 0; }
-      return hashFrame(p.renderer, 32, 18);
-    })()`);
-    out[sc.name] = cells;
+  for (const vp of VIEWPORTS) {
+    await send('Emulation.setDeviceMetricsOverride', {
+      width: vp.w, height: vp.h, deviceScaleFactor: 1, mobile: false,
+    });
+    await sleep(260);
+    await evalJs('window.dispatchEvent(new Event("resize"))');
+    await sleep(120);
+    for (const sc of SCENES) {
+      const cells = await evalJs(`(() => {
+        ${HASH_FN}
+        const p = window.__pico3d;
+        p.startGame(${JSON.stringify(sc.model)}, ${sc.n});
+        // 让画面与"随机数序列"彻底解耦：
+        //   three.js 的 generateUUID 也消耗 Math.random，新增/删除任何 Object3D 都会
+        //   移动随机序列，导致星空与碎片散落位置变化（曾因此误报视觉漂移）。
+        //   这里固定碎片摆位并关闭星空，只保留模型/材质/光照/投影的比对。
+        p.state.pieces.forEach((mesh, i) => {
+          mesh.position.set(-0.55 + i * 0.36, 0.80, -0.85 - (i % 2) * 0.18);
+          mesh.quaternion.identity();
+        });
+        const stars = p.getStarfield();
+        if (stars) stars.visible = false;
+        // 冻结虚影呼吸（依赖 performance.now）
+        const g = p.ghostGroup();
+        if (g) { g.position.y = 0.05; g.rotation.y = 0; }
+        return hashFrame(p.renderer, 32, 18);
+      })()`);
+      out[`${sc.name}@${vp.label}`] = cells;
+    }
   }
   console.log(`  采样完成（${label}）`);
   return out;
@@ -156,7 +170,7 @@ if (!envOk) {
 let results = await captureAll('第一次');
 
 if (capture || !fs.existsSync(BASELINE)) {
-  fs.writeFileSync(BASELINE, JSON.stringify({ version: 1, cols: 32, rows: 18, scenes: results }, null, 0));
+  fs.writeFileSync(BASELINE, JSON.stringify({ version: 2, cols: 32, rows: 18, viewports: VIEWPORTS.map((v) => v.label), scenes: results }, null, 0));
   console.log(`基线已${capture ? '更新' : '创建'}: ${BASELINE}`);
   chrome.kill();
   process.exit(0);
@@ -166,20 +180,23 @@ const base = JSON.parse(fs.readFileSync(BASELINE, 'utf8'));
 
 function compare(current) {
   const out = [];
-  for (const sc of SCENES) {
-    const a = base.scenes[sc.name];
-    const b = current[sc.name];
-    if (!a || !b || a.length !== b.length) { out.push({ name: sc.name, bad: true, msg: '基线缺失/尺寸不一致' }); continue; }
-    let maxDiff = 0, sum = 0;
-    for (let i = 0; i < a.length; i++) {
-      for (let k = 0; k < 3; k++) {
-        const d = Math.abs(a[i][k] - b[i][k]);
-        if (d > maxDiff) maxDiff = d;
-        sum += d;
+  for (const vp of VIEWPORTS) {
+    for (const sc of SCENES) {
+      const name = `${sc.name}@${vp.label}`;
+      const a = base.scenes[name];
+      const b = current[name];
+      if (!a || !b || a.length !== b.length) { out.push({ name, bad: true, msg: '基线缺失/尺寸不一致' }); continue; }
+      let maxDiff = 0, sum = 0;
+      for (let i = 0; i < a.length; i++) {
+        for (let k = 0; k < 3; k++) {
+          const d = Math.abs(a[i][k] - b[i][k]);
+          if (d > maxDiff) maxDiff = d;
+          sum += d;
+        }
       }
+      const meanDiff = sum / (a.length * 3);
+      out.push({ name, ok: meanDiff <= 2.5 && maxDiff <= 40, meanDiff, maxDiff });
     }
-    const meanDiff = sum / (a.length * 3);
-    out.push({ name: sc.name, ok: meanDiff <= 2.5 && maxDiff <= 40, meanDiff, maxDiff });
   }
   return out;
 }
