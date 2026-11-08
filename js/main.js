@@ -17,8 +17,8 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.2.0';
-const BUILD_INFO = '14 模型 · 68 关 · 6 套配色';
+const APP_VERSION = '1.3.0';
+const BUILD_INFO = '16 模型 · 78 关 · 6 配色 · 4 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -92,6 +92,7 @@ const SCENE_THEMES = {
   night: { name: '夜空', emoji: '🌙', bg: 0x0b1020, fog: 0x0b1020, floor: 0x1a2340, slope: 0x27335e, hemiSky: 0xbfd8ff, hemiGround: 0x3a2f2a, dir: 0xffffff, dir2: 0x88aaff, rim: 0xb18cff, starOpacity: 0.95 },
   snow: { name: '雪夜', emoji: '❄️', bg: 0x101b2e, fog: 0x101b2e, floor: 0x27405f, slope: 0x33507a, hemiSky: 0xd8e8ff, hemiGround: 0x4a5568, dir: 0xffffff, dir2: 0x99c4ff, rim: 0x88aaff, starOpacity: 0.45 },
   sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
+  dawn: { name: '樱花', emoji: '🌸', bg: 0x2b1e2c, fog: 0x2b1e2c, floor: 0x3d2a42, slope: 0x50355a, hemiSky: 0xffd8ea, hemiGround: 0x5c4050, dir: 0xffe8f2, dir2: 0xff9ec9, rim: 0xff7ab0, starOpacity: 0.5 },
 };
 
 const state = {
@@ -887,7 +888,7 @@ function winGame() {
     bestEl.textContent = state.practice
       ? '练习模式 · 不计时、不记录成绩'
       : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`
-        + (res.rec.top && res.rec.top.length ? ` · 前三 ${res.rec.top.map((t) => `${Math.floor(t / 60)}分${t % 60}秒`).join(' / ')}` : '');
+        + (res.rec.top && res.rec.top.length ? ` · 前三 ${res.rec.top.map((t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`).join(' / ')}` : '');
   }
   // 新解锁成就展示（2D 结算面板 + VR 内浮窗提示）
   const achEl = $('win-achieve');
@@ -1008,6 +1009,14 @@ function showDifficulty() {
     + `<span style="font-size:12px;color:#8b96b8">${dc.date} · 每天自动更换</span>`;
   dcBtn.onclick = () => startGame(dc.modelKey, dc.n);
   card.appendChild(dcBtn);
+
+  // 排行榜入口：当前模型各难度的本地前三成绩
+  const boardBtn = document.createElement('button');
+  boardBtn.className = 'diff-btn';
+  boardBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  boardBtn.innerHTML = '<b style="font-size:14px">🏆 排行榜 · 当前模型前三成绩</b>';
+  boardBtn.onclick = () => { sfx.ui(); openBoard(); };
+  card.appendChild(boardBtn);
 
   const row1 = document.createElement('div');
   row1.className = 'diff-row';
@@ -1728,6 +1737,37 @@ function protocolHint(protocol, hostname) {
   return '';
 }
 
+// ---------------- 本地排行榜面板 ----------------
+
+function buildBoardUI() {
+  const body = $('board-body');
+  if (!body) return;
+  const prog = readProgress();
+  const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
+  if ($('board-title')) $('board-title').textContent = `🏆 ${def.emoji} ${def.name} · 本地排行`;
+  body.innerHTML = '';
+  for (const n of supportedCounts(state.modelKey)) {
+    const rec = prog[levelKey(state.modelKey, n)];
+    const top = (rec && Array.isArray(rec.top)) ? rec.top : [];
+    const topTxt = top.length
+      ? top.map((t, i) => `${i + 1}. ${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`).join('　')
+      : '暂无记录';
+    const starTxt = rec && rec.stars ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}` : '未挑战';
+    const row = document.createElement('div');
+    row.style.cssText = 'margin:8px 0;padding:8px 10px;border:1px solid rgba(140,165,255,.25);border-radius:10px;background:rgba(39,51,94,.35)';
+    row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">`
+      + `<b>${n} 块 · ${DIFFICULTY_NAME[n] || ''}</b><span style="color:#ffd24d">${starTxt}</span></div>`
+      + `<div style="color:#9fb0d8;font-size:12px;margin-top:4px">前三：${topTxt}</div>`;
+    body.appendChild(row);
+  }
+  if (!supportedCounts(state.modelKey).length) {
+    body.textContent = '该模型暂无可玩难度';
+  }
+}
+
+function openBoard() { buildBoardUI(); $('board').classList.remove('hidden'); }
+function closeBoard() { $('board').classList.add('hidden'); }
+
 // ---------------- 启动 ----------------
 
 // 2D 界面里的音乐开关（VR 内用菜单里的「音乐」按钮）
@@ -1805,6 +1845,13 @@ if ($('settings-btn')) {
     closeSettings();
   });
 }
+if ($('board-close')) {
+  $('board-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sfx.ui();
+    closeBoard();
+  });
+}
 // 打开方式提示（file:// / 非本机 http://）
 const _protoHint = protocolHint(location.protocol, location.hostname);
 if (_protoHint && $('env-warn')) {
@@ -1857,6 +1904,8 @@ window.__pico3d = {
   getTuning: () => ({ ...state.tuning }),
   setTuningValue: (k, v) => { state.tuning[k] = v; saveTuning(state.tuning); applyTuning(); },
   openSettings, closeSettings, protocolHint,
+  openBoard, closeBoard,
+  getBoardText: () => ($('board-body') ? $('board-body').textContent : ''),
   setTheme: (k) => applyTheme(k),
   getThemeInfo: () => ({ theme: state.theme, bg: scene.background.getHexString(), fog: scene.fog.color.getHexString() }),
   setPractice: (on) => { state.practice = !!on; savePractice(state.practice); },

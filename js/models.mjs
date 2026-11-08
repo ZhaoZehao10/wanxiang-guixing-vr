@@ -532,6 +532,38 @@ function buildHeli(b) {
   }
 }
 
+// ---------------- 模型 15：咖啡杯 ----------------
+
+function buildCoffee(b) {
+  const ceramic = [0.93, 0.93, 0.96], ceramicD = [0.80, 0.82, 0.88];
+  const coffee = [0.36, 0.21, 0.12], steel = [0.72, 0.75, 0.80];
+  frustum(b, ceramic, { pos: [0, 0.10, 0] }, 0.40, 0.46, 0.56, 40);          // 杯身
+  frustum(b, ceramicD, { pos: [0, -0.19, 0] }, 0.40, 0.34, 0.06, 40);        // 杯底
+  sphere(b, coffee, { pos: [0, 0.35, 0], scale: [0.40, 0.035, 0.40] }, 1.0, 32, 16); // 咖啡液面
+  torus(b, ceramic, { pos: [0.62, 0.12, 0], rot: [0, Math.PI / 2, 0] }, 0.20, 0.055, 40, 14); // 杯把
+  frustum(b, ceramicD, { pos: [0, -0.27, 0] }, 0.66, 0.58, 0.07, 44);        // 碟子
+  frustum(b, ceramicD, { pos: [0, -0.33, 0] }, 0.30, 0.26, 0.05, 28);        // 碟脚
+  // 小勺：柄 + 勺头
+  box(b, steel, { pos: [-0.42, 0.365, 0.18], rot: [0, 0.5, 0] }, 0.42, 0.028, 0.06);
+  sphere(b, steel, { pos: [-0.66, 0.355, 0.28], scale: [0.11, 0.035, 0.09] }, 1.0, 20, 12);
+}
+
+// ---------------- 模型 16：小鱼 ----------------
+
+function buildFish(b) {
+  const orange = [0.96, 0.56, 0.18], orangeD = [0.88, 0.42, 0.12], fin = [0.99, 0.72, 0.32];
+  const dark = [0.10, 0.09, 0.10], white = [0.98, 0.97, 0.94];
+  sphere(b, orange, { pos: [0, 0, 0], scale: [0.62, 0.45, 0.90] }, 1.0, 40, 26);   // 身体
+  frustum(b, orangeD, { pos: [0, 0, -0.98], rot: [Math.PI / 2, 0, 0] }, 0.30, 0.05, 0.42, 20); // 尾鳍
+  sphere(b, fin, { pos: [0, 0.44, -0.10], scale: [0.07, 0.26, 0.36] }, 1.0, 20, 12); // 背鳍
+  for (const s of [-1, 1]) {
+    sphere(b, fin, { pos: [s * 0.48, -0.06, 0.10], scale: [0.10, 0.06, 0.24], rot: [0, 0, s * 0.4] }, 1.0, 20, 12); // 胸鳍
+    sphere(b, white, { pos: [s * 0.26, 0.13, 0.80], scale: [1, 1, 0.7] }, 0.062, 18, 12); // 眼白
+    sphere(b, dark, { pos: [s * 0.27, 0.13, 0.86], scale: [1, 1, 0.6] }, 0.032, 14, 10);  // 瞳孔
+  }
+  sphere(b, fin, { pos: [0, -0.30, 0.05], scale: [0.30, 0.10, 0.42] }, 1.0, 24, 14);  // 腹鳍
+}
+
 // ---------------- 配色皮肤 ----------------
 // 只改顶点颜色、不改任何几何：切割平面表按几何标定，因此所有配色共用同一套
 // 切割参数（水密性/体积守恒与颜色无关）。
@@ -603,6 +635,8 @@ export const MODELS = {
   turtle: { name: '小海龟', emoji: '🐢', build: buildTurtle },
   pig: { name: '小猪', emoji: '🐷', build: buildPig },
   heli: { name: '直升机', emoji: '🚁', build: buildHeli },
+  coffee: { name: '咖啡杯', emoji: '☕', build: buildCoffee },
+  fish: { name: '小鱼', emoji: '🐟', build: buildFish },
 };
 
 // 构建模型 → { obj, center[3], radius }（包围球自动计算）
