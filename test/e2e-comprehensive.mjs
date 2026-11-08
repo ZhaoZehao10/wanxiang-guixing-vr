@@ -100,6 +100,40 @@ check('设备自检：默认隐藏、显示安全上下文/navigator.xr/WebGL、
   && selfCheck.text.includes('WebGL') && selfCheck.closed === true && selfCheck.introHidden === false,
   JSON.stringify({ initiallyHidden: selfCheck.initiallyHidden, opened: selfCheck.opened, closed: selfCheck.closed, introHidden: selfCheck.introHidden }));
 
+// 1.12) 手感设置面板 + 打开方式提示
+const settingsTest = await evalJs(`(() => {
+  const p = window.__pico3d;
+  document.getElementById('settings-btn').click();
+  const panelVisible = !document.getElementById('settings').classList.contains('hidden');
+  const introHidden = document.getElementById('intro').classList.contains('hidden');
+  const rows = [...document.querySelectorAll('#settings-body > div')];
+  const magnetRow = rows[0], distRow = rows[2], scaleRow = rows[3];
+  magnetRow.children[magnetRow.children.length - 1].click(); // 强
+  distRow.children[1].click(); // 近
+  scaleRow.children[scaleRow.children.length - 1].click(); // 大
+  const t = p.getTuning();
+  p.setTuningValue('magnet', 0.10);
+  p.setTuningValue('menuDist', 0.70);
+  p.setTuningValue('menuScale', 0.42);
+  document.getElementById('settings-close').click();
+  const closed = document.getElementById('settings').classList.contains('hidden');
+  const hints = {
+    file: p.protocolHint('file:'),
+    https: p.protocolHint('https:'),
+    http: p.protocolHint('http:', 'example.com'),
+    local: p.protocolHint('http:', 'localhost'),
+  };
+  return { panelVisible, introHidden, t, closed, hints };
+})()`);
+check('手感设置：磁吸/菜单距离/大小可调、可关闭且不误触开局',
+  settingsTest.panelVisible === true && settingsTest.introHidden === false && settingsTest.closed === true
+  && settingsTest.t.magnet === 0.18 && settingsTest.t.menuDist === 0.55 && settingsTest.t.menuScale === 0.50,
+  JSON.stringify({ visible: settingsTest.panelVisible, introHidden: settingsTest.introHidden, t: settingsTest.t, closed: settingsTest.closed }));
+check('file:// 与非本机 http 的打开方式提示',
+  settingsTest.hints.file.includes('APK') && settingsTest.hints.https === ''
+  && settingsTest.hints.http.includes('HTTPS') && settingsTest.hints.local === '',
+  JSON.stringify(settingsTest.hints));
+
 // 1.15) 稳定性：版本信息 / WebGL 上下文丢失 / 关卡加载失败兜底
 const stability = await evalJs(`(async () => {
   const p = window.__pico3d;

@@ -40,6 +40,20 @@ console.log('\n=== 成绩写入 ===');
   check('更快的成绩刷新 bestTime 并升星', r3.rec.bestTime === 100 && r3.rec.stars === 3, JSON.stringify(r3.rec));
 }
 
+// ---------------- Top3 排行榜 ----------------
+console.log('\n=== Top3 排行榜 ===');
+{
+  const p = {};
+  recordResult(p, 'rocket', 2, 300, 0);
+  recordResult(p, 'rocket', 2, 200, 0);
+  recordResult(p, 'rocket', 2, 400, 0);
+  recordResult(p, 'rocket', 2, 150, 0);
+  const rec = p['rocket|2'];
+  check('Top3 升序保留前 3、plays 累计',
+    JSON.stringify(rec.top) === JSON.stringify([150, 200, 300]) && rec.plays === 4 && rec.bestTime === 150,
+    JSON.stringify(rec));
+}
+
 // ---------------- 成就判定 ----------------
 console.log('\n=== 成就判定 ===');
 {
