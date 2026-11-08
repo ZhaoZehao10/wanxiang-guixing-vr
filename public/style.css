@@ -162,3 +162,7 @@ html, body {
 /* 致命错误/渲染中断覆盖层 */
 #fatal { display: flex; align-items: center; justify-content: center; }
 #fatal.hidden { display: none; }
+
+/* 手感设置面板 */
+#settings { display: flex; align-items: center; justify-content: center; }
+#settings.hidden { display: none; }
