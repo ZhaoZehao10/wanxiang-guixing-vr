@@ -1,4 +1,4 @@
-// Pico Neo3 3D 拼图 VR — HTTPS 静态服务器（零依赖，Node 内置模块实现）
+// 万象归形 · Pico Neo3 — HTTPS 静态服务器（零依赖，Node 内置模块实现）
 // 为什么必须 HTTPS：WebXR 需要 secure context，Pico 浏览器通过局域网 IP 访问时
 // 只有用 https:// 才会暴露 navigator.xr，http:// 会直接没有"进入VR"按钮。
 import https from 'node:https';
@@ -73,7 +73,7 @@ const httpServer = http.createServer((req, res) => {
   if (req.url.split('?')[0] === '/ca.crt') {
     res.writeHead(200, {
       'Content-Type': 'application/x-x509-ca-cert',
-      'Content-Disposition': 'attachment; filename="pico3d-ca.crt"',
+      'Content-Disposition': 'attachment; filename="wanxiangguixing-ca.crt"',
     });
     res.end(fs.readFileSync(path.join(__dirname, 'cert', 'ca.crt')));
     return;
@@ -81,9 +81,9 @@ const httpServer = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>3D 拼图 VR — 请使用 HTTPS 访问</title></head>
+<title>万象归形 — 请使用 HTTPS 访问</title></head>
 <body style="font-family:sans-serif;background:#0b1020;color:#dfe7ff;padding:24px;line-height:1.8">
-<h2>🧩 Pico Neo3 3D 拼图 VR</h2>
+<h2>🧩 万象归形 · Pico Neo3</h2>
 <p>WebXR 需要 HTTPS。请在浏览器地址栏使用下面的 <b>https://</b> 地址：</p>
 <p style="font-size:1.4em"><a href="https://${ip}:${PORT}/" style="color:#6cf">https://${ip}:${PORT}/</a></p>
 <p>推荐：先 <a href="http://${ip}:${HTTP_PORT}/ca.crt" style="color:#6dffa8">下载并安装 CA 证书</a>
@@ -102,7 +102,7 @@ const httpsServer = https.createServer(
     if ((req.url || '').split('?')[0] === '/ca.crt') {
       res.writeHead(200, {
         'Content-Type': 'application/x-x509-ca-cert',
-        'Content-Disposition': 'attachment; filename="pico3d-ca.crt"',
+        'Content-Disposition': 'attachment; filename="wanxiangguixing-ca.crt"',
       });
       res.end(fs.readFileSync(path.join(__dirname, 'cert', 'ca.crt')));
       return;
@@ -125,7 +125,7 @@ httpsServer.on('clientError', (err, socket) => {
 httpsServer.listen(PORT, () => {
   const ip = lanIp();
   console.log('==============================================');
-  console.log(' Pico Neo3 3D 拼图 VR 已启动');
+  console.log(' 万象归形 · Pico Neo3 已启动');
   console.log(` 头盔浏览器访问:  https://${ip}:${PORT}/`);
   console.log(` CA 证书下载:     http://${ip}:${HTTP_PORT}/ca.crt  ← 安装后零警告`);
   console.log(` 本机调试访问:    https://localhost:${PORT}/`);

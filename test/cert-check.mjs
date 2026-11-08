@@ -15,7 +15,7 @@ const URL = `https://${lanIp}:8443/`;
 
 const chrome = spawn(CHROME, [
   '--headless=new', '--no-first-run',
-  `--user-data-dir=${process.env.TEMP}\\pico3d-certcheck`, `--remote-debugging-port=${PORT}`,
+  `--user-data-dir=${process.env.TEMP}\\wanxiangguixing-certcheck`, `--remote-debugging-port=${PORT}`,
   '--window-size=1280,800', 'about:blank',
 ], { stdio: 'ignore' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

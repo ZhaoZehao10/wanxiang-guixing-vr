@@ -1,4 +1,4 @@
-// Pico 3D 拼图 VR — 主程序
+// 万象归形 — 主程序
 // Three.js r160 + WebXR。适配 Pico Neo3（Pico 浏览器，4DoF/6DoF 手柄）。
 //
 // 玩法：碎片散落在身前斜坡上，目标虚影浮在斜坡上方。扣扳机抓取、松手放下，
@@ -33,7 +33,7 @@ const SLOPE_PIECES = 9;        // 散落碎片数上限（多于碎片数时随�
 // ---------------- 全局状态 ----------------
 
 // 配色皮肤持久化（只影响顶点颜色，不影响几何与切割表）
-const PALETTE_KEY = 'pico3d.palette';
+const PALETTE_KEY = 'wanxiang.palette';
 function loadPalette() {
   try {
     const v = localStorage.getItem(PALETTE_KEY);
@@ -77,7 +77,7 @@ function saveTuning(t) {
 }
 
 // 场景主题（背景/雾/灯光/地面色调），只影响视觉不影响玩法
-const THEME_KEY = 'pico3d.theme';
+const THEME_KEY = 'wanxiang.theme';
 function loadTheme() {
   try {
     const v = localStorage.getItem(THEME_KEY);
@@ -1953,7 +1953,7 @@ if ($('music-toggle')) {
 renderer.setAnimationLoop(animate);
 
 // 测试钩子（自动化验证用；不影响正常游戏）
-window.__pico3d = {
+window.__wanxiang = {
   state, trySnap, startGame, showDifficulty, toggleVrMenu, physics, slopeHeightAt, MODELS, fxList, THREE,
   // 新功能测试钩子
   triggerHint, clearHint, applyStickRotation, positionMenuInFront,

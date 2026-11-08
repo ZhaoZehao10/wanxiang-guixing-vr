@@ -1,4 +1,4 @@
-// 把 3D 拼图 VR 打包成单文件离线 HTML（file:// 直接打开，零服务器零网络）
+// 把 万象归形 打包成单文件离线 HTML（file:// 直接打开，零服务器零网络）
 //
 // 做法与 tools/make-offline.mjs 同源（同一套 ESM→单文件拼接思路）：
 //   1) three.module.min.js 结尾的 export{...} 用胶水代码转成全局 THREE（IIFE 包裹，
@@ -7,7 +7,7 @@
 //      models → puzzle → sfx → main（main 依赖前三个；VRButton 独立无 THREE 依赖）；
 //   3) style.css 内联，移除指向局域网其他游戏（/rw/）的页脚。
 //
-// 用法: node tools\make-offline-puzzle.mjs → dist/3D拼图VR-离线版.html
+// 用法: node tools\make-offline-puzzle.mjs → dist/WanxiangGuixing-offline.html
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -65,6 +65,6 @@ html = html.replace(/<div id="other-game-link"[\s\S]*?<\/div>/,
 if (!html.includes('单文件离线版')) { console.error('页脚替换失败（index.html 结构变了？）'); process.exit(1); }
 
 fs.mkdirSync(path.join(ROOT, 'dist'), { recursive: true });
-const out = path.join(ROOT, 'dist', '3D拼图VR-离线版.html');
+const out = path.join(ROOT, 'dist', 'WanxiangGuixing-offline.html');
 fs.writeFileSync(out, html, 'utf8');
 console.log('写出:', out, `${(fs.statSync(out).size / 1024).toFixed(0)} KB`);

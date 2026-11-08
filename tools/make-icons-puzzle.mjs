@@ -1,4 +1,4 @@
-// 生成 3D 拼图 VR 的 APK 启动图标（拼图块：青绿 + 金色两块互扣）
+// 生成 万象归形 的 APK 启动图标（拼图块：青绿 + 金色两块互扣）
 // 零依赖：手写 PNG 编码（zlib deflate），仅构建 APK 时运行。
 import fs from 'node:fs';
 import path from 'node:path';

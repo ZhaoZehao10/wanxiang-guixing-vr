@@ -9,7 +9,7 @@ const URL = 'https://localhost:8443/';
 
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu-sandbox', '--no-first-run',
-  `--user-data-dir=${process.env.TEMP}\\pico3d-cdp`, `--remote-debugging-port=${PORT}`,
+  `--user-data-dir=${process.env.TEMP}\\wanxiangguixing-cdp`, `--remote-debugging-port=${PORT}`,
   '--window-size=1280,800', '--ignore-certificate-errors', 'about:blank',
 ], { stdio: 'ignore' });
 

@@ -9,7 +9,7 @@ const URL = 'https://localhost:8443/';
 
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu-sandbox', '--no-first-run',
-  `--user-data-dir=${process.env.TEMP}\\pico3d-cdp3`, `--remote-debugging-port=${PORT}`,
+  `--user-data-dir=${process.env.TEMP}\\wanxiangguixing-cdp3`, `--remote-debugging-port=${PORT}`,
   '--autoplay-policy=no-user-gesture-required',
   '--window-size=1280,800',
   // 测试用的是本地 CA 签发的证书；无头会话无法弹窗安装 CA，
@@ -76,7 +76,7 @@ const struct = await evalJs(`({
   hasHud: !!document.getElementById('hud'),
   hasWin: !!document.getElementById('win'),
   hasDiff: !!document.getElementById('difficulty'),
-  hasHook: !!window.__pico3d,
+  hasHook: !!window.__wanxiang,
 })`);
 check('页面结构完整（canvas/hud/win/difficulty/测试钩子）',
   struct.hasCanvas && struct.hasHud && struct.hasWin && struct.hasDiff && struct.hasHook, JSON.stringify(struct));
@@ -102,7 +102,7 @@ check('设备自检：默认隐藏、显示安全上下文/navigator.xr/WebGL、
 
 // 1.12) 手感设置面板 + 打开方式提示
 const settingsTest = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   document.getElementById('settings-btn').click();
   const panelVisible = !document.getElementById('settings').classList.contains('hidden');
   const introHidden = document.getElementById('intro').classList.contains('hidden');
@@ -136,7 +136,7 @@ check('file:// 与非本机 http 的打开方式提示',
 
 // 1.15) 稳定性：版本信息 / WebGL 上下文丢失 / 关卡加载失败兜底
 const stability = await evalJs(`(async () => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   const buildInfo = document.getElementById('build-info').textContent;
   // 模拟 WebGL 上下文丢失与恢复
   const canvas = document.getElementById('c3d');
@@ -163,7 +163,7 @@ check('关卡加载失败兜底：不抛异常、可返回菜单',
 
 // 1.2) 每日挑战：按日期确定性生成，菜单可见且可一键开局
 const daily = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   p.showDifficulty();
   const a = p.dailyChallenge('2026-11-08');
   const b = p.dailyChallenge('2026-11-08');
@@ -174,7 +174,7 @@ check('每日挑战：同日期结果确定且菜单展示',
   daily.hasBtn && JSON.stringify(daily.a) === JSON.stringify(daily.b) && daily.btnText.includes(daily.a.name),
   JSON.stringify(daily));
 const dailyStart = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   const d = p.dailyChallenge();
   const btn = [...document.querySelectorAll('#difficulty .diff-btn')].find((x) => x.textContent.includes('今日挑战'));
   btn.click();
@@ -188,7 +188,7 @@ check('每日挑战一键开局（模型/块数与挑战一致）',
 
 // 1.25) 排行榜面板：当前模型各难度前三成绩
 const board = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   p.showDifficulty();
   const btn = [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('排行榜'));
   const hasBtn = !!btn;
@@ -208,7 +208,7 @@ check('排行榜：当前模型各难度前三成绩可查看且可关闭',
 
 // 1.26) 全模型总榜：每个难度列出全模型最快前三
 const globalBoard = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   p.showDifficulty();
   [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('排行榜')).click();
   document.getElementById('board-tab-global').click();
@@ -223,7 +223,7 @@ check('全模型总榜：5 档难度各列前三',
   JSON.stringify(globalBoard));
 // 1.27) 首次上手引导：仅首次 UI 开局出现一次
 const tutorial = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   p.resetTutorial();
   p.startGameUI('rocket', 2);
   const visible = p.getTutorialVisible();
@@ -241,7 +241,7 @@ check('首次上手引导：仅在首次 UI 开局出现一次，确认后开局
 
 // 1.3) 8 块按模型可用性：火箭支持；圣诞树无解 → 菜单按钮禁用
 const supports = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   const rocket = p.supportedCounts('rocket');
   const xmas = p.supportedCounts('xmas');
   p.state.modelKey = 'xmas';
@@ -262,8 +262,8 @@ check('8 块按模型可用：火箭支持、圣诞树禁用',
 
 // 2) 全部模型 × 2/3/4 块建局（模型清单由页面内 MODELS 决定）
 console.log('--- 全部模型组合建局 ---');
-const modelKeys = await evalJs('Object.keys(window.__pico3d.MODELS)');
-const cutTable = await evalJs('window.__pico3d.CUT_TABLE');
+const modelKeys = await evalJs('Object.keys(window.__wanxiang.MODELS)');
+const cutTable = await evalJs('window.__wanxiang.CUT_TABLE');
 const combos = [];
 for (const mk of modelKeys) for (const n of [2, 3, 4, 6, 8]) {
   if (!cutTable[mk] || !cutTable[mk][n]) continue; // 8 块可选档：部分模型无解
@@ -272,8 +272,8 @@ for (const mk of modelKeys) for (const n of [2, 3, 4, 6, 8]) {
 let shotsTaken = 0;
 for (const [mk, n] of combos) {
   const st = await evalJs(`(() => {
-    window.__pico3d.startGame('${mk}', ${n});
-    const s = window.__pico3d.state;
+    window.__wanxiang.startGame('${mk}', ${n});
+    const s = window.__wanxiang.state;
     return { count: s.pieces.length, mode: s.mode, placed: s.placedCount, grab: s.grabbing.size };
   })()`);
   check(`${mk} x${n}: ${st.count} 片、playing、0 已归位`, st.count === n && st.mode === 'playing' && st.placed === 0 && st.grab === 0, JSON.stringify(st));
@@ -286,9 +286,9 @@ for (const [mk, n] of combos) {
 
 // 3) VR 菜单开关 + 高亮状态
 const menu = await evalJs(`(() => {
-  window.__pico3d.toggleVrMenu(true);
+  window.__wanxiang.toggleVrMenu(true);
   // 找不到 group 引用没关系——检查状态副作用
-  const s = window.__pico3d.state;
+  const s = window.__wanxiang.state;
   return { pieceCount: s.pieceCount, modelKey: s.modelKey };
 })()`);
 check('VR 菜单 toggle 可调用且不崩溃',
@@ -298,11 +298,11 @@ const [lastModel, lastN] = combos[combos.length - 1];
 
 // 3.1) 提示系统：触发 → 光柱出现 / 定位到第一块 → 清除
 const hintTest = await evalJs(`(() => {
-  window.__pico3d.toggleVrMenu(false);
-  const ok = window.__pico3d.triggerHint();
-  const before = window.__pico3d.getHintInfo();
-  window.__pico3d.clearHint();
-  const after = window.__pico3d.getHintInfo();
+  window.__wanxiang.toggleVrMenu(false);
+  const ok = window.__wanxiang.triggerHint();
+  const before = window.__wanxiang.getHintInfo();
+  window.__wanxiang.clearHint();
+  const after = window.__wanxiang.getHintInfo();
   return { ok, before, after };
 })()`);
 check('提示系统：光柱出现并指向下一块，可正常清除',
@@ -311,19 +311,19 @@ check('提示系统：光柱出现并指向下一块，可正常清除',
 
 // 3.2) 摇杆旋转：抓取中绕手柄本地轴旋转拼片
 const stick = await evalJs(`(() => {
-  const T = window.__pico3d.THREE;
+  const T = window.__wanxiang.THREE;
   const g = { quatOffset: new T.Quaternion() };
   const before = g.quatOffset.clone();
-  window.__pico3d.applyStickRotation(g, 1, 0, 0.2);
+  window.__wanxiang.applyStickRotation(g, 1, 0, 0.2);
   return { changed: !g.quatOffset.equals(before), angle: 2 * Math.acos(Math.min(1, Math.abs(g.quatOffset.w))) };
 })()`);
 check('摇杆旋转：quatOffset 绕本地轴转动', stick.changed && stick.angle > 0.1, JSON.stringify(stick));
 
 // 3.3) VR 菜单跟随：打开后出现在玩家视线前方
 const menuPos = await evalJs(`(() => {
-  window.__pico3d.toggleVrMenu(true);
-  const info = window.__pico3d.getMenuInfo();
-  window.__pico3d.toggleVrMenu(false);
+  window.__wanxiang.toggleVrMenu(true);
+  const info = window.__wanxiang.getMenuInfo();
+  window.__wanxiang.toggleVrMenu(false);
   return info;
 })()`);
 check('VR 菜单跟随玩家（位于相机前方）',
@@ -332,24 +332,24 @@ check('VR 菜单跟随玩家（位于相机前方）',
 
 // 3.4) 抓取点保持：抓起时记录相对偏移（抓边缘不瞬移）
 const grabTest = await evalJs(`(() => {
-  const s = window.__pico3d.state;
+  const s = window.__wanxiang.state;
   const mesh = s.pieces[s.pieces.length - 1];
   mesh.position.set(0.05, 0.05, 0);
-  window.__pico3d.onGrab('right');
+  window.__wanxiang.onGrab('right');
   const grabbed = s.grabbing.has('right');
   const grab = s.grabbing.get('right');
-  window.__pico3d.onRelease('right');
-  window.__pico3d.physics.length = 0;
+  window.__wanxiang.onRelease('right');
+  window.__wanxiang.physics.length = 0;
   return { grabbed, hasOffset: !!grab && grab.offset.length() > 0.001 };
 })()`);
 check('抓取点保持：记录手柄系相对偏移', grabTest.grabbed && grabTest.hasOffset, JSON.stringify(grabTest));
 
 // 3.5) 画质自适应：低画质应关闭星空并降像素比
 const qualityTest = await evalJs(`(() => {
-  window.__pico3d.applyQualityLevel(0);
-  const low = window.__pico3d.getQuality();
-  window.__pico3d.applyQualityLevel(2);
-  const high = window.__pico3d.getQuality();
+  window.__wanxiang.applyQualityLevel(0);
+  const low = window.__wanxiang.getQuality();
+  window.__wanxiang.applyQualityLevel(2);
+  const high = window.__wanxiang.getQuality();
   return { low, high };
 })()`);
 check('画质自适应：低画质关星空+降像素比，可恢复',
@@ -359,7 +359,7 @@ check('画质自适应：低画质关星空+降像素比，可恢复',
 
 // 3.6) 背景音乐开关（先归零到"关闭"状态再测开→关）
 const musicTest = await evalJs(`(() => {
-  const m = window.__pico3d.music;
+  const m = window.__wanxiang.music;
   m.setEnabled(false);                 // 归零：确保从未播放状态开始
   const stopped = m.playing;
   const on = m.toggle();
@@ -375,7 +375,7 @@ check('背景音乐：可开关且播放状态正确',
 
 // 3.7) 配色皮肤：切换后重开同关卡，颜色改变、片数不变；2D 菜单有 4 个配色按钮
 const paletteTest = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   p.setPalette('neon');
   p.startGame('rocket', 2);
   const colorOf = (mesh) => {
@@ -399,7 +399,7 @@ check('配色皮肤：颜色随皮肤改变、片数正确、菜单有 6 种配�
 
 // 3.75) 场景主题：切换背景/雾颜色并可恢复
 const themeTest = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   p.setTheme('night'); // 显式回到默认主题，避免上一次运行残留的本地主题影响基线
   const before = p.getThemeInfo();
   p.setTheme('snow');
@@ -418,7 +418,7 @@ check('场景主题切换：背景与雾颜色变化、可恢复',
 
 // 3.8) 抓取高亮 + 磁吸辅助
 const assistTest = await evalJs(`(() => {
-  const p = window.__pico3d, T = p.THREE;
+  const p = window.__wanxiang, T = p.THREE;
   p.startGame('rocket', 2); // 确保处于 playing（上一步菜单把 mode 改成了 difficulty）
   const s = p.state;
   // —— 抓取高亮：把一块碎片挪到手柄原点附近（手柄在原点），抓取后虚影对应块应高亮
@@ -467,7 +467,7 @@ check('磁吸辅助：接近目标时逐帧拉近（关闭后停止）',
 
 // 3.9) 全菜单冒烟：点击所有模型/配色/开关按钮，不崩溃、无 fatal
 const smoke = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   p.showDifficulty();
   const rows = [...document.querySelectorAll('#difficulty .diff-row')];
   const modelBtns = [...rows[0].children];
@@ -491,7 +491,7 @@ check('全菜单冒烟：18 模型/6 配色/开关按钮点击无异常',
 
 // 3.10) 练习模式：通关不写入进度
 const practice = await evalJs(`(() => {
-  const p = window.__pico3d, T = p.THREE;
+  const p = window.__wanxiang, T = p.THREE;
   const before = JSON.stringify(p.loadProgress());
   p.setPractice(true);
   p.startGame('gift', 2);
@@ -516,20 +516,20 @@ check('练习模式：通关不记录成绩、不弹星级',
 
 // 4) 物理下落：把一块碎片抛到空中，1 秒后应落回斜坡高度附近并从队列移除
 const phys = await evalJs(`(async () => {
-  const s = window.__pico3d.state;
+  const s = window.__wanxiang.state;
   const mesh = s.pieces[0];
   mesh.userData.placed = false;
   mesh.position.set(0, 2.5, -1.0);
-  window.__pico3d.physics.push({ mesh, vy: 0, wx: 0.5, wz: -0.3 });
+  window.__wanxiang.physics.push({ mesh, vy: 0, wx: 0.5, wz: -0.3 });
   await new Promise((r) => setTimeout(r, 2500));
-  const ground = window.__pico3d.slopeHeightAt(mesh.position.x, mesh.position.z);
-  return { y: mesh.position.y, ground, settled: Math.abs(mesh.position.y - (ground + 0.10)) < 0.03, inQueue: window.__pico3d.physics.some((p) => p.mesh === mesh) };
+  const ground = window.__wanxiang.slopeHeightAt(mesh.position.x, mesh.position.z);
+  return { y: mesh.position.y, ground, settled: Math.abs(mesh.position.y - (ground + 0.10)) < 0.03, inQueue: window.__wanxiang.physics.some((p) => p.mesh === mesh) };
 })()`);
 check('物理下落：碎片落到斜坡表面并静止', phys.settled && !phys.inQueue, JSON.stringify(phys));
 
 // 5) 握键找回（home 回位）
 const home = await evalJs(`(() => {
-  const s = window.__pico3d.state;
+  const s = window.__wanxiang.state;
   const mesh = s.pieces[1];
   mesh.position.set(5, 5, 5); // 扔到远处
   // 直接调用找回逻辑等价操作：验证 home 数据存在且回位后与坡面合理
@@ -541,15 +541,15 @@ check('碎片 home 位姿可回位', home.back !== null);
 
 // 6) 吸附 + 胜利（全部归位）
 const win = await evalJs(`(() => {
-  const s = window.__pico3d.state;
-  const THREE = window.__pico3d.THREE;
+  const s = window.__wanxiang.state;
+  const THREE = window.__wanxiang.THREE;
   for (const mesh of s.pieces) {
     const tp = new THREE.Vector3(), tq = new THREE.Quaternion();
     mesh.userData.target.getWorldPosition(tp);
     mesh.userData.target.getWorldQuaternion(tq);
     mesh.position.copy(tp).add(new THREE.Vector3(0.02, 0.01, 0));
     mesh.quaternion.copy(tq);
-    window.__pico3d.trySnap(mesh);
+    window.__wanxiang.trySnap(mesh);
   }
   return { placed: s.placedCount, total: s.pieces.length, mode: s.mode };
 })()`);
@@ -568,7 +568,7 @@ check('胜利面板可见且有时间/星级/最佳记录',
 
 // 7.0) VR 内：成就浮窗 + 进度页（主/进度页互斥、内容为最新进度）
 const vrPage = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   const toast = p.getVrToast();
   p.toggleVrMenu(true);
   p.showVrPage('progress');
@@ -588,9 +588,9 @@ check('VR 主页面与进度页互斥切换', vrPage.main.page === 'main' && vrP
 // 7.1) 成绩写入 localStorage（星级/最佳时间/游玩次数）
 // 注意：按"当前实际关卡"取键（前面的功能测试可能已切换关卡）
 const prog = await evalJs(`(() => {
-  const s = window.__pico3d.state;
-  const key = window.__pico3d.levelKey(s.modelKey, s.pieceCount);
-  const p = window.__pico3d.loadProgress();
+  const s = window.__wanxiang.state;
+  const key = window.__wanxiang.levelKey(s.modelKey, s.pieceCount);
+  const p = window.__wanxiang.loadProgress();
   return { key, rec: p[key] || null };
 })()`);
 check('胜利后成绩写入本地进度（星级≥1、有最佳时间）',
@@ -599,14 +599,14 @@ check('胜利后成绩写入本地进度（星级≥1、有最佳时间）',
 
 // 7.2) 难度菜单显示 ⭐ 进度
 const menuProg = await evalJs(`(() => {
-  window.__pico3d.showDifficulty();
+  window.__wanxiang.showDifficulty();
   return [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent).filter((t) => t.includes('⭐'));
 })()`);
 check('难度菜单显示 ⭐ 关卡进度', menuProg.length === 5 && menuProg.every((t) => /⭐ \d+\/\d+ 关/.test(t)), JSON.stringify(menuProg));
 
 // 7.3) 成就：首通解锁 first_win；胜利面板提示；菜单显示成就栏与每关记录
 const ach = await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   const list = p.readAchievements();
   const winAch = document.getElementById('win-achieve');
   const winText = winAch ? winAch.textContent : '';
@@ -624,9 +624,9 @@ check('菜单显示成就进度与每关星级/记录', ach.hasAch && ach.hasRec
 // 8) 重开（再来一局回到难度菜单 → 再开局）
 const replay = await evalJs(`(() => {
   document.getElementById('win-btn').click();
-  const s = window.__pico3d.state;
+  const s = window.__wanxiang.state;
   const menuShown = !document.getElementById('difficulty').classList.contains('hidden');
-  window.__pico3d.startGame('rocket', 2);
+  window.__wanxiang.startGame('rocket', 2);
   return { menuShown, mode: s.mode, count: s.pieces.length };
 })()`);
 check('再来一局 → 菜单 → 重开成功', replay.menuShown && replay.mode === 'playing' && replay.count === 2, JSON.stringify(replay));

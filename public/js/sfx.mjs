@@ -45,8 +45,8 @@ const CHORDS = [
   [130.81, 164.81, 196.00], // C
   [98.00, 123.47, 146.83],  // G
 ];
-const BGM_VOL_KEY = 'pico3d.bgmVolume';
-const BGM_ON_KEY = 'pico3d.bgmOn';
+const BGM_VOL_KEY = 'wanxiang.bgmVolume';
+const BGM_ON_KEY = 'wanxiang.bgmOn';
 
 export const music = {
   playing: false,

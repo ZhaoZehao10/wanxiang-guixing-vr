@@ -6,12 +6,12 @@ import path from 'node:path';
 
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9335;
-const FILE = path.resolve('dist/3D拼图VR-离线版.html');
+const FILE = path.resolve('dist/WanxiangGuixing-offline.html');
 const URL = 'file:///' + FILE.replace(/\\/g, '/');
 
 const chrome = spawn(CHROME, [
   '--headless=new', '--no-first-run', '--disable-gpu-sandbox',
-  `--user-data-dir=${process.env.TEMP}\\pico3d-offline`, `--remote-debugging-port=${PORT}`,
+  `--user-data-dir=${process.env.TEMP}\\wanxiangguixing-offline`, `--remote-debugging-port=${PORT}`,
   '--window-size=1280,800', '--allow-file-access-from-files',
   '--autoplay-policy=no-user-gesture-required', 'about:blank',
 ], { stdio: 'ignore' });
@@ -65,13 +65,13 @@ await sleep(2500);
 
 const env = await evalJs(`({
   title: document.title,
-  hook: !!window.__pico3d,
+  hook: !!window.__wanxiang,
   secure: window.isSecureContext,
   hasXR: typeof navigator.xr !== 'undefined',
   canvas: !!document.getElementById('c3d'),
   three: (typeof THREE !== 'undefined') ? THREE.REVISION : null,
 })`);
-check('页面以 file:// 正常加载', env.title === 'Pico 3D 拼图 VR' && env.canvas, JSON.stringify(env));
+check('页面以 file:// 正常加载', env.title === '万象归形' && env.canvas, JSON.stringify(env));
 check('内联 THREE 版本 = 160', env.three === '160', String(env.three));
 check('file:// 下 isSecureContext 为真', env.secure === true);
 console.log(`  · navigator.xr 存在: ${env.hasXR}（桌面 Chrome 实测；Pico 浏览器需真机确认）`);
@@ -93,25 +93,25 @@ await evalJs(`(() => {
   document.querySelectorAll('#difficulty .diff-btn')[0].click(); // 小火箭
   [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('3 块')).click();
   // 首次 UI 开局会先弹上手引导：确认后才会真正开局
-  if (window.__pico3d.getTutorialVisible && window.__pico3d.getTutorialVisible()) {
+  if (window.__wanxiang.getTutorialVisible && window.__wanxiang.getTutorialVisible()) {
     document.getElementById('tutorial-ok').click();
   }
 })()`);
 await sleep(800);
-const started = await evalJs(`({ mode: window.__pico3d.state.mode, n: window.__pico3d.state.pieces.length, counter: document.getElementById('placed-counter').textContent })`);
+const started = await evalJs(`({ mode: window.__wanxiang.state.mode, n: window.__wanxiang.state.pieces.length, counter: document.getElementById('placed-counter').textContent })`);
 check('3 块开局成功', started.mode === 'playing' && started.n === 3, JSON.stringify(started));
 
 await evalJs(`(() => {
-  const s = window.__pico3d.state, THREE = window.__pico3d.THREE;
+  const s = window.__wanxiang.state, THREE = window.__wanxiang.THREE;
   for (const mesh of s.pieces) {
     const tp = new THREE.Vector3(), tq = new THREE.Quaternion();
     mesh.userData.target.getWorldPosition(tp); mesh.userData.target.getWorldQuaternion(tq);
     mesh.position.copy(tp); mesh.quaternion.copy(tq);
-    window.__pico3d.trySnap(mesh);
+    window.__wanxiang.trySnap(mesh);
   }
 })()`);
 await sleep(700);
-const won = await evalJs(`({ mode: window.__pico3d.state.mode, win: !document.getElementById('win').classList.contains('hidden'), counter: document.getElementById('placed-counter').textContent })`);
+const won = await evalJs(`({ mode: window.__wanxiang.state.mode, win: !document.getElementById('win').classList.contains('hidden'), counter: document.getElementById('placed-counter').textContent })`);
 check('全部吸附 → 胜利面板', won.mode === 'won' && won.win && won.counter === '3 / 3', JSON.stringify(won));
 
 const shot = await send('Page.captureScreenshot', { format: 'png' });

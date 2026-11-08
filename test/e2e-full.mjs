@@ -8,7 +8,7 @@ const URL = 'https://localhost:8443/';
 
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu-sandbox', '--no-first-run',
-  `--user-data-dir=${process.env.TEMP}\\pico3d-cdp2`, `--remote-debugging-port=${PORT}`,
+  `--user-data-dir=${process.env.TEMP}\\wanxiangguixing-cdp2`, `--remote-debugging-port=${PORT}`,
   '--window-size=1280,800', '--ignore-certificate-errors', 'about:blank',
 ], { stdio: 'ignore' });
 
@@ -59,10 +59,10 @@ await sleep(2200);
 const results = [];
 const models = [['rocket', '小火箭'], ['mushroom', '蘑菇屋'], ['gemplanet', '宝石星球']];
 for (const [key, cname] of models) {
-  await evalJs(`window.__pico3d.startGame('${key}', 4)`);
+  await evalJs(`window.__wanxiang.startGame('${key}', 4)`);
   await sleep(600);
   const st = await evalJs(`(() => {
-    const s = window.__pico3d.state;
+    const s = window.__wanxiang.state;
     return { count: s.pieces.length, mode: s.mode, placed: s.placedCount };
   })()`);
   const shot = await send('Page.captureScreenshot', { format: 'png' });
@@ -73,8 +73,8 @@ for (const [key, cname] of models) {
 
 // 吸附/胜利逻辑：把全部拼片瞬移到目标位姿附近，扣"扳机"放下 → 应全部吸附并胜利
 await evalJs(`(() => {
-  const s = window.__pico3d.state;
-  const THREE = window.__pico3d.THREE;
+  const s = window.__wanxiang.state;
+  const THREE = window.__wanxiang.THREE;
   for (const mesh of s.pieces) {
     const tp = new THREE.Vector3(), tq = new THREE.Quaternion();
     mesh.userData.target.getWorldPosition(tp);
@@ -82,13 +82,13 @@ await evalJs(`(() => {
     // 模拟"手拿着放到目标附近"：位置差 < snapDist，旋转差 < 阈值
     mesh.position.copy(tp).add(new THREE.Vector3(0.02, 0.01, 0));
     mesh.quaternion.copy(tq);
-    window.__pico3d.trySnap(mesh);
+    window.__wanxiang.trySnap(mesh);
   }
   return { placed: s.placedCount, total: s.pieces.length, mode: s.mode };
 })()`);
 await sleep(600);
 const win = await evalJs(`({
-  mode: window.__pico3d.state.mode,
+  mode: window.__wanxiang.state.mode,
   winVisible: !document.getElementById('win').classList.contains('hidden'),
   winText: document.getElementById('win-time').textContent,
   counter: document.getElementById('placed-counter').textContent,

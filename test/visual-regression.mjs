@@ -40,7 +40,7 @@ const VIEWPORTS = [
 const chrome = spawn(CHROME, [
   '--headless=new', '--no-first-run', '--disable-gpu-sandbox',
   '--use-angle=swiftshader', // 软件渲染：跨机器可复现性更好
-  `--user-data-dir=${process.env.TEMP}\\pico3d-visual`, `--remote-debugging-port=${PORT}`,
+  `--user-data-dir=${process.env.TEMP}\\wanxiangguixing-visual`, `--remote-debugging-port=${PORT}`,
   '--window-size=960,540', '--force-device-scale-factor=1',
   '--ignore-certificate-errors', '--autoplay-policy=no-user-gesture-required',
   'about:blank',
@@ -93,7 +93,7 @@ await sleep(2500);
 // 页面内：渲染 → 读帧缓冲 → 32×18 网格平均色
 const HASH_FN = `
   const hashFrame = (renderer, cols, rows) => {
-    renderer.render(window.__pico3d.scene, window.__pico3d.camera);
+    renderer.render(window.__wanxiang.scene, window.__wanxiang.camera);
     const gl = renderer.getContext();
     const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
     const buf = new Uint8Array(w * h * 4);
@@ -116,7 +116,7 @@ const HASH_FN = `
 
 // 锁定画质：画质自适应会按帧率降像素比/关星空，导致视觉哈希不可比
 await evalJs(`(() => {
-  const p = window.__pico3d;
+  const p = window.__wanxiang;
   p.setQualityAuto(false);
   p.applyQualityLevel(2);
   return p.getQuality();
@@ -135,7 +135,7 @@ async function captureAll(label) {
     for (const sc of SCENES) {
       const cells = await evalJs(`(() => {
         ${HASH_FN}
-        const p = window.__pico3d;
+        const p = window.__wanxiang;
         p.startGame(${JSON.stringify(sc.model)}, ${sc.n});
         // 让画面与"随机数序列"彻底解耦：
         //   three.js 的 generateUUID 也消耗 Math.random，新增/删除任何 Object3D 都会
@@ -160,7 +160,7 @@ async function captureAll(label) {
 }
 
 // 环境贴图必须就绪：PMREM 偶发失败会让材质（尤其虚影）明显变暗，哈希不可比
-const envOk = await evalJs('window.__pico3d.hasEnv()');
+const envOk = await evalJs('window.__wanxiang.hasEnv()');
 if (!envOk) {
   console.error('✗ 环境贴图(PMREM)未就绪，本轮的视觉哈希与环境贴图不符，无法判定');
   chrome.kill();

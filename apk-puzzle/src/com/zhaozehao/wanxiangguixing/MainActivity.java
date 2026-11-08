@@ -1,4 +1,4 @@
-package com.pico3d.puzzle;
+package com.zhaozehao.wanxiangguixing;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -18,7 +18,7 @@ import java.net.Socket;
 import java.nio.charset.Charset;
 
 /**
- * 3D 拼图 VR — Pico Neo3 离线 APK 壳。
+ * 万象归形 — Pico Neo3 离线 APK 壳。
  *
  * 原理：APK 内置微型 HTTP 服务器，把单文件离线版拷到应用私有目录后伺服在
  * http://127.0.0.1:8898/ 上，然后拉起默认浏览器（头显上即 Pico 浏览器）访问。
@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         TextView tv = new TextView(this);
-        tv.setText("🧩 3D 拼图 VR\n\n本地服务启动中…\n浏览器将自动打开 http://127.0.0.1:" + PORT + "/\n\n若未自动打开：手动打开「浏览器」输入上面地址。\n此页面可留在后台（服务随本应用运行）。");
+        tv.setText("🧩 万象归形\n\n本地服务启动中…\n浏览器将自动打开 http://127.0.0.1:" + PORT + "/\n\n若未自动打开：手动打开「浏览器」输入上面地址。\n此页面可留在后台（服务随本应用运行）。");
         tv.setGravity(Gravity.CENTER);
         tv.setTextSize(18);
         tv.setLineSpacing(4, 1.2f);
@@ -84,7 +84,7 @@ public class MainActivity extends Activity {
     }
 
     void openBrowser() {
-        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("http://127.0.0.1:" + PORT + "/puzzle/index.html"));
+        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("http://127.0.0.1:" + PORT + "/game/index.html"));
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             startActivity(i);
@@ -127,9 +127,9 @@ public class MainActivity extends Activity {
                 String[] parts = line.split(" ");
                 if (parts.length >= 2) path = parts[1];
                 if (path.contains("..")) { respond(s, 403, "text/plain", "forbidden"); return; }
-                if (path.equals("/") || path.equals("/index.html")) path = "/puzzle/index.html";
+                if (path.equals("/") || path.equals("/index.html")) path = "/game/index.html";
 
-                if (path.equals("/puzzle/index.html")) {
+                if (path.equals("/game/index.html")) {
                     File f = new File(filesDir, "game-index.html");
                     if (!f.exists()) { respond(s, 404, "text/plain", "game not extracted"); return; }
                     byte[] body = readAll(f);

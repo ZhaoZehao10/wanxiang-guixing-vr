@@ -1,4 +1,4 @@
-# 🧩 Pico Neo3 3D 拼图 VR
+# 🧩 万象归形（Wanxiang Guixing）
 
 面向 Pico Neo3 的 WebXR 3D 拼图游戏：把散落在斜坡上的碎片拼回悬浮的虚影模型。
 18 个模型 / 88 个关卡 / 5 档难度 / 6 套配色 / 5 套场景主题 / 11 个成就，
@@ -7,7 +7,7 @@
 > 作者：**ZhaoZehao10** · GitHub: <https://github.com/ZhaoZehao10>
 > 许可证：[MIT](LICENSE)（第三方依赖 three.js r160 亦为 MIT）
 
-> 本仓库只包含「3D 拼图 VR」。另一款「随机游走 VR」在独立仓库
+> 本仓库只包含「万象归形」。另一款「随机游走 VR」在独立仓库
 > `../RandomWalkVR`（端口 8543），两套游戏分别独立维护。
 
 ## 🚀 快速开始
@@ -30,8 +30,8 @@ node server.mjs         # HTTPS 8443 / HTTP 8081
 | 形态 | 产物 | 说明 |
 |------|------|------|
 | 局域网 HTTPS | `node server.mjs` | Pico 浏览器直接打开，最方便 |
-| 单文件离线版 | `dist/3D拼图VR-离线版.html` | three.js/VRButton/全部模块内联，拷到头盔或 U 盘即可 |
-| 独立 APK | `dist/3D拼图VR.apk` | 免电脑：内置页面服务（127.0.0.1:8898）+ 自动拉起浏览器 |
+| 单文件离线版 | `dist/WanxiangGuixing-offline.html` | three.js/VRButton/全部模块内联，拷到头盔或 U 盘即可 |
+| 独立 APK | `dist/WanxiangGuixing.apk` | 免电脑：内置页面服务（127.0.0.1:8898）+ 自动拉起浏览器 |
 
 ## 🎮 玩法
 
@@ -104,18 +104,18 @@ node tools\test-all.mjs --fast   # 跳过压力/性能（约 60 秒）
 
 ```powershell
 # 单文件离线版
-node tools\make-offline-puzzle.mjs        # → dist\3D拼图VR-离线版.html
+node tools\make-offline-puzzle.mjs        # → dist\WanxiangGuixing-offline.html
 
 # APK（无 Gradle：aapt2 → javac → d8 → zipalign → apksigner）
-powershell -File tools\build-apk-puzzle.ps1   # → dist\3D拼图VR.apk
+powershell -File tools\build-apk-puzzle.ps1   # → dist\WanxiangGuixing.apk
 ```
 
-APK 壳工程在 `apk-puzzle/`（包名 `com.pico3d.puzzle`、端口 8898、独立 keystore 与图标），
+APK 壳工程在 `apk-puzzle/`（包名 `com.zhaozehao.wanxiangguixing`、端口 8898、独立 keystore 与图标），
 与随机游走仓库完全隔离。首次安装需在 Pico 设置 → 安全 中允许未知来源。
 
 ```powershell
 # 安装到头盔
-android-sdk\platform-tools\adb.exe install -r "dist\3D拼图VR.apk"
+android-sdk\platform-tools\adb.exe install -r "dist\WanxiangGuixing.apk"
 ```
 
 ## 🩺 真机排查
@@ -147,8 +147,7 @@ cert/              本地证书（gitignore，make-cert.mjs 生成）
 - git 仓库，语义化提交（`feat/fix/test/docs/chore`），共有 60+ 次提交；
 - `.gitignore` 排除 `android-sdk/`、`dist/`、`cert/`、`*.keystore`、测试截图与构建目录；
 - **仓库拆分**：原先两个 VR 游戏（3D 拼图 + 随机游走）混在同一仓库，
-  现已拆分为 `Pico3D`（本仓库，拼图）与 `RandomWalkVR`（独立仓库，随机游走），
-  拆分前的历史保留在本仓库 `git log` 中。
+  本仓库为其中的「万象归形」，随机游走已迁到独立仓库维护；更名与拆分前的提交历史仍保留在本仓库 `git log` 中。
 
 ## 📝 已知限制
 

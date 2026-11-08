@@ -1,7 +1,7 @@
 // APK 运行链路模拟验收（无需真机）：
-//   1) 从 dist/3D拼图VR.apk 中提取 assets/game/index.html（APK 实际内嵌的那份）；
+//   1) 从 dist/WanxiangGuixing.apk 中提取 assets/game/index.html（APK 实际内嵌的那份）；
 //   2) 按 MainActivity.java 的同一套路由在 127.0.0.1:8898 起 HTTP 服务
-//      （"/" → "/puzzle/index.html"，拒绝 ".."，替换页脚提示）；
+//      （"/" → "/game/index.html"，拒绝 ".."，替换页脚提示）；
 //   3) 用真实 Chrome（不带任何证书豁免）访问 http://127.0.0.1:8898/，
 //      验证 isSecureContext / navigator.xr / 完整开局。
 // 这一步验证的是「loopback 明文 HTTP 即安全上下文」这一 APK 方案的核心前提。
@@ -47,7 +47,7 @@ function extractAsset(apkPath, entryName) {
   throw new Error('APK 中找不到 ' + entryName);
 }
 
-let html = extractAsset(path.resolve('dist/3D拼图VR.apk'), 'assets/game/index.html').toString('utf8');
+let html = extractAsset(path.resolve('dist/WanxiangGuixing.apk'), 'assets/game/index.html').toString('utf8');
 // 与 MainActivity.java 完全一致的页脚替换
 html = html.replace('单文件离线版 · 全部资源已内联 · 无需网络', 'APK 版 · 全部资源内置 · 无需网络');
 console.log(`从 APK 提取内嵌页面: ${(html.length / 1024).toFixed(0)} KB，页脚已替换为 APK 版`);
@@ -56,8 +56,8 @@ console.log(`从 APK 提取内嵌页面: ${(html.length / 1024).toFixed(0)} KB�
 const server = http.createServer((req, res) => {
   let p = (req.url || '/').split('?')[0];
   if (p.includes('..')) { res.writeHead(403); res.end('forbidden'); return; }
-  if (p === '/' || p === '/index.html') p = '/puzzle/index.html';
-  if (p === '/puzzle/index.html') {
+  if (p === '/' || p === '/index.html') p = '/game/index.html';
+  if (p === '/game/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
     res.end(html);
     return;
@@ -71,7 +71,7 @@ console.log(`本地服务已起: http://127.0.0.1:${PORT}/`);
 // ---------- 3) 真实 Chrome 验收 ----------
 const chrome = spawn(CHROME, [
   '--headless=new', '--no-first-run', '--disable-gpu-sandbox',
-  `--user-data-dir=${process.env.TEMP}\\pico3d-apkserve`, `--remote-debugging-port=${CDP}`,
+  `--user-data-dir=${process.env.TEMP}\\wanxiangguixing-apkserve`, `--remote-debugging-port=${CDP}`,
   '--window-size=1280,800', '--autoplay-policy=no-user-gesture-required', 'about:blank',
 ], { stdio: 'ignore' }); // 注意：没有 --ignore-certificate-errors（HTTP 用不到，也证明不依赖豁免）
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -105,22 +105,22 @@ await sleep(2500);
 
 const env = await evalJs(`({
   title: document.title, secure: window.isSecureContext, hasXR: typeof navigator.xr !== 'undefined',
-  hook: !!window.__pico3d, footer: document.body.innerText.includes('APK 版'),
+  hook: !!window.__wanxiang, footer: document.body.innerText.includes('APK 版'),
 })`);
-check('访问 / 自动路由到 /puzzle/index.html 并正常加载', env.title === 'Pico 3D 拼图 VR' && env.hook, JSON.stringify(env));
+check('访问 / 自动路由到 /game/index.html 并正常加载', env.title === '万象归形' && env.hook, JSON.stringify(env));
 check('HTTP loopback 下 isSecureContext = true（APK 方案核心前提）', env.secure === true);
 check('HTTP loopback 下 navigator.xr 存在（免证书出 WebXR）', env.hasXR === true);
 check('页脚已被 Java 壳替换为 APK 版提示', env.footer === true);
 
 await evalJs(`document.getElementById('intro').click()`); await sleep(300);
-await evalJs(`(() => { document.querySelectorAll('#difficulty .diff-btn')[2].click(); [...document.querySelectorAll('#difficulty .diff-btn')].find(b=>b.textContent.includes('4 块')).click(); if (window.__pico3d.getTutorialVisible && window.__pico3d.getTutorialVisible()) document.getElementById('tutorial-ok').click(); })()`);
+await evalJs(`(() => { document.querySelectorAll('#difficulty .diff-btn')[2].click(); [...document.querySelectorAll('#difficulty .diff-btn')].find(b=>b.textContent.includes('4 块')).click(); if (window.__wanxiang.getTutorialVisible && window.__wanxiang.getTutorialVisible()) document.getElementById('tutorial-ok').click(); })()`);
 await sleep(900);
-const st = await evalJs(`({ mode: window.__pico3d.state.mode, n: window.__pico3d.state.pieces.length })`);
+const st = await evalJs(`({ mode: window.__wanxiang.state.mode, n: window.__wanxiang.state.pieces.length })`);
 check('APK 内嵌页面 4 块开局成功', st.mode === 'playing' && st.n === 4, JSON.stringify(st));
 
-await evalJs(`(() => { const s = window.__pico3d.state, T = window.__pico3d.THREE; for (const m of s.pieces) { const tp = new T.Vector3(), tq = new T.Quaternion(); m.userData.target.getWorldPosition(tp); m.userData.target.getWorldQuaternion(tq); m.position.copy(tp); m.quaternion.copy(tq); window.__pico3d.trySnap(m); } })()`);
+await evalJs(`(() => { const s = window.__wanxiang.state, T = window.__wanxiang.THREE; for (const m of s.pieces) { const tp = new T.Vector3(), tq = new T.Quaternion(); m.userData.target.getWorldPosition(tp); m.userData.target.getWorldQuaternion(tq); m.position.copy(tp); m.quaternion.copy(tq); window.__wanxiang.trySnap(m); } })()`);
 await sleep(700);
-const won = await evalJs(`({ mode: window.__pico3d.state.mode, win: !document.getElementById('win').classList.contains('hidden') })`);
+const won = await evalJs(`({ mode: window.__wanxiang.state.mode, win: !document.getElementById('win').classList.contains('hidden') })`);
 check('全部吸附 → 胜利', won.mode === 'won' && won.win, JSON.stringify(won));
 
 const shot = await send('Page.captureScreenshot', { format: 'png' });

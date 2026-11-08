@@ -61,14 +61,14 @@ fs.mkdirSync(CERT_DIR, { recursive: true });
 // 1) 本地 CA（10 年）
 run(['genrsa', '-out', CA_KEY, '2048']);
 run(['req', '-x509', '-new', '-key', CA_KEY,
-  '-subj', '/CN=Pico3D Local CA',
+  '-subj', '/CN=Wanxiang Guixing Local CA',
   '-days', '3650', '-out', CA_CERT,
   '-addext', 'basicConstraints=critical,CA:TRUE',
   '-addext', 'keyUsage=critical,keyCertSign,cRLSign']);
 
 // 2) 服务器私钥 + CSR
 run(['req', '-new', '-newkey', 'rsa:2048', '-nodes',
-  '-keyout', KEY, '-subj', '/CN=Pico3D Puzzle', '-out', CSR]);
+  '-keyout', KEY, '-subj', '/CN=Wanxiang Guixing Dev', '-out', CSR]);
 
 // 3) CA 签发服务器证书（SAN 覆盖全部本机 IP）
 const san = ['DNS:localhost', ...ips.map((ip) => `IP:${ip}`)].join(',');

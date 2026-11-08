@@ -10,8 +10,8 @@ export const DIFFICULTY = [2, 3, 4, 6, 8];
 export const DIFFICULTY_NAME = { 2: '入门', 3: '进阶', 4: '挑战', 6: '大师', 8: '极限' };
 export const MODEL_KEYS = Object.keys(MODELS);
 
-export const PROGRESS_KEY = 'pico3d.progress.v1';
-export const ACHIEVE_KEY = 'pico3d.achievements.v1';
+export const PROGRESS_KEY = 'wanxiang.progress.v1';
+export const ACHIEVE_KEY = 'wanxiang.achievements.v1';
 
 export function levelKey(modelKey, n) { return modelKey + '|' + n; }
 

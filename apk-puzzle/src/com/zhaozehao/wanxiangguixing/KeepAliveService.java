@@ -1,4 +1,4 @@
-package com.pico3d.puzzle;
+package com.zhaozehao.wanxiangguixing;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -17,7 +17,7 @@ import android.os.IBinder;
  * 基本消除这个风险。
  */
 public class KeepAliveService extends Service {
-    static final String CHANNEL_ID = "pico3d_keepalive";
+    static final String CHANNEL_ID = "wanxiangguixing_keepalive";
     static final int NOTIFICATION_ID = 1001;
 
     @Override
@@ -27,7 +27,7 @@ public class KeepAliveService extends Service {
                 NotificationManager nm = getSystemService(NotificationManager.class);
                 if (nm != null && nm.getNotificationChannel(CHANNEL_ID) == null) {
                     NotificationChannel ch = new NotificationChannel(
-                        CHANNEL_ID, "Pico3D 运行中", NotificationManager.IMPORTANCE_MIN);
+                        CHANNEL_ID, "万象归形 运行中", NotificationManager.IMPORTANCE_MIN);
                     ch.setDescription("保持本地游戏服务运行");
                     nm.createNotificationChannel(ch);
                 }
@@ -35,7 +35,7 @@ public class KeepAliveService extends Service {
             Notification.Builder b = Build.VERSION.SDK_INT >= 26
                 ? new Notification.Builder(this, CHANNEL_ID)
                 : new Notification.Builder(this);
-            b.setContentTitle("3D 拼图 VR")
+            b.setContentTitle("万象归形")
              .setContentText("本地服务运行中，可回到浏览器继续游戏")
              .setSmallIcon(android.R.drawable.ic_media_play)
              .setOngoing(true);

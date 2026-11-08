@@ -23,7 +23,7 @@ foreach ($f in (Join-Path $BT 'aapt2.exe'), (Join-Path $BT 'd8.bat'), (Join-Path
 node (Join-Path $ROOT 'tools\make-icons-puzzle.mjs')
 node (Join-Path $ROOT 'tools\make-offline-puzzle.mjs')
 New-Item -ItemType Directory -Force -Path (Join-Path $WORK 'assets\game') | Out-Null
-Copy-Item (Join-Path $OUT '3D拼图VR-离线版.html') (Join-Path $WORK 'assets\game\index.html') -Force
+Copy-Item (Join-Path $OUT 'WanxiangGuixing-offline.html') (Join-Path $WORK 'assets\game\index.html') -Force
 
 # 1) aapt2 compile resources + link -> base.apk
 & (Join-Path $BT 'aapt2.exe') compile --dir (Join-Path $ROOT 'apk-puzzle\res') -o (Join-Path $WORK 'res.zip')
@@ -81,10 +81,10 @@ $pass = (Get-Content -Path $passFile -Raw).Trim()
 if (-not (Test-Path $keystore)) {
   & keytool -genkeypair -keystore $keystore -storepass $pass -keypass $pass `
     -alias puzzle3d -keyalg RSA -keysize 2048 -validity 10950 `
-    -dname 'CN=Pico3D Puzzle VR, OU=Dev, O=Pico3D, C=CN'
+    -dname 'CN=万象归形 Puzzle VR, OU=Dev, O=万象归形, C=CN'
   if ($LASTEXITCODE -ne 0) { Write-Error 'keytool failed' }
 }
-$final = Join-Path $OUT '3D拼图VR.apk'
+$final = Join-Path $OUT 'WanxiangGuixing.apk'
 & (Join-Path $BT 'apksigner.bat') sign --ks $keystore --ks-pass "pass:$pass" --key-pass "pass:$pass" --out $final $aligned
 if ($LASTEXITCODE -ne 0) { Write-Error 'apksigner failed' }
 

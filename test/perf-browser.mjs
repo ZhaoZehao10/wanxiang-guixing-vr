@@ -7,7 +7,7 @@ const PORT = 9333;
 const URL = 'https://localhost:8443/';
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu-sandbox', '--no-first-run',
-  `--user-data-dir=${process.env.TEMP}\\pico3d-cdp4`, `--remote-debugging-port=${PORT}`,
+  `--user-data-dir=${process.env.TEMP}\\wanxiangguixing-cdp4`, `--remote-debugging-port=${PORT}`,
   '--window-size=1280,800', '--ignore-certificate-errors', 'about:blank',
 ], { stdio: 'ignore' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -41,11 +41,11 @@ await send('Emulation.setCPUThrottlingRate', { rate: 6 });
 const perf = await evalJs(`(async () => {
   // 首切耗时：fresh 页面上第一次 startGame 内含切割 + 几何上传
   const t0 = performance.now();
-  window.__pico3d.startGame('rocket', 4);
+  window.__wanxiang.startGame('rocket', 4);
   const tCut = performance.now() - t0;
   // 最重模型（企鹅 11k 三角形）4 块切分 — 最坏情况
   const tHeavy0 = performance.now();
-  window.__pico3d.startGame('penguin', 4);
+  window.__wanxiang.startGame('penguin', 4);
   const heavyCutMs = performance.now() - tHeavy0;
   await new Promise((r) => setTimeout(r, 300)); // 等首帧渲染
   // 帧率采样 2 秒
@@ -58,9 +58,9 @@ const perf = await evalJs(`(async () => {
   const fps = frames / ((performance.now() - t1) / 1000);
   // 重开耗时（缓存命中，含建几何+上传）
   const t2 = performance.now();
-  for (let i = 0; i < 50; i++) { window.__pico3d.startGame('penguin', 4); }
+  for (let i = 0; i < 50; i++) { window.__wanxiang.startGame('penguin', 4); }
   const rebuildMs = (performance.now() - t2) / 50;
-  window.__pico3d.startGame('rocket', 4);
+  window.__wanxiang.startGame('rocket', 4);
   return { firstCutMs: +tCut.toFixed(1), heavyCutMs: +heavyCutMs.toFixed(1), fps: +fps.toFixed(1), rebuildMs: +rebuildMs.toFixed(2) };
 })()`);
 console.log('浏览器性能（6x CPU 限速 ≈ 移动端）:', JSON.stringify(perf));
