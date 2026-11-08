@@ -25,7 +25,7 @@ for (const n of DIFFICULTY) {
   check(`${n} 块：1.6×par+1s → 1 星`, starsFor(Math.floor(par * 1.6) + 1, n) === 1);
 }
 check('levelKey 格式', levelKey('rocket', 4) === 'rocket|4');
-check('模型数/难度数正确（14 模型 × 5 难度，68 关）', MODEL_KEYS.length === 14 && DIFFICULTY.length === 5);
+check('模型数/难度数正确（16 模型 × 5 难度，78 关）', MODEL_KEYS.length === 16 && DIFFICULTY.length === 5);
 
 // ---------------- 成绩写入 ----------------
 console.log('\n=== 成绩写入 ===');
@@ -103,7 +103,16 @@ console.log('\n=== 成就判定 ===');
   const p8b = {};
   for (const mk of MODEL_KEYS.slice(0, 8)) recordResult(p8b, mk, 8, 700, 0);
   check('8 个模型完成 8 块 → eight_master', evaluateAchievements(p8b, []).includes('eight_master'), JSON.stringify(evaluateAchievements(p8b, [])));
-  check('成就总数 = 9', ACHIEVEMENTS.length === 9);
+  // 新成就：50 星 / 8 块三星 ×3
+  const pStar = {};
+  for (const mk of MODEL_KEYS) recordResult(pStar, mk, 2, 40, 0); // 16 关 × 3 星 = 48
+  check('累计不足 50 星不解锁', !evaluateAchievements(pStar, []).includes('star_50'));
+  recordResult(pStar, MODEL_KEYS[0], 3, 40, 0); // +3 = 51 星
+  check('累计 ≥50 星 → star_50', evaluateAchievements(pStar, []).includes('star_50'), JSON.stringify(evaluateAchievements(pStar, [])));
+  const p8c = {};
+  for (const mk of MODEL_KEYS.slice(0, 3)) recordResult(p8c, mk, 8, 500, 0); // 500s → 3 星
+  check('3 个模型 8 块三星 → eight_three', evaluateAchievements(p8c, []).includes('eight_three'), JSON.stringify(evaluateAchievements(p8c, [])));
+  check('成就总数 = 11', ACHIEVEMENTS.length === 11);
 }
 
 // ---------------- 统计概览 ----------------
@@ -112,9 +121,9 @@ console.log('\n=== 统计概览 ===');
   const p = {};
   recordResult(p, 'rocket', 2, 30, 0); // 3 星
   recordResult(p, 'gift', 4, 300, 0);   // 2 星
-  const s = summarize(p, 68);
+  const s = summarize(p, 78);
   check('summarize：2 关 / 5 星 / 总关数与满星按传入总数计算',
-    s.done === 2 && s.stars === 5 && s.total === 68 && s.maxStars === 204, JSON.stringify(s));
+    s.done === 2 && s.stars === 5 && s.total === 78 && s.maxStars === 234, JSON.stringify(s));
   check('summarize 空进度全 0', summarize({}).done === 0 && summarize({}).stars === 0);
 }
 

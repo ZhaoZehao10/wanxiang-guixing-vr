@@ -184,6 +184,26 @@ check('每日挑战一键开局（模型/块数与挑战一致）',
   dailyStart.mode === 'playing' && dailyStart.modelKey === dailyStart.expect.modelKey && dailyStart.n === dailyStart.expect.n,
   JSON.stringify(dailyStart));
 
+// 1.25) 排行榜面板：当前模型各难度前三成绩
+const board = await evalJs(`(() => {
+  const p = window.__pico3d;
+  p.showDifficulty();
+  const btn = [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('排行榜'));
+  const hasBtn = !!btn;
+  if (btn) btn.click();
+  const visible = !document.getElementById('board').classList.contains('hidden');
+  const text = p.getBoardText();
+  const rows = document.querySelectorAll('#board-body > div').length;
+  const supported = p.supportedCounts('rocket').length;
+  document.getElementById('board-close').click();
+  const closed = document.getElementById('board').classList.contains('hidden');
+  return { hasBtn, visible, text, rows, supported, closed };
+})()`);
+check('排行榜：当前模型各难度前三成绩可查看且可关闭',
+  board.hasBtn === true && board.visible === true && board.closed === true
+  && board.rows === board.supported && board.text.includes('前三'),
+  JSON.stringify({ hasBtn: board.hasBtn, visible: board.visible, rows: board.rows, supported: board.supported, closed: board.closed }));
+
 // 1.3) 8 块按模型可用性：火箭支持；圣诞树无解 → 菜单按钮禁用
 const supports = await evalJs(`(() => {
   const p = window.__pico3d;
@@ -429,8 +449,8 @@ const smoke = await evalJs(`(() => {
     practice: p.getPractice(), palette: p.getPalette(),
   };
 })()`);
-check('全菜单冒烟：14 模型/6 配色/开关按钮点击无异常',
-  smoke.fatal === false && smoke.models === 14 && smoke.palettes === 6
+check('全菜单冒烟：16 模型/6 配色/开关按钮点击无异常',
+  smoke.fatal === false && smoke.models === 16 && smoke.palettes === 6
   && smoke.practice === false && smoke.palette === 'classic', JSON.stringify(smoke));
 
 // 3.10) 练习模式：通关不写入进度
@@ -559,7 +579,7 @@ const ach = await evalJs(`(() => {
   const menuText = document.getElementById('difficulty').innerText;
   const diffBtns = [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent);
   const hasRecord = diffBtns.some((t) => t.includes('★') || t.includes('☆')) || diffBtns.some((t) => t.includes('未挑战'));
-  const hasAch = menuText.includes('成就 ') && menuText.includes('/9');
+  const hasAch = menuText.includes('成就 ') && menuText.includes('/11');
   return { list, winText, winVisible, hasAch, hasRecord };
 })()`);
 check('首通解锁 first_win 且胜利面板提示', ach.list.includes('first_win') && ach.winVisible && ach.winText.includes('初次拼合'), JSON.stringify(ach));
