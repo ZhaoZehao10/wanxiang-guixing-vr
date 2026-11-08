@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -16,9 +16,9 @@ jobs:
         run: node tools/check-models.mjs
       - name: 切割表完整性校验
         run: node tools/check-calibration.mjs
-      - name: 切割单元测试（水密/守恒，492 项）
+      - name: 切割单元测试（水密/守恒，564 项）
         run: node test/run-tests.mjs
-      - name: 进度/成就逻辑（36 项）
+      - name: 进度/成就逻辑（40 项）
         run: node test/progress-tests.mjs
-      - name: 结构回归基线（68 组合）
+      - name: 结构回归基线（78 组合）
         run: node test/regression.mjs
