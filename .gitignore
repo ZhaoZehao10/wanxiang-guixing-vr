@@ -1,6 +1,5 @@
 # 构建产物（可随时用脚本重新生成）
 dist/
-apk/build/
 apk-puzzle/build/
 
 # 第三方 Android SDK（体积数 GB，可用 sdkmanager 重装；见 README）

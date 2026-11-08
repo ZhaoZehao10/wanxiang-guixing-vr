@@ -81,15 +81,15 @@ const httpServer = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pico VR 游戏合集 — 请使用 HTTPS 访问</title></head>
+<title>3D 拼图 VR — 请使用 HTTPS 访问</title></head>
 <body style="font-family:sans-serif;background:#0b1020;color:#dfe7ff;padding:24px;line-height:1.8">
-<h2>🎮 Pico Neo3 VR 游戏合集</h2>
+<h2>🧩 Pico Neo3 3D 拼图 VR</h2>
 <p>WebXR 需要 HTTPS。请在浏览器地址栏使用下面的 <b>https://</b> 地址：</p>
 <p style="font-size:1.4em"><a href="https://${ip}:${PORT}/" style="color:#6cf">https://${ip}:${PORT}/</a></p>
 <p>推荐：先 <a href="http://${ip}:${HTTP_PORT}/ca.crt" style="color:#6dffa8">下载并安装 CA 证书</a>
 （设置→安全→从存储安装），之后 HTTPS <b>零警告</b>。</p>
 <p>不安装也可以：打开 https 地址后点「高级」→「仍要继续」。</p>
-<p style="margin-top:16px;color:#8b96b8">进入后可选：🎲 随机游走 VR（/rw/）· 🧩 3D 拼图 VR（/）</p>
+<p style="margin-top:16px;color:#8b96b8">另一款游戏「随机游走 VR」在独立仓库 RandomWalkVR（端口 8543）。</p>
 </body></html>`);
 });
 
