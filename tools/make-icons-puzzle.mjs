@@ -5,7 +5,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 
 function px(u, v) {
-  // 圆角方底（同随机游走 VR 的版式，保持合集视觉一致）
+  // 圆角方底版式
   const r = 0.18, m = 0.02;
   const inBox = u > m && u < 1 - m && v > m && v < 1 - m;
   const cx = Math.min(Math.max(u, m + r), 1 - m - r);

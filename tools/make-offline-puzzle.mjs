@@ -1,11 +1,11 @@
 // 把 万象归形 打包成单文件离线 HTML（file:// 直接打开，零服务器零网络）
 //
-// 做法与 tools/make-offline.mjs 同源（同一套 ESM→单文件拼接思路）：
+// 做法：ESM 模块按依赖序拼接为单文件（零外部依赖）：
 //   1) three.module.min.js 结尾的 export{...} 用胶水代码转成全局 THREE（IIFE 包裹，
 //      内部压缩变量不外泄）；
 //   2) 游戏模块按依赖序拼接并剥掉 import/export：
 //      models → puzzle → sfx → main（main 依赖前三个；VRButton 独立无 THREE 依赖）；
-//   3) style.css 内联，移除指向局域网其他游戏（/rw/）的页脚。
+//   3) style.css 内联，并在页脚加入离线提示。
 //
 // 用法: node tools\make-offline-puzzle.mjs → dist/WanxiangGuixing-offline.html
 import fs from 'node:fs';
@@ -59,9 +59,8 @@ const css = read(PUB, 'style.css');
 html = html.replace(/<link[^>]+href="style\.css"[^>]*>/, `<style>\n${css}\n</style>`);
 html = html.replace(/<script[^>]+src="js\/main\.js"[^>]*><\/script>/,
   `<script>\n${threeScript}\n</script>\n<script>\n${vrButtonSrc}\n</script>\n<script>\n${gameSrc}\n</script>`);
-// 离线版没有 /rw/（局域网版才有），把页脚换成离线提示
-html = html.replace(/<div id="other-game-link"[\s\S]*?<\/div>/,
-  '<div style="position:fixed;bottom:16px;left:0;right:0;text-align:center;z-index:9;opacity:.55;font-size:12px">单文件离线版 · 全部资源已内联 · 无需网络</div>');
+// 离线版页脚提示（无外部依赖）
+html = html.replace('</body>', '<div style="position:fixed;bottom:16px;left:0;right:0;text-align:center;z-index:9;opacity:.55;font-size:12px">单文件离线版 · 全部资源已内联 · 无需网络</div></body>');
 if (!html.includes('单文件离线版')) { console.error('页脚替换失败（index.html 结构变了？）'); process.exit(1); }
 
 fs.mkdirSync(path.join(ROOT, 'dist'), { recursive: true });

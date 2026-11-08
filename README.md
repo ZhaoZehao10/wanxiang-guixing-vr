@@ -7,9 +7,6 @@
 > 作者：**ZhaoZehao10** · GitHub: <https://github.com/ZhaoZehao10>
 > 许可证：[MIT](LICENSE)（第三方依赖 three.js r160 亦为 MIT）
 
-> 本仓库只包含「万象归形」。另一款「随机游走 VR」在独立仓库
-> `../RandomWalkVR`（端口 8543），两套游戏分别独立维护。
-
 ## 🚀 快速开始
 
 ### 1. 启动服务器（电脑上）
@@ -111,7 +108,7 @@ powershell -File tools\build-apk-puzzle.ps1   # → dist\WanxiangGuixing.apk
 ```
 
 APK 壳工程在 `apk-puzzle/`（包名 `com.zhaozehao.wanxiangguixing`、端口 8898、独立 keystore 与图标），
-与随机游走仓库完全隔离。首次安装需在 Pico 设置 → 安全 中允许未知来源。
+首次安装需在 Pico 设置 → 安全 中允许未知来源。
 
 ```powershell
 # 安装到头盔
@@ -137,21 +134,19 @@ public/            index.html / style.css / js/(models,puzzle,progress,main,sfx)
 apk-puzzle/        APK 壳工程（AndroidManifest、res、src、keystore 配置）
 tools/             calibrate-cuts / check-calibration / check-models /
                    make-offline-puzzle / make-icons-puzzle / build-apk-puzzle / test-all
-test/              12 套自动化测试与基线、预览截图
+test/              12 套自动化测试与基线数据
 server.mjs         HTTPS 静态服务器（8443 / 8081）
 cert/              本地证书（gitignore，make-cert.mjs 生成）
 ```
 
 ## 🗂️ 版本控制
 
-- git 仓库，语义化提交（`feat/fix/test/docs/chore`），共有 60+ 次提交；
-- `.gitignore` 排除 `android-sdk/`、`dist/`、`cert/`、`*.keystore`、测试截图与构建目录；
-- **仓库拆分**：原先两个 VR 游戏（3D 拼图 + 随机游走）混在同一仓库，
-  本仓库为其中的「万象归形」，随机游走已迁到独立仓库维护；更名与拆分前的提交历史仍保留在本仓库 `git log` 中。
+- 语义化提交（`feat` / `fix` / `test` / `docs` / `chore`）；
+- `.gitignore` 排除 `android-sdk/`、`dist/`、`cert/`、`*.keystore` 与测试截图。
 
 ## 📝 已知限制
 
-- 真机（Pico Neo3）完整验证需实机操作，本仓库测试覆盖到浏览器/离线/APK 链路模拟；
+- 真机（Pico Neo3）完整验证需实机操作，自动化测试覆盖到浏览器/离线/APK 链路模拟；
 - 圣诞树与小猪的 8 块难度无解（几何限制，已在 UI 中禁用）；
 - 8 块关卡切割耗时高于其他难度（首切约 1~2 秒，有缓存）。
 

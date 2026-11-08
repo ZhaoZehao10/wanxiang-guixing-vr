@@ -89,7 +89,6 @@ const httpServer = http.createServer((req, res) => {
 <p>推荐：先 <a href="http://${ip}:${HTTP_PORT}/ca.crt" style="color:#6dffa8">下载并安装 CA 证书</a>
 （设置→安全→从存储安装），之后 HTTPS <b>零警告</b>。</p>
 <p>不安装也可以：打开 https 地址后点「高级」→「仍要继续」。</p>
-<p style="margin-top:16px;color:#8b96b8">另一款游戏「随机游走 VR」在独立仓库 RandomWalkVR（端口 8543）。</p>
 </body></html>`);
 });
 
