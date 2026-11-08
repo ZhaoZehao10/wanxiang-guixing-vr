@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9333;
 const URL = 'https://localhost:8443/';
 
@@ -97,7 +97,7 @@ console.log('游戏中:', JSON.stringify(game));
 // 4) 检查 three.js 场景里拼片真的存在（从 renderer 全局不好拿，改查 drawcall 间接证据：
 //    读取 canvas 像素是否有非背景色 —— 简化：直接检查 window 上无未捕获错误 + 截图肉眼验证）
 const shot = await send('Page.captureScreenshot', { format: 'png' });
-fs.writeFileSync('D:/DSH_Workspace/Pico3D/test/preview-game.png', Buffer.from(shot.result.data, 'base64'));
+fs.writeFileSync('test/preview-game.png', Buffer.from(shot.result.data, 'base64'));
 
 console.log('控制台错误数:', consoleErrors.length);
 for (const e of consoleErrors.slice(0, 10)) console.log('  [err]', e.slice(0, 300));

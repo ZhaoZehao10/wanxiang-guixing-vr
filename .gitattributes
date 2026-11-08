@@ -1,0 +1,8 @@
+﻿# 统一换行：源码 LF，PowerShell/批处理 CRLF，二进制原样
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.png binary
+*.apk binary
+*.keystore binary

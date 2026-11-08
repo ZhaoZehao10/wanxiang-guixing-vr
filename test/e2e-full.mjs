@@ -2,7 +2,7 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9333;
 const URL = 'https://localhost:8443/';
 
@@ -66,7 +66,7 @@ for (const [key, cname] of models) {
     return { count: s.pieces.length, mode: s.mode, placed: s.placedCount };
   })()`);
   const shot = await send('Page.captureScreenshot', { format: 'png' });
-  fs.writeFileSync(`D:/DSH_Workspace/Pico3D/test/preview-${key}.png`, Buffer.from(shot.result.data, 'base64'));
+  fs.writeFileSync(`test/preview-${key}.png`, Buffer.from(shot.result.data, 'base64'));
   results.push({ key, ...st });
   console.log(`${cname} n=4:`, JSON.stringify(st));
 }
@@ -95,7 +95,7 @@ const win = await evalJs(`({
 })`);
 console.log('吸附后:', JSON.stringify(win));
 const shot = await send('Page.captureScreenshot', { format: 'png' });
-fs.writeFileSync('D:/DSH_Workspace/Pico3D/test/preview-win.png', Buffer.from(shot.result.data, 'base64'));
+fs.writeFileSync('test/preview-win.png', Buffer.from(shot.result.data, 'base64'));
 
 console.log('控制台错误数:', consoleErrors.length);
 for (const e of consoleErrors.slice(0, 8)) console.log('  [err]', e.slice(0, 250));

@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9333;
 const URL = 'https://localhost:8443/';
 
@@ -206,6 +206,21 @@ check('排行榜：当前模型各难度前三成绩可查看且可关闭',
   && board.rows === board.supported && board.text.includes('前三'),
   JSON.stringify({ hasBtn: board.hasBtn, visible: board.visible, rows: board.rows, supported: board.supported, closed: board.closed }));
 
+// 1.26) 全模型总榜：每个难度列出全模型最快前三
+const globalBoard = await evalJs(`(() => {
+  const p = window.__pico3d;
+  p.showDifficulty();
+  [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('排行榜')).click();
+  document.getElementById('board-tab-global').click();
+  const title = document.getElementById('board-title').textContent;
+  const rows = document.querySelectorAll('#board-body .board-level').length;
+  const text = p.getBoardText();
+  document.getElementById('board-close').click();
+  return { title, rows, hasTop: text.includes('前三') };
+})()`);
+check('全模型总榜：5 档难度各列前三',
+  globalBoard.rows === 5 && globalBoard.title.includes('全模型总榜') && globalBoard.hasTop === true,
+  JSON.stringify(globalBoard));
 // 1.27) 首次上手引导：仅首次 UI 开局出现一次
 const tutorial = await evalJs(`(() => {
   const p = window.__pico3d;
@@ -264,7 +279,7 @@ for (const [mk, n] of combos) {
   check(`${mk} x${n}: ${st.count} 片、playing、0 已归位`, st.count === n && st.mode === 'playing' && st.placed === 0 && st.grab === 0, JSON.stringify(st));
   if (shotsTaken < 9 && (n === 4 && ['castle', 'penguin', 'gift', 'rabbit', 'globe', 'pumpkin', 'turtle', 'pig', 'heli'].includes(mk))) {
     const shot = await send('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(`D:/DSH_Workspace/Pico3D/test/preview-${mk}-${n}.png`, Buffer.from(shot.result.data, 'base64'));
+    fs.writeFileSync(`test/preview-${mk}-${n}.png`, Buffer.from(shot.result.data, 'base64'));
     shotsTaken++;
   }
 }
@@ -470,8 +485,8 @@ const smoke = await evalJs(`(() => {
     practice: p.getPractice(), palette: p.getPalette(),
   };
 })()`);
-check('全菜单冒烟：16 模型/6 配色/开关按钮点击无异常',
-  smoke.fatal === false && smoke.models === 16 && smoke.palettes === 6
+check('全菜单冒烟：18 模型/6 配色/开关按钮点击无异常',
+  smoke.fatal === false && smoke.models === 18 && smoke.palettes === 6
   && smoke.practice === false && smoke.palette === 'classic', JSON.stringify(smoke));
 
 // 3.10) 练习模式：通关不写入进度

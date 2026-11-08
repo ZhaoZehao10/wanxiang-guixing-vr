@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9335;
 const FILE = path.resolve('dist/3D拼图VR-离线版.html');
 const URL = 'file:///' + FILE.replace(/\\/g, '/');
@@ -87,7 +87,7 @@ const diff = await evalJs(`({
   visible: !document.getElementById('difficulty').classList.contains('hidden'),
   buttons: [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent.trim()),
 })`);
-check('引导页点击 → 难度菜单出现', diff.visible && diff.buttons.length === 35, JSON.stringify(diff.buttons));
+check('引导页点击 → 难度菜单出现', diff.visible && diff.buttons.length === 38, JSON.stringify(diff.buttons));
 
 await evalJs(`(() => {
   document.querySelectorAll('#difficulty .diff-btn')[0].click(); // 小火箭

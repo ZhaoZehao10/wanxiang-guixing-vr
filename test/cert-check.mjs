@@ -4,7 +4,7 @@
 import { spawn } from 'node:child_process';
 import os from 'node:os';
 
-const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9333;
 const ips = new Set();
 for (const list of Object.values(os.networkInterfaces())) {

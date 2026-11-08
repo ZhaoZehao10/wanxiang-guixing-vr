@@ -25,7 +25,7 @@ for (const n of DIFFICULTY) {
   check(`${n} 块：1.6×par+1s → 1 星`, starsFor(Math.floor(par * 1.6) + 1, n) === 1);
 }
 check('levelKey 格式', levelKey('rocket', 4) === 'rocket|4');
-check('模型数/难度数正确（16 模型 × 5 难度，78 关）', MODEL_KEYS.length === 16 && DIFFICULTY.length === 5);
+check('模型数/难度数正确（18 模型 × 5 难度，88 关）', MODEL_KEYS.length === 18 && DIFFICULTY.length === 5);
 
 // ---------------- 成绩写入 ----------------
 console.log('\n=== 成绩写入 ===');
@@ -93,7 +93,7 @@ console.log('\n=== 成就判定 ===');
   check('全部 6 块 → all_master + collector', u5.includes('all_master') && u5.includes('collector'), JSON.stringify(u5));
 
   // 幂等：已解锁的不再返回
-  const u6 = evaluateAchievements(p2, ['first_win', 'all_easy', 'collector', 'perfectionist']);
+  const u6 = evaluateAchievements(p2, ['first_win', 'all_easy', 'collector', 'perfectionist', 'star_50']);
   check('已解锁成就不会重复返回', u6.length === 0, JSON.stringify(u6));
 
   // 8 块成就（极限档）
@@ -105,9 +105,9 @@ console.log('\n=== 成就判定 ===');
   check('8 个模型完成 8 块 → eight_master', evaluateAchievements(p8b, []).includes('eight_master'), JSON.stringify(evaluateAchievements(p8b, [])));
   // 新成就：50 星 / 8 块三星 ×3
   const pStar = {};
-  for (const mk of MODEL_KEYS) recordResult(pStar, mk, 2, 40, 0); // 16 关 × 3 星 = 48
+  for (const mk of MODEL_KEYS.slice(0, 10)) recordResult(pStar, mk, 2, 40, 0); // 10 关 × 3 星 = 30
   check('累计不足 50 星不解锁', !evaluateAchievements(pStar, []).includes('star_50'));
-  recordResult(pStar, MODEL_KEYS[0], 3, 40, 0); // +3 = 51 星
+  for (const mk of MODEL_KEYS.slice(10, 17)) recordResult(pStar, mk, 2, 40, 0); // +7 关 = 51 星
   check('累计 ≥50 星 → star_50', evaluateAchievements(pStar, []).includes('star_50'), JSON.stringify(evaluateAchievements(pStar, [])));
   const p8c = {};
   for (const mk of MODEL_KEYS.slice(0, 3)) recordResult(p8c, mk, 8, 500, 0); // 500s → 3 星
@@ -121,9 +121,9 @@ console.log('\n=== 统计概览 ===');
   const p = {};
   recordResult(p, 'rocket', 2, 30, 0); // 3 星
   recordResult(p, 'gift', 4, 300, 0);   // 2 星
-  const s = summarize(p, 78);
+  const s = summarize(p, 88);
   check('summarize：2 关 / 5 星 / 总关数与满星按传入总数计算',
-    s.done === 2 && s.stars === 5 && s.total === 78 && s.maxStars === 234, JSON.stringify(s));
+    s.done === 2 && s.stars === 5 && s.total === 88 && s.maxStars === 264, JSON.stringify(s));
   check('summarize 空进度全 0', summarize({}).done === 0 && summarize({}).stars === 0);
 }
 

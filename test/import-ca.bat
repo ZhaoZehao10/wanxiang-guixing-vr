@@ -1,1 +1,4 @@
-@certutil.exe -user -addstore Root D:\DSH_Workspace\Pico3D\cert\ca.crt\n@exit %ERRORLEVEL%
+@echo off
+rem Install the locally generated CA into CurrentUser trusted root (no admin needed)
+certutil.exe -user -addstore Root "%~dp0..\cert\ca.crt"
+exit /b %ERRORLEVEL%

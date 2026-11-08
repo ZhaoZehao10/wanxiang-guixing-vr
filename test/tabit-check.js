@@ -25,5 +25,5 @@ const game = await page.evaluate(() => ({
   counter: document.getElementById('placed-counter').textContent,
   modelName: document.getElementById('model-name').textContent,
 }));
-await page.screenshot({ path: 'D:/DSH_Workspace/Pico3D/test/preview-2d.png' });
+await page.screenshot({ path: 'test/preview-2d.png' });
 return { info, diffVisible, clicked, game, errors };
