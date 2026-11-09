@@ -178,3 +178,11 @@ html, body {
 /* 存档导出/导入面板 */
 #data-panel { display: flex; align-items: center; justify-content: center; }
 #data-panel.hidden { display: none; }
+
+/* 模型图鉴 */
+#gallery { display: flex; align-items: center; justify-content: center; }
+#gallery.hidden { display: none; }
+
+/* 双人轮流 */
+#duel { display: flex; align-items: center; justify-content: center; }
+#duel.hidden { display: none; }

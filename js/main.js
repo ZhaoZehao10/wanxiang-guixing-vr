@@ -5,10 +5,11 @@
 // 碎片接近其目标位姿（平移 + 旋转都接近）时自动吸附；全部归位即胜利。
 import * as THREE from '../vendor/three.module.min.js';
 import { VRButton } from '../vendor/VRButton.js';
-import { splitIntoPieces, CUT_TABLE } from './puzzle.mjs';
+import { splitIntoPieces, splitWithPlanes, generateRandomPlanes, CUT_TABLE } from './puzzle.mjs';
 import { MODELS, PALETTES } from './models.mjs';
 import { sfx, music } from './sfx.mjs';
 import { loadSettings, saveSettings, buildExport, parseExport, mergeProgress } from './settings.mjs';
+import { t, setLang, getLang, modelName, diffName, achName, achDesc } from './i18n.mjs';
 import {
   DIFFICULTY, DIFFICULTY_NAME, MODEL_KEYS, ACHIEVEMENTS,
   levelKey, parTime, starsFor, summarize,
@@ -18,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const BUILD_INFO = '18 模型 · 88 关 · 6 配色 · 5 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -104,6 +105,7 @@ const state = {
   palette: loadPalette(), // 配色皮肤键（PALETTES）
   assist: loadAssist(),   // 磁吸辅助开关
   practice: loadPractice(), // 练习模式（不记录成绩）
+  randomMode: false,       // 随机模式（每局随机切割，不记录成绩）
   theme: loadTheme(),      // 场景主题（night/snow/sunset）
   tuning: loadTuning(),    // 手感参数（磁吸/震动/菜单距离与大小）
   settings: loadSettings(localStorage), // 渲染比例/星空/桌面高度/音量
@@ -504,7 +506,10 @@ function setGhostHighlight(idx) {
 function clearGhostHighlight() {
   if (ghostHighlight.idx >= 0 && ghostGroup && ghostGroup.children[ghostHighlight.idx]) {
     const gm = ghostGroup.children[ghostHighlight.idx];
-    if (ghostHighlight.savedMat) gm.material = ghostHighlight.savedMat;
+    if (ghostHighlight.savedMat) {
+      if (gm.material && gm.material !== ghostHighlight.savedMat && gm.material.dispose) gm.material.dispose();
+      gm.material = ghostHighlight.savedMat;
+    }
   }
   ghostHighlight.idx = -1;
   ghostHighlight.savedMat = null;
@@ -559,19 +564,35 @@ function commitResult(modelKey, n, secs, hints) {
 
 // ---------------- 拼片构建 ----------------
 
-function buildGhostAndPieces(modelKey, n) {
+function buildGhostAndPieces(modelKey, n, planes = null) {
   // 清理旧对象（state.pieces 里存的就是 mesh 本身；投影是独立对象要一起删）
   clearGhostHighlight(); // 虚影即将重建，先恢复被高亮/提示替换过的材质
-  if (ghostGroup) { targetRig.remove(ghostGroup); ghostGroup = null; }
+  const disposeMesh = (o) => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) {
+      if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose());
+      else o.material.dispose();
+    }
+  };
+  if (ghostGroup) {
+    ghostGroup.traverse((o) => { if (o.isMesh) disposeMesh(o); });
+    targetRig.remove(ghostGroup);
+    ghostGroup = null;
+  }
   for (const p of state.pieces) {
     scene.remove(p);
-    if (p.userData.shadow) scene.remove(p.userData.shadow);
+    disposeMesh(p);
+    if (p.userData.shadow) {
+      scene.remove(p.userData.shadow);
+      disposeMesh(p.userData.shadow);
+    }
   }
   state.pieces = [];
   state.placedCount = 0;
   state.grabbing.clear();
 
-  const result = splitIntoPieces(modelKey, n, state.palette);
+  state.lastPlanes = planes ? planes.map((p) => [...p]) : null;
+  const result = planes ? splitWithPlanes(modelKey, planes, state.palette) : splitIntoPieces(modelKey, n, state.palette);
 
   // 目标虚影：半透明完整模型
   ghostGroup = new THREE.Group();
@@ -881,20 +902,25 @@ function winGame() {
   state.mode = 'won';
   state.winTime = performance.now();
   const secs = Math.round((state.winTime - state.startTime) / 1000);
-  $('win-time').textContent = state.practice ? '练习模式' : `${Math.floor(secs / 60)}分${secs % 60}秒`;
-  $('win-model').textContent = `${ghostName()} · ${state.pieces.length} 块${state.practice ? ' · 练习' : ''}`;
-  // 成绩入库 + 成就评估（练习模式跳过，不污染记录）
-  const res = state.practice
+  const noRecord = state.practice || state.randomMode || !!duelState;
+  $('win-time').textContent = state.practice ? '练习模式' : state.randomMode ? '随机模式' : `${Math.floor(secs / 60)}分${secs % 60}秒`;
+  $('win-model').textContent = `${ghostName()} · ${state.pieces.length} 块${state.practice ? ' · 练习' : state.randomMode ? ' · 随机' : ''}`;
+  // 成绩入库 + 成就评估（练习/随机模式跳过，不污染记录）
+  const res = noRecord
     ? { stars: 0, rec: { bestTime: 0, plays: 0 }, newly: [] }
     : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0);
+  state.lastResult = { secs, stars: res.stars, noRecord, modelKey: state.modelKey, pieceCount: state.pieceCount };
+  if (duelState && duelState.results.length < 2) duelRecord(secs, state.pieceCount);
   const starsEl = $('win-stars');
-  if (starsEl) starsEl.textContent = state.practice ? '—' : '★'.repeat(res.stars) + '☆'.repeat(3 - res.stars);
+  if (starsEl) starsEl.textContent = noRecord ? '—' : '★'.repeat(res.stars) + '☆'.repeat(3 - res.stars);
   const bestEl = $('win-best');
   if (bestEl) {
     bestEl.textContent = state.practice
       ? '练习模式 · 不计时、不记录成绩'
-      : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`
-        + (res.rec.top && res.rec.top.length ? ` · 前三 ${res.rec.top.map((t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`).join(' / ')}` : '');
+      : state.randomMode
+        ? '随机模式 · 每局切割不同、不记录成绩'
+        : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`
+          + (res.rec.top && res.rec.top.length ? ` · 前三 ${res.rec.top.map((t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`).join(' / ')}` : '');
   }
   // 新解锁成就展示（2D 结算面板 + VR 内浮窗提示）
   const achEl = $('win-achieve');
@@ -935,7 +961,7 @@ function ghostName() {
 
 // ---------------- 游戏流程 ----------------
 
-function startGame(modelKey, n) {
+function startGame(modelKey, n, opts = {}) {
   try { if (music.isEnabled()) music.start(); } catch (e) { /* 音频不可用 */ }
   if (!MODELS[modelKey]) {
     showFatal('关卡加载失败', `未知模型「${modelKey}」。请返回菜单重新选择。`);
@@ -951,6 +977,7 @@ function startGame(modelKey, n) {
   state.startTime = performance.now();
   state.lastPlacement = state.startTime;
   state.hintsUsed = 0;
+  state.randomMode = opts.random !== undefined ? !!opts.random : state.randomMode;
   clearHint();
   $('intro').classList.add('hidden');
   $('difficulty').classList.add('hidden');
@@ -958,7 +985,8 @@ function startGame(modelKey, n) {
   $('hud').classList.remove('hidden');
   ghostNameCache = MODELS[modelKey] ? `${MODELS[modelKey].emoji} ${MODELS[modelKey].name}` : '';
   try {
-    buildGhostAndPieces(modelKey, n);
+    const planes = state.randomMode ? generateRandomPlanes(modelKey, n) : null;
+    buildGhostAndPieces(modelKey, n, planes);
   } catch (err) {
     // 切割/几何异常不应让页面白屏：回菜单并给出明确错误
     console.error('[startGame]', err);
@@ -997,17 +1025,17 @@ function showDifficulty() {
   const progNow = readProgress();
   const sum = summarize(progNow, totalLevels());
   const unlocked = readAchievements();
-  card.innerHTML = `<h2>选择模型与难度</h2>`
+  card.innerHTML = `<h2>${t('menu.title')}</h2>`
     + `<p class="sub" style="color:#8b96b8;font-size:13px;margin:6px 0 10px">`
-    + `总进度 ${sum.done}/${sum.total} 关 · 星星 ${sum.stars}/${sum.maxStars} · 成就 ${unlocked.length}/${ACHIEVEMENTS.length}</p>`;
+    + `${t('menu.summary', { done: sum.done, total: sum.total, stars: sum.stars, maxStars: sum.maxStars, ach: unlocked.length, achTotal: ACHIEVEMENTS.length })}</p>`;
 
   // 每日挑战（按日期确定性生成）
   const dc = dailyChallenge();
   const dcBtn = document.createElement('button');
   dcBtn.className = 'diff-btn';
   dcBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#ffd24d;background:rgba(255,210,77,.10)';
-  dcBtn.innerHTML = `<b style="font-size:15px">🎯 今日挑战 · ${dc.emoji} ${dc.name} · ${dc.n} 块</b>`
-    + `<span style="font-size:12px;color:#8b96b8">${dc.date} · 每天自动更换</span>`;
+  dcBtn.innerHTML = `<b style="font-size:15px">${t('menu.daily', { name: modelName(dc.modelKey, dc.name), n: dc.n })}</b>`
+    + `<span style="font-size:12px;color:#8b96b8">${t('menu.dailySub', { date: dc.date })}</span>`;
   dcBtn.onclick = () => startGameUI(dc.modelKey, dc.n);
   card.appendChild(dcBtn);
 
@@ -1015,9 +1043,25 @@ function showDifficulty() {
   const boardBtn = document.createElement('button');
   boardBtn.className = 'diff-btn';
   boardBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
-  boardBtn.innerHTML = '<b style="font-size:14px">🏆 排行榜 · 当前模型前三成绩</b>';
+  boardBtn.innerHTML = `<b style="font-size:14px">${t('menu.board')}</b>`;
   boardBtn.onclick = () => { sfx.ui(); openBoard(); };
   card.appendChild(boardBtn);
+
+  // 模型图鉴入口
+  const galleryBtn = document.createElement('button');
+  galleryBtn.className = 'diff-btn';
+  galleryBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  galleryBtn.innerHTML = `<b style="font-size:14px">${t('menu.gallery')}</b>`;
+  galleryBtn.onclick = () => { sfx.ui(); openGallery(); };
+  card.appendChild(galleryBtn);
+
+  // 双人轮流入口
+  const duelBtn = document.createElement('button');
+  duelBtn.className = 'diff-btn';
+  duelBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  duelBtn.innerHTML = `<b style="font-size:14px">${t('menu.duel')}</b>`;
+  duelBtn.onclick = () => { sfx.ui(); openDuel(); };
+  card.appendChild(duelBtn);
 
   const row1 = document.createElement('div');
   row1.className = 'diff-row';
@@ -1027,7 +1071,7 @@ function showDifficulty() {
     // 星数进度：该模型所有支持难度的星级合计（帮助挑"还没玩过的模型"）
     const modelStars = supportedCounts(key).reduce((s, n) => s + (((progNow[levelKey(key, n)] || {}).stars) || 0), 0);
     const modelMax = supportedCounts(key).length * 3;
-    b.innerHTML = `<b style="font-size:22px">${def.emoji}</b><span>${def.name}</span>`
+    b.innerHTML = `<b style="font-size:22px">${def.emoji}</b><span>${modelName(key, def.name)}</span>`
       + `<small style="display:block;color:#ffd24d;font-size:11px;margin-top:2px">★ ${modelStars}/${modelMax}</small>`;
     if (key === state.modelKey) b.style.borderColor = '#6cd0ff';
     b.onclick = () => {
@@ -1162,6 +1206,23 @@ function showDifficulty() {
     sfx.ui();
   };
   row4.appendChild(practiceBtn);
+
+  // 随机模式：每局随机切割，不记录成绩
+  const randomBtn = document.createElement('button');
+  randomBtn.className = 'diff-btn';
+  randomBtn.style.cssText = 'min-width:170px;padding:8px 12px';
+  const refreshRandomBtn = () => {
+    randomBtn.innerHTML = `<b style="font-size:14px">随机模式：${state.randomMode ? '开' : '关'}</b>`
+      + `<span style="font-size:12px;color:#8b96b8">每局切割不同、不记录</span>`;
+    randomBtn.style.borderColor = state.randomMode ? '#6cd0ff' : '';
+  };
+  refreshRandomBtn();
+  randomBtn.onclick = () => {
+    state.randomMode = !state.randomMode;
+    refreshRandomBtn();
+    sfx.ui();
+  };
+  row4.appendChild(randomBtn);
   card.appendChild(row4);
 
   // 成就栏（🔒 未解锁 / 🏆 已解锁，悬停看条件）
@@ -1203,7 +1264,7 @@ function buildVrMenu() {
   );
   g.add(bg);
 
-  const title = makeTextSprite('选择模型与难度', { size: 56, color: '#dfe7ff' });
+  const title = makeTextSprite(t('menu.title'), { size: 56, color: '#dfe7ff' });
   fitSprite(title, 0.92, 0.13);
   title.position.set(0, 0.425, 0.02);
   g.add(title);
@@ -1684,7 +1745,8 @@ const SETTING_ROWS = [
   { scope: 'settings', key: 'stars', label: '星空背景', opts: [['关', false], ['开', true]] },
   { scope: 'settings', key: 'tableY', label: '桌面高度', opts: [['低', -0.10], ['标准', 0], ['高', 0.10]] },
   { scope: 'settings', key: 'musicVol', label: '音乐音量', opts: [['关', 0], ['低', 0.35], ['中', 0.6], ['高', 0.9]] },
-  { scope: 'settings', key: 'sfxVol', label: '音效音量', opts: [['关', 0], ['低', 0.5], ['高', 1]] },
+  { scope: 'settings', key: 'sfxVol', label: '音效音量', labelKey: 'settings.sfxVol', opts: [['关', 0], ['低', 0.5], ['高', 1]] },
+  { scope: 'settings', key: 'lang', label: '语言', labelKey: 'settings.lang', opts: [['中文', 'zh'], ['English', 'en']] },
 ];
 
 function buildSettingsUI() {
@@ -1695,7 +1757,7 @@ function buildSettingsUI() {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap';
     const label = document.createElement('span');
-    label.textContent = row.label;
+    label.textContent = row.labelKey ? t(row.labelKey) : row.label;
     label.style.cssText = 'font-size:14px;color:#cfd9f5;min-width:96px';
     wrap.appendChild(label);
     const getVal = () => row.scope === 'settings' ? state.settings[row.key] : state.tuning[row.key];
@@ -1758,8 +1820,17 @@ function applyTuning() {
 // 应用声音/画面/桌面设置（渲染比例、星空、桌面高度、音量）
 const BASE_SLOPE_Y = 0.55;
 const BASE_TARGET_Y = 1.15;
+function applyLanguageDom() {
+  setLang(state.settings.lang);
+  document.documentElement.lang = getLang() === 'en' ? 'en' : 'zh';
+  document.title = t('app.title');
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.getAttribute('data-i18n')); });
+}
+
 function applySettings() {
   const s = state.settings || {};
+  applyLanguageDom();
+  if ($('settings') && !$('settings').classList.contains('hidden')) buildSettingsUI();
   if (sceneRefs.slope) sceneRefs.slope.position.y = BASE_SLOPE_Y + (s.tableY || 0);
   if (targetRig) targetRig.position.y = BASE_TARGET_Y + (s.tableY || 0);
   applyQualityLevel(quality.level);
@@ -1948,6 +2019,151 @@ function buildBoardUI(mode = boardMode) {
 function openBoard() { boardMode = 'model'; buildBoardUI(); $('board').classList.remove('hidden'); }
 function closeBoard() { $('board').classList.add('hidden'); }
 
+// ---------------- 模型图鉴 ----------------
+
+function buildGalleryUI() {
+  const body = $('gallery-body');
+  if (!body) return;
+  const prog = readProgress();
+  body.innerHTML = '';
+  for (const [key, def] of Object.entries(MODELS)) {
+    const counts = supportedCounts(key);
+    const maxStars = counts.length * 3;
+    let stars = 0, done = 0;
+    for (const n of counts) {
+      const rec = prog[levelKey(key, n)];
+      if (rec && rec.stars) { stars += rec.stars; done++; }
+    }
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+    card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:10px;text-align:center;cursor:pointer';
+    card.innerHTML = `<div style="font-size:34px">${def.emoji}</div>`
+      + `<b style="font-size:14px">${def.name}</b>`
+      + `<div style="color:#ffd24d;font-size:12px;margin-top:4px">★ ${stars}/${maxStars}</div>`
+      + `<small style="color:#8b96b8;font-size:11px">已通关 ${done}/${counts.length}</small>`;
+    card.onclick = () => { closeGallery(); startGameUI(key, counts.includes(2) ? 2 : counts[0]); };
+    body.appendChild(card);
+  }
+}
+
+function openGallery() { buildGalleryUI(); $('gallery').classList.remove('hidden'); }
+function closeGallery() { $('gallery').classList.add('hidden'); }
+
+// ---------------- 完成海报 ----------------
+
+function generatePosterDataURL() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 720;
+  canvas.height = 1080;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 720, 1080);
+  grad.addColorStop(0, '#0b1020');
+  grad.addColorStop(1, '#2a1630');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 720, 1080);
+  // 装饰光斑
+  for (const [x, y, r, c] of [[110, 180, 220, 'rgba(108,208,255,.10)'], [620, 860, 260, 'rgba(255,122,160,.10)']]) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, c);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 720, 1080);
+  }
+  const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
+  const r = state.lastResult || { secs: 0, stars: 0, noRecord: false };
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#dfe7ff';
+  ctx.font = 'bold 46px "Segoe UI", "Microsoft YaHei", sans-serif';
+  ctx.fillText('万象归形', 360, 110);
+  ctx.font = '20px "Segoe UI", sans-serif';
+  ctx.fillStyle = '#8b96b8';
+  ctx.fillText('WANXIANG GUIXING', 360, 145);
+  ctx.font = '150px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+  ctx.fillText(def.emoji, 360, 340);
+  ctx.font = 'bold 44px "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = '#dfe7ff';
+  ctx.fillText(def.name, 360, 440);
+  const stars = r.noRecord ? 0 : (r.stars || 0);
+  ctx.font = '48px "Segoe UI Symbol", sans-serif';
+  ctx.fillStyle = '#ffd24d';
+  ctx.fillText(r.noRecord ? '随机模式' : '★'.repeat(stars) + '☆'.repeat(3 - stars), 360, 520);
+  ctx.font = '34px "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = '#cfd9f5';
+  ctx.fillText(`${Math.floor((r.secs || 0) / 60)}分${(r.secs || 0) % 60}秒`, 360, 585);
+  ctx.font = '20px "Segoe UI", sans-serif';
+  ctx.fillStyle = '#8b96b8';
+  ctx.fillText(new Date().toLocaleDateString('zh-CN') + ' · Pico Neo3 · WebXR', 360, 640);
+  ctx.fillStyle = '#6cd0ff';
+  ctx.font = 'bold 22px "Microsoft YaHei", sans-serif';
+  ctx.fillText('18 个模型 · 88 个关卡 · 6 套配色 · 5 套主题', 360, 980);
+  return canvas.toDataURL('image/png');
+}
+
+function downloadPoster() {
+  try {
+    const a = document.createElement('a');
+    a.href = generatePosterDataURL();
+    a.download = 'WanxiangGuixing-poster.png';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 500);
+  } catch (e) { /* ignore */ }
+}
+
+// ---------------- 双人轮流 ----------------
+
+let duelState = null;
+const fmtDur = (s) => `${Math.floor((s || 0) / 60)}分${(s || 0) % 60}秒`;
+
+function openDuel() {
+  const counts = supportedCounts(state.modelKey);
+  if (!counts.length) return;
+  const n = counts.includes(state.pieceCount) ? state.pieceCount : counts[0];
+  duelState = { modelKey: state.modelKey, n, turn: 1, results: [] };
+  $('duel-body').textContent = `模型：${MODELS[state.modelKey].name} · ${n} 块\n两人轮流拼同一关，比较用时与星级（不写入正式成绩）。`;
+  $('duel-ok').textContent = '开始（玩家1）';
+  $('duel').classList.remove('hidden');
+}
+
+function closeDuel() {
+  $('duel').classList.add('hidden');
+  duelState = null;
+}
+
+function duelAdvance() {
+  if (!duelState) return;
+  if (duelState.results.length === 0) {
+    $('duel').classList.add('hidden');
+    startGame(duelState.modelKey, duelState.n);
+    return;
+  }
+  if (duelState.results.length === 1) {
+    duelState.turn = 2;
+    $('duel').classList.add('hidden');
+    startGame(duelState.modelKey, duelState.n);
+    return;
+  }
+  closeDuel();
+  showDifficulty();
+}
+
+function duelRecord(secs, n) {
+  if (!duelState || duelState.results.length >= 2) return;
+  const stars = starsFor(secs, n);
+  duelState.results.push({ turn: duelState.turn, secs, stars });
+  if (duelState.results.length === 1) {
+    const a = duelState.results[0];
+    $('duel-body').textContent = `玩家1：${fmtDur(a.secs)} · ${'★'.repeat(a.stars)}${'☆'.repeat(3 - a.stars)}\n\n请玩家2准备。`;
+    $('duel-ok').textContent = '轮到玩家2';
+  } else {
+    const [a, b] = duelState.results;
+    const winner = a.secs === b.secs ? '平局' : (a.secs < b.secs ? '玩家1 获胜 🏆' : '玩家2 获胜 🏆');
+    $('duel-body').textContent = `玩家1：${fmtDur(a.secs)} · ${a.stars}★\n玩家2：${fmtDur(b.secs)} · ${b.stars}★\n\n${winner}（用时更短者胜）`;
+    $('duel-ok').textContent = '结束';
+  }
+  $('duel').classList.remove('hidden');
+}
+
 // ---------------- 首次上手引导 ----------------
 // 只在"真实 UI 开局"时出现一次；测试/脚本直接调 startGame 不触发，避免干扰自动化。
 const TUTORIAL_KEY = '{{SECRET_9m4qv7ta}}';
@@ -1966,18 +2182,18 @@ function closeTutorial() {
   if (el) el.classList.add('hidden');
   const p = pendingStart;
   pendingStart = null;
-  if (p) startGame(p.modelKey, p.n);
+  if (p) startGame(p.modelKey, p.n, { random: !!p.random });
 }
 function startGameUI(modelKey, n) {
   // 2D 覆盖层在 VR 里看不见：已进入沉浸式说明是头显内操作，直接开局，避免卡住
   const inVr = !!(renderer && renderer.xr && renderer.xr.isPresenting);
   if (!inVr && !tutorialSeen()) {
-    pendingStart = { modelKey, n };
+    pendingStart = { modelKey, n, random: state.randomMode };
     openTutorial();
     sfx.ui();
     return;
   }
-  startGame(modelKey, n);
+  startGame(modelKey, n, { random: state.randomMode });
 }
 
 // ---------------- 启动 ----------------
@@ -2078,12 +2294,24 @@ if ($('data-close')) {
   });
   $('data-import').addEventListener('click', (e) => { e.stopPropagation(); applyImportText($('data-text').value); });
 }
+if ($('duel-ok')) {
+  $('duel-ok').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); duelAdvance(); });
+}
+if ($('duel-close')) {
+  $('duel-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeDuel(); });
+}
+if ($('poster-btn')) {
+  $('poster-btn').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadPoster(); });
+}
 if ($('board-close')) {
   $('board-close').addEventListener('click', (e) => {
     e.stopPropagation();
     sfx.ui();
     closeBoard();
   });
+}
+if ($('gallery-close')) {
+  $('gallery-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeGallery(); });
 }
 if ($('board-tab-model')) {
   $('board-tab-model').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('model'); });
@@ -2155,7 +2383,11 @@ window.__wanxiang = {
   openDataPanel, closeDataPanel,
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
-  openBoard, closeBoard,
+  openBoard, closeBoard, openGallery, closeGallery,
+  generatePoster: () => generatePosterDataURL(), downloadPoster,
+  openDuel, closeDuel, duelAdvance,
+  getDuelInfo: () => (duelState ? { ...duelState, results: duelState.results.map((r) => ({ ...r })) } : null),
+  getGalleryText: () => ($('gallery-body') ? $('gallery-body').textContent : ''),
   getBoardText: () => ($('board-body') ? $('board-body').textContent : ''),
   startGameUI, openTutorial, closeTutorial,
   resetTutorial: () => { try { localStorage.removeItem(TUTORIAL_KEY); } catch (e) { /* ignore */ } },
@@ -2163,6 +2395,8 @@ window.__wanxiang = {
   setTheme: (k) => applyTheme(k),
   getThemeInfo: () => ({ theme: state.theme, bg: scene.background.getHexString(), fog: scene.fog.color.getHexString() }),
   setPractice: (on) => { state.practice = !!on; savePractice(state.practice); },
+  getRandomMode: () => state.randomMode,
+  setRandomMode: (on) => { state.randomMode = !!on; },
   music,
   // 配色皮肤（测试与外部控制用）
   PALETTES, getPalette: () => state.palette,
