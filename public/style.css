@@ -174,3 +174,7 @@ html, body {
 /* 首次上手引导 */
 #tutorial { display: flex; align-items: center; justify-content: center; }
 #tutorial.hidden { display: none; }
+
+/* 存档导出/导入面板 */
+#data-panel { display: flex; align-items: center; justify-content: center; }
+#data-panel.hidden { display: none; }

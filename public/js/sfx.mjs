@@ -5,6 +5,7 @@
 // VR 中 selectstart 也算手势，onGrab 里会先 unlock。
 
 let ctx = null;
+let sfxVolume = 1; // 0~1，由设置面板控制
 
 function ac() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -13,6 +14,7 @@ function ac() {
 }
 
 function tone(freq, dur, { type = 'sine', gain = 0.12, delay = 0, slide = 0 } = {}) {
+  if (sfxVolume <= 0) return; // 静音时不创建节点
   const a = ac();
   const t0 = a.currentTime + delay;
   const o = a.createOscillator();
@@ -21,14 +23,19 @@ function tone(freq, dur, { type = 'sine', gain = 0.12, delay = 0, slide = 0 } = 
   o.frequency.setValueAtTime(freq, t0);
   if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), t0 + dur);
   g.gain.setValueAtTime(0, t0);
-  g.gain.linearRampToValueAtTime(gain, t0 + 0.012);
+  g.gain.linearRampToValueAtTime(gain * sfxVolume, t0 + 0.012);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   o.connect(g).connect(a.destination);
   o.start(t0);
   o.stop(t0 + dur + 0.05);
 }
 
+export function setSfxVolume(v) { sfxVolume = Math.max(0, Math.min(1, Number.isFinite(v) ? v : 1)); }
+export function getSfxVolume() { return sfxVolume; }
+
 export const sfx = {
+  setVolume(v) { setSfxVolume(v); },
+  getVolume() { return sfxVolume; },
   unlock() { try { ac(); } catch { /* 无音频设备时静默 */ } },
   grab() { tone(520, 0.07, { type: 'triangle', gain: 0.10 }); },
   drop() { tone(300, 0.09, { type: 'triangle', gain: 0.08 }); },

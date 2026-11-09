@@ -8,6 +8,7 @@ import { VRButton } from '../vendor/VRButton.js';
 import { splitIntoPieces, CUT_TABLE } from './puzzle.mjs';
 import { MODELS, PALETTES } from './models.mjs';
 import { sfx, music } from './sfx.mjs';
+import { loadSettings, saveSettings, buildExport, parseExport, mergeProgress } from './settings.mjs';
 import {
   DIFFICULTY, DIFFICULTY_NAME, MODEL_KEYS, ACHIEVEMENTS,
   levelKey, parTime, starsFor, summarize,
@@ -17,7 +18,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.5.0';
 const BUILD_INFO = '18 模型 · 88 关 · 6 配色 · 5 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -105,6 +106,7 @@ const state = {
   practice: loadPractice(), // 练习模式（不记录成绩）
   theme: loadTheme(),      // 场景主题（night/snow/sunset）
   tuning: loadTuning(),    // 手感参数（磁吸/震动/菜单距离与大小）
+  settings: loadSettings(localStorage), // 渲染比例/星空/桌面高度/音量
   pieces: [],           // mesh 本体（userData 挂 target/placed/home 等）
   placedCount: 0,
   startTime: 0,
@@ -325,10 +327,12 @@ const quality = {
 function applyQualityLevel(level) {
   quality.level = Math.max(0, Math.min(2, level));
   const dpr = window.devicePixelRatio || 1;
-  const pr = quality.level === 2 ? Math.min(dpr, 2) : quality.level === 1 ? Math.min(dpr, 1.25) : 1;
+  const base = quality.level === 2 ? Math.min(dpr, 2) : quality.level === 1 ? Math.min(dpr, 1.25) : 1;
+  const scale = (state.settings && state.settings.renderScale) || 1;
+  const pr = Math.max(0.5, base * scale);
   renderer.setPixelRatio(pr);
   renderer.setSize(window.innerWidth, window.innerHeight, false);
-  if (starfield) starfield.visible = quality.level >= 1;
+  if (starfield) starfield.visible = quality.level >= 1 && (!state.settings || state.settings.stars !== false);
   if (quality.level === 0) clearHint();
 }
 
@@ -689,7 +693,8 @@ function slopeHeightAt(x, z) {
   // z = -0.95 + lz*cos(t) + 0.05*sin(t) → lz = ((z+0.95) - 0.05*sin(t)) / cos(t)
   const c = Math.cos(SLOPE_TILT), s = Math.sin(SLOPE_TILT);
   const lz = ((z - (-0.95)) - 0.05 * s) / c;
-  return 0.55 + 0.05 * c - lz * s;
+  const dy = (state.settings && state.settings.tableY) || 0;
+  return 0.55 + dy + 0.05 * c - lz * s;
 }
 
 // ---------------- 手柄 ----------------
@@ -1670,39 +1675,50 @@ function animate() {
 
 // ---------------- 手感设置面板 ----------------
 
-const TUNING_OPTIONS = [
-  { key: 'magnet', label: '磁吸强度', opts: [['关', 0], ['弱', 0.05], ['中', 0.10], ['强', 0.18]] },
-  { key: 'haptic', label: '震动强度', opts: [['关', 0], ['弱', 0.6], ['中', 1], ['强', 1.5]] },
-  { key: 'menuDist', label: 'VR 菜单距离', opts: [['近', 0.55], ['标准', 0.70], ['远', 0.85]] },
-  { key: 'menuScale', label: 'VR 菜单大小', opts: [['小', 0.36], ['标准', 0.42], ['大', 0.50]] },
+const SETTING_ROWS = [
+  { scope: 'tuning', key: 'magnet', label: '磁吸强度', opts: [['关', 0], ['弱', 0.05], ['中', 0.10], ['强', 0.18]] },
+  { scope: 'tuning', key: 'haptic', label: '震动强度', opts: [['关', 0], ['弱', 0.6], ['中', 1], ['强', 1.5]] },
+  { scope: 'tuning', key: 'menuDist', label: 'VR 菜单距离', opts: [['近', 0.55], ['标准', 0.70], ['远', 0.85]] },
+  { scope: 'tuning', key: 'menuScale', label: 'VR 菜单大小', opts: [['小', 0.36], ['标准', 0.42], ['大', 0.50]] },
+  { scope: 'settings', key: 'renderScale', label: '渲染比例', opts: [['低', 0.7], ['中', 0.85], ['高', 1]] },
+  { scope: 'settings', key: 'stars', label: '星空背景', opts: [['关', false], ['开', true]] },
+  { scope: 'settings', key: 'tableY', label: '桌面高度', opts: [['低', -0.10], ['标准', 0], ['高', 0.10]] },
+  { scope: 'settings', key: 'musicVol', label: '音乐音量', opts: [['关', 0], ['低', 0.35], ['中', 0.6], ['高', 0.9]] },
+  { scope: 'settings', key: 'sfxVol', label: '音效音量', opts: [['关', 0], ['低', 0.5], ['高', 1]] },
 ];
 
 function buildSettingsUI() {
   const body = $('settings-body');
   if (!body) return;
   body.innerHTML = '';
-  for (const row of TUNING_OPTIONS) {
+  for (const row of SETTING_ROWS) {
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'margin:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+    wrap.style.cssText = 'margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap';
     const label = document.createElement('span');
     label.textContent = row.label;
     label.style.cssText = 'font-size:14px;color:#cfd9f5;min-width:96px';
     wrap.appendChild(label);
+    const getVal = () => row.scope === 'settings' ? state.settings[row.key] : state.tuning[row.key];
+    const setVal = (val) => {
+      if (row.scope === 'settings') {
+        state.settings[row.key] = val;
+        saveSettings(localStorage, state.settings);
+        applySettings();
+      } else {
+        state.tuning[row.key] = val;
+        saveTuning(state.tuning);
+        applyTuning();
+      }
+    };
     const btns = [];
     for (const [txt, val] of row.opts) {
       const b = document.createElement('button');
       b.className = 'diff-btn';
-      b.style.cssText = 'padding:6px 10px;min-width:56px';
+      b.style.cssText = 'padding:6px 10px;min-width:52px';
       b.textContent = txt;
-      const refresh = () => { b.style.borderColor = state.tuning[row.key] === val ? '#6cd0ff' : ''; };
+      const refresh = () => { b.style.borderColor = getVal() === val ? '#6cd0ff' : ''; };
       refresh();
-      b.onclick = () => {
-        state.tuning[row.key] = val;
-        saveTuning(state.tuning);
-        btns.forEach((x) => x.refresh());
-        applyTuning();
-        sfx.ui();
-      };
+      b.onclick = () => { setVal(val); btns.forEach((x) => x.refresh()); sfx.ui(); };
       b.refresh = refresh;
       btns.push(b);
       wrap.appendChild(b);
@@ -1711,8 +1727,23 @@ function buildSettingsUI() {
   }
   const p = document.createElement('p');
   p.style.cssText = 'font-size:12px;color:#8b96b8;margin:12px 0 0;line-height:1.6';
-  p.textContent = '磁吸强度影响"接近目标时轻拉"的力度；震动强度作用于抓取/吸附/松手反馈；VR 菜单距离与大小立即生效。';
+  p.textContent = '磁吸/震动/菜单距离立即生效；渲染比例与星空影响画质；桌面高度适合坐姿玩家。';
   body.appendChild(p);
+
+  const bar = document.createElement('div');
+  bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px';
+  const mk = (label, fn) => {
+    const b = document.createElement('button');
+    b.className = 'win-btn';
+    b.style.cssText = 'font-size:13px;padding:8px 12px';
+    b.textContent = label;
+    b.onclick = fn;
+    return b;
+  };
+  bar.appendChild(mk('📤 导出存档', () => openDataPanel('export')));
+  bar.appendChild(mk('📥 导入存档', () => openDataPanel('import')));
+  bar.appendChild(mk('🩺 复制诊断信息', () => copyDiagnostics()));
+  body.appendChild(bar);
 }
 
 function openSettings() { buildSettingsUI(); $('settings').classList.remove('hidden'); }
@@ -1722,6 +1753,121 @@ function closeSettings() { $('settings').classList.add('hidden'); }
 function applyTuning() {
   if (vrMenu.group) vrMenu.group.scale.setScalar(state.tuning.menuScale);
   if (vrMenu.enabled) positionMenuInFront(true);
+}
+
+// 应用声音/画面/桌面设置（渲染比例、星空、桌面高度、音量）
+const BASE_SLOPE_Y = 0.55;
+const BASE_TARGET_Y = 1.15;
+function applySettings() {
+  const s = state.settings || {};
+  if (sceneRefs.slope) sceneRefs.slope.position.y = BASE_SLOPE_Y + (s.tableY || 0);
+  if (targetRig) targetRig.position.y = BASE_TARGET_Y + (s.tableY || 0);
+  applyQualityLevel(quality.level);
+  if (starfield) starfield.visible = s.stars !== false && quality.level >= 1;
+  try { music.setVolume(s.musicVol); } catch (e) { /* ignore */ }
+  try { sfx.setVolume(s.sfxVol); } catch (e) { /* ignore */ }
+}
+
+// ---------------- 存档导出 / 导入 ----------------
+
+function buildExportText() {
+  return JSON.stringify(buildExport({
+    progress: readProgress(),
+    achievements: readAchievements(),
+    settings: state.settings,
+    tuning: state.tuning,
+  }, { version: APP_VERSION }), null, 2);
+}
+
+let dataMode = 'export';
+
+function openDataPanel(mode) {
+  dataMode = mode === 'import' ? 'import' : 'export';
+  const isExport = dataMode === 'export';
+  $('data-title').textContent = isExport ? '📤 导出存档' : '📥 导入存档';
+  $('data-text').value = isExport ? buildExportText() : '';
+  $('data-download').style.display = isExport ? '' : 'none';
+  $('data-copy').style.display = isExport ? '' : 'none';
+  $('data-pick').style.display = isExport ? 'none' : '';
+  $('data-import').style.display = isExport ? 'none' : '';
+  $('data-msg').textContent = isExport
+    ? '保存或复制下方 JSON，可在其他设备导入。'
+    : '粘贴 JSON 或选择文件，然后点「导入存档」。';
+  $('data-panel').classList.remove('hidden');
+}
+
+function closeDataPanel() { $('data-panel').classList.add('hidden'); }
+
+function downloadText(name, text) {
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) { /* 回退 */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (e) { return false; }
+}
+
+function applyImportText(text) {
+  const r = parseExport(text);
+  if (!r.ok) {
+    $('data-msg').textContent = '❌ ' + r.error;
+    return false;
+  }
+  saveProgress(localStorage, mergeProgress(readProgress(), r.data.progress));
+  saveAchievements(localStorage, r.data.achievements);
+  state.settings = r.data.settings;
+  saveSettings(localStorage, state.settings);
+  if (r.data.tuning && Object.keys(r.data.tuning).length) {
+    state.tuning = { ...DEFAULT_TUNING, ...r.data.tuning };
+    saveTuning(state.tuning);
+  }
+  applySettings();
+  applyTuning();
+  $('data-msg').textContent = '✅ 导入成功：进度 / 成就 / 设置已恢复';
+  return true;
+}
+
+function diagnosticsText() {
+  const q = { level: quality.level, auto: quality.auto, pixelRatio: renderer.getPixelRatio(), starfieldVisible: !!(starfield && starfield.visible) };
+  return [
+    '万象归形 诊断信息',
+    '时间: ' + new Date().toISOString(),
+    '版本: ' + APP_VERSION + ' · ' + BUILD_INFO,
+    'UA: ' + navigator.userAgent,
+    '屏幕: ' + screen.width + '×' + screen.height + ' @' + (window.devicePixelRatio || 1),
+    '安全上下文: ' + window.isSecureContext,
+    'WebXR: ' + (typeof navigator.xr !== 'undefined'),
+    '画质: level=' + q.level + ' auto=' + q.auto + ' pixelRatio=' + q.pixelRatio + ' stars=' + q.starfieldVisible,
+    '模型: ' + state.modelKey + ' · ' + state.pieceCount + ' 块 · ' + state.mode,
+    '已归位: ' + state.placedCount + '/' + state.pieces.length,
+    '主题/配色: ' + state.theme + ' / ' + state.palette,
+    '本地存储键数: ' + Object.keys(localStorage).length,
+  ].join('\n');
+}
+
+async function copyDiagnostics() {
+  const ok = await copyText(diagnosticsText());
+  $('data-msg').textContent = ok ? '✅ 诊断信息已复制到剪贴板' : '❌ 复制失败，请手动选择文本';
 }
 
 // 打开方式提示：file:// 或非本机 http:// 下 WebXR 可能不可用
@@ -1875,6 +2021,7 @@ async function runSelfCheck() {
 
 initScene();
 applyTheme(state.theme); // 应用持久化的场景主题
+applySettings();         // 应用持久化的画面/声音/桌面设置
 // 封面版本信息
 if ($('build-info')) $('build-info').textContent = `v${APP_VERSION} · ${BUILD_INFO}`;
 // 致命错误覆盖层按钮
@@ -1910,6 +2057,26 @@ if ($('settings-btn')) {
     sfx.ui();
     closeSettings();
   });
+}
+if ($('data-close')) {
+  $('data-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeDataPanel(); });
+  $('data-download').addEventListener('click', (e) => {
+    e.stopPropagation();
+    downloadText('WanxiangGuixing-save.json', $('data-text').value);
+    $('data-msg').textContent = '已下载存档文件';
+  });
+  $('data-copy').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const ok = await copyText($('data-text').value);
+    $('data-msg').textContent = ok ? '✅ 已复制到剪贴板' : '❌ 复制失败';
+  });
+  $('data-pick').addEventListener('click', (e) => { e.stopPropagation(); $('data-file').click(); });
+  $('data-file').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try { $('data-text').value = await f.text(); $('data-msg').textContent = '已读取：' + f.name; } catch (err) { $('data-msg').textContent = '❌ 读取文件失败'; }
+  });
+  $('data-import').addEventListener('click', (e) => { e.stopPropagation(); applyImportText($('data-text').value); });
 }
 if ($('board-close')) {
   $('board-close').addEventListener('click', (e) => {
@@ -1982,6 +2149,11 @@ window.__wanxiang = {
   getTheme: () => state.theme,
   getTuning: () => ({ ...state.tuning }),
   setTuningValue: (k, v) => { state.tuning[k] = v; saveTuning(state.tuning); applyTuning(); },
+  getSettings: () => ({ ...state.settings }),
+  setSettingsValue: (k, v) => { state.settings[k] = v; saveSettings(localStorage, state.settings); applySettings(); },
+  buildExportText, applyImportText, diagnosticsText,
+  openDataPanel, closeDataPanel,
+  getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard,
   getBoardText: () => ($('board-body') ? $('board-body').textContent : ''),

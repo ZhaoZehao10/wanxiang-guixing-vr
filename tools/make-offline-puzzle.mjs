@@ -4,7 +4,7 @@
 //   1) three.module.min.js 结尾的 export{...} 用胶水代码转成全局 THREE（IIFE 包裹，
 //      内部压缩变量不外泄）；
 //   2) 游戏模块按依赖序拼接并剥掉 import/export：
-//      models → puzzle → sfx → main（main 依赖前三个；VRButton 独立无 THREE 依赖）；
+//      models → puzzle → progress → settings → sfx → main（按依赖序；VRButton 独立）；
 //   3) style.css 内联，并在页脚加入离线提示。
 //
 // 用法: node tools\make-offline-puzzle.mjs → dist/WanxiangGuixing-offline.html
@@ -44,6 +44,7 @@ const vrButtonSrc = stripModule(read(PUB, 'vendor', 'VRButton.js'));
 const gameSrc = [
   'js/models.mjs',
   'js/progress.mjs',
+  'js/settings.mjs',
   'js/puzzle.mjs',
   'js/sfx.mjs',
   'js/main.js',

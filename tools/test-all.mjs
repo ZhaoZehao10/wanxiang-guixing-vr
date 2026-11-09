@@ -20,6 +20,8 @@ const SUITES = [
   { name: '切割表完整性', file: 'tools/check-calibration.mjs' },
   { name: '切割单元测试', file: 'test/run-tests.mjs' },
   { name: '进度成就逻辑', file: 'test/progress-tests.mjs' },
+  { name: '设置与存档', file: 'test/settings-tests.mjs' },
+  { name: '存档迁移', file: 'test/save-migration.mjs' },
   { name: '模糊测试', file: 'test/fuzz-tests.mjs' },
   { name: '随机平面压力', file: 'test/plane-fuzz.mjs', slow: true },
   { name: '结构回归基线', file: 'test/regression.mjs' },

@@ -134,6 +134,60 @@ check('file:// 与非本机 http 的打开方式提示',
   && settingsTest.hints.http.includes('HTTPS') && settingsTest.hints.local === '',
   JSON.stringify(settingsTest.hints));
 
+// 1.13) 画面/声音设置 + 存档导出/导入 + 故障注入
+const settings2 = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.openSettings();
+  const rows = [...document.querySelectorAll('#settings-body > div')];
+  rows[4].children[1].click(); // 渲染比例：低
+  rows[5].children[1].click(); // 星空：关
+  rows[6].children[3].click(); // 桌面高度：高
+  rows[7].children[2].click(); // 音乐音量：低
+  const s = p.getSettings();
+  const pr = p.getQuality().pixelRatio;
+  p.setSettingsValue('renderScale', 1);
+  p.setSettingsValue('stars', true);
+  p.setSettingsValue('tableY', 0);
+  p.setSettingsValue('musicVol', 0.22);
+  p.setSettingsValue('sfxVol', 1);
+  p.closeSettings();
+  return { s, pr };
+})()`);
+check('画面/声音设置可调并生效',
+  settings2.s.renderScale === 0.7 && settings2.s.stars === false
+  && Math.abs(settings2.s.tableY - 0.1) < 1e-9 && settings2.s.musicVol === 0.35 && settings2.pr < 1,
+  JSON.stringify(settings2));
+
+const dataTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  const text = p.buildExportText();
+  const bad = p.applyImportText('not json');
+  p.openDataPanel('export');
+  const panelVisible = !document.getElementById('data-panel').classList.contains('hidden');
+  const nonEmpty = p.getDataText().length > 50;
+  p.closeDataPanel();
+  const good = p.applyImportText(text);
+  const msg = document.getElementById('data-msg').textContent;
+  return { bad, good, panelVisible, nonEmpty, msg, textHasApp: text.includes('wanxiang-guixing') };
+})()`);
+check('存档导出/导入：非法拒绝、合法回灌、面板可用',
+  dataTest.bad === false && dataTest.good === true && dataTest.panelVisible === true
+  && dataTest.nonEmpty === true && dataTest.textHasApp === true && dataTest.msg.includes('成功'),
+  JSON.stringify(dataTest));
+
+const fault = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  const orig = Storage.prototype.setItem;
+  let threw = false;
+  try {
+    Storage.prototype.setItem = function () { throw new Error('quota'); };
+    try { p.setSettingsValue('musicVol', 0.5); p.recordResult('rocket', 2, 60, 0); } catch (e) { threw = true; }
+  } finally { Storage.prototype.setItem = orig; }
+  p.setSettingsValue('musicVol', 0.22);
+  return { threw };
+})()`);
+check('故障注入：localStorage 写入失败不崩溃', fault.threw === false, JSON.stringify(fault));
+
 // 1.15) 稳定性：版本信息 / WebGL 上下文丢失 / 关卡加载失败兜底
 const stability = await evalJs(`(async () => {
   const p = window.__wanxiang;
@@ -165,8 +219,8 @@ check('关卡加载失败兜底：不抛异常、可返回菜单',
 const daily = await evalJs(`(() => {
   const p = window.__wanxiang;
   p.showDifficulty();
-  const a = p.dailyChallenge('2026-11-08');
-  const b = p.dailyChallenge('2026-11-08');
+  const a = p.dailyChallenge(p.dayKey());
+  const b = p.dailyChallenge(p.dayKey());
   const btn = [...document.querySelectorAll('#difficulty .diff-btn')].find((x) => x.textContent.includes('今日挑战'));
   return { a, b, hasBtn: !!btn, btnText: btn ? btn.textContent : '' };
 })()`);
