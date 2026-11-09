@@ -45,6 +45,7 @@ const gameSrc = [
   'js/models.mjs',
   'js/progress.mjs',
   'js/settings.mjs',
+  'js/i18n.mjs',
   'js/puzzle.mjs',
   'js/sfx.mjs',
   'js/main.js',

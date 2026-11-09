@@ -14,8 +14,8 @@
 <!-- 2D 引导面板（平板模式） -->
 <div id="intro">
   <div class="intro-card">
-    <h1>🧩 万象归形</h1>
-    <p class="sub">把散落的碎片拼回完整模型 · Pico Neo3 WebXR</p>
+    <h1 data-i18n="app.title">🧩 万象归形</h1>
+    <p class="sub" data-i18n="intro.sub">把散落的碎片拼回完整模型 · Pico Neo3 WebXR</p>
     <ul>
       <li><b>抓取</b> — 扣动扳机抓住面前的碎片，握着走动、放近了会<b>自动吸附</b></li>
       <li><b>松手</b> — 释放扳机放下碎片，没对上就留在原地</li>
@@ -55,7 +55,7 @@
 <!-- 手感设置面板 -->
 <div id="settings" class="hidden" style="position:fixed;inset:0;z-index:45;background:rgba(4,8,18,.78)">
   <div class="diff-card" style="max-width:720px;text-align:left;max-height:88vh;overflow-y:auto">
-    <h2 style="text-align:center">⚙️ 手感设置</h2>
+    <h2 style="text-align:center" data-i18n="settings.title">⚙️ 手感设置</h2>
     <div id="settings-body"></div>
     <div style="text-align:center;margin-top:14px"><button id="settings-close" class="win-btn">关闭</button></div>
   </div>
@@ -81,7 +81,7 @@
 <!-- 排行榜面板 -->
 <div id="board" class="hidden" style="position:fixed;inset:0;z-index:45;background:rgba(4,8,18,.82)">
   <div class="diff-card" style="max-width:640px;text-align:left">
-    <h2 id="board-title" style="text-align:center">🏆 本地排行</h2>
+    <h2 id="board-title" style="text-align:center" data-i18n="board.title">🏆 本地排行</h2>
     <div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px">
       <button id="board-tab-model" class="diff-btn" style="padding:6px 14px">本模型</button>
       <button id="board-tab-global" class="diff-btn" style="padding:6px 14px">全模型总榜</button>
@@ -91,10 +91,30 @@
   </div>
 </div>
 
+<!-- 模型图鉴 -->
+<div id="gallery" class="hidden" style="position:fixed;inset:0;z-index:45;background:rgba(4,8,18,.85)">
+  <div class="diff-card" style="max-width:900px;text-align:left;max-height:88vh;overflow-y:auto">
+    <h2 style="text-align:center" data-i18n="gallery.title">🖼️ 模型图鉴</h2>
+    <div id="gallery-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
+    <div style="text-align:center;margin-top:14px"><button id="gallery-close" class="win-btn">关闭</button></div>
+  </div>
+</div>
+<!-- 双人轮流 -->
+<div id="duel" class="hidden" style="position:fixed;inset:0;z-index:47;background:rgba(4,8,18,.88)">
+  <div class="diff-card" style="max-width:560px;text-align:left">
+    <h2 style="text-align:center" data-i18n="duel.title">👥 双人轮流</h2>
+    <p id="duel-body" style="color:#cfd9f5;font-size:14px;line-height:1.9;white-space:pre-line"></p>
+    <div style="text-align:center;margin-top:14px">
+      <button id="duel-ok" class="win-btn">开始（玩家1）</button>
+      <button id="duel-close" class="win-btn" style="background:rgba(108,208,255,.15)">关闭</button>
+    </div>
+  </div>
+</div>
+
 <!-- 首次上手引导 -->
 <div id="tutorial" class="hidden" style="position:fixed;inset:0;z-index:50;background:rgba(4,8,18,.85)">
   <div class="diff-card" style="max-width:560px;text-align:left">
-    <h2 style="text-align:center">🧩 上手 4 步</h2>
+    <h2 style="text-align:center" data-i18n="tutorial.title">🧩 上手 4 步</h2>
     <ul style="color:#cfd9f5;line-height:2;font-size:14px;margin:10px 0 0 18px">
       <li><b>扣扳机</b>抓住面前的碎片</li>
       <li><b>摇杆</b>旋转碎片，让它和虚影块的朝向一致</li>
@@ -102,7 +122,7 @@
       <li><b>握键</b>空手打开菜单（提示 / 配色 / 进度 / 设置）</li>
     </ul>
     <p style="color:#8b96b8;font-size:12px;margin:12px 0 0">小提示：碎片接近目标时会轻微吸附；卡住 25 秒会自动提示。</p>
-    <div style="text-align:center;margin-top:14px"><button id="tutorial-ok" class="win-btn">知道了，开始拼图</button></div>
+    <div style="text-align:center;margin-top:14px"><button id="tutorial-ok" class="win-btn" data-i18n="tutorial.ok">知道了，开始拼图</button></div>
   </div>
 </div>
 
@@ -113,7 +133,7 @@
 <div id="hud" class="hidden">
   <div>
     <div id="model-name">…</div>
-    <div id="hint">扣扳机抓碎片 · 松手放下 · 靠近虚影自动吸附</div>
+    <div id="hint" data-i18n="HUD.hint">扣扳机抓碎片 · 松手放下 · 靠近虚影自动吸附</div>
   </div>
   <div id="hud-right">
     <div id="timer">00:00</div>
@@ -129,7 +149,8 @@
     <p>用时 <b id="win-time">--</b> · 模型：<b id="win-model">--</b></p>
     <p id="win-best" style="color:#8b96b8;font-size:13px;margin-bottom:6px"></p>
     <p id="win-achieve" style="display:none;color:#ffd24d;font-size:14px;margin-bottom:10px"></p>
-    <button id="win-btn" class="win-btn">再来一局</button>
+    <button id="poster-btn" class="win-btn" style="background:rgba(108,208,255,.15)" data-i18n="win.poster">🖼️ 保存海报</button>
+    <button id="win-btn" class="win-btn" data-i18n="win.again">再来一局</button>
   </div>
 </div>
 

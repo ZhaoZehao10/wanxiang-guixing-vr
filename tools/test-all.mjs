@@ -22,6 +22,7 @@ const SUITES = [
   { name: '进度成就逻辑', file: 'test/progress-tests.mjs' },
   { name: '设置与存档', file: 'test/settings-tests.mjs' },
   { name: '存档迁移', file: 'test/save-migration.mjs' },
+  { name: '随机切割校验', file: 'test/random-planes.mjs' },
   { name: '模糊测试', file: 'test/fuzz-tests.mjs' },
   { name: '随机平面压力', file: 'test/plane-fuzz.mjs', slow: true },
   { name: '结构回归基线', file: 'test/regression.mjs' },
@@ -30,7 +31,8 @@ const SUITES = [
   { name: '离线单文件端到端', file: 'test/offline-e2e.mjs' },
   { name: 'APK 运行链路端到端', file: 'test/apk-serve-e2e.mjs' },
   { name: '浏览器性能', file: 'test/perf-browser.mjs', slow: true, server: true },
-].filter((s) => !(FAST && s.slow));
+  { name: '稳定性浸泡', file: 'test/soak.mjs', slow: true, soak: true, server: true },
+].filter((s) => !(FAST && s.slow) && !(s.soak && !process.argv.includes('--soak')));
 
 function serverUp() {
   return new Promise((resolve) => {

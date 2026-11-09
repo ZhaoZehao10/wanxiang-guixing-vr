@@ -1833,3 +1833,38 @@ export function isWatertight(piece) {
   }
   return { ok: true };
 }
+
+// ---------------- 随机模式：运行时生成随机切割平面 ----------------
+// 以标定表为基准，保持每个轴的刀数，把刀位在基准位置附近抖动；
+// 每个候选都用 splitWithPlanes 实际切一次做水密/片数校验，失败重试，最终回退标定表。
+export function generateRandomPlanes(modelKey, n, rng = Math.random) {
+  const base = CUT_TABLE[modelKey] && CUT_TABLE[modelKey][n];
+  if (!base) return null;
+  const axes = ['x', 'y', 'z'];
+  const baseByAxis = { x: [], y: [], z: [] };
+  for (const [axis, pos] of base) baseByAxis[axis].push(pos);
+  for (const axis of axes) baseByAxis[axis].sort((a, b) => a - b);
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const planes = [];
+    for (const axis of axes) {
+      const arr = baseByAxis[axis];
+      if (!arr.length) continue;
+      const span = Math.max(0.5, arr[arr.length - 1] - arr[0]);
+      const step = span / (arr.length + 1);
+      const out = [];
+      for (let i = 0; i < arr.length; i++) {
+        const anchor = arr[0] + step * (i + 1);
+        const jitter = (rng() - 0.5) * step * 0.30;
+        out.push(anchor + jitter);
+      }
+      out.sort((a, b) => a - b);
+      for (const p of out) planes.push([axis, +p.toFixed(5)]);
+    }
+    try {
+      const res = splitWithPlanes(modelKey, planes);
+      if (res.pieces.length === n && res.pieces.every((p) => isWatertight(p).ok)) return planes;
+    } catch (e) { /* 该候选不可用，重试 */ }
+  }
+  return base.map(([axis, pos]) => [axis, pos]);
+}

@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   tableY: 0,          // 桌面高度偏移（米），-0.2 ~ 0.2
   musicVol: 0.22,     // 0 ~ 1
   sfxVol: 1.0,        // 0 ~ 1
+  lang: 'zh',         // zh | en
 });
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -25,6 +26,7 @@ export function clampSettings(raw = {}) {
   if (Number.isFinite(raw.tableY)) out.tableY = clamp(raw.tableY, -0.2, 0.2);
   if (Number.isFinite(raw.musicVol)) out.musicVol = clamp(raw.musicVol, 0, 1);
   if (Number.isFinite(raw.sfxVol)) out.sfxVol = clamp(raw.sfxVol, 0, 1);
+  if (raw.lang === 'en' || raw.lang === 'zh') out.lang = raw.lang;
   return out;
 }
 

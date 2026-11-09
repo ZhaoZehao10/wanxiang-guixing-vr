@@ -188,6 +188,72 @@ const fault = await evalJs(`(() => {
 })()`);
 check('故障注入：localStorage 写入失败不崩溃', fault.threw === false, JSON.stringify(fault));
 
+// 1.14) 随机模式 / 图鉴 / 海报 / 双人轮流
+const extras = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  const out = {};
+  p.setRandomMode(true);
+  p.startGame('rocket', 4);
+  const a = p.state.lastPlanes ? JSON.stringify(p.state.lastPlanes) : '';
+  p.startGame('rocket', 4);
+  const b = p.state.lastPlanes ? JSON.stringify(p.state.lastPlanes) : '';
+  out.random = { mode: p.state.randomMode, pieces: p.state.pieces.length, different: a !== b && a.length > 0 };
+  p.setRandomMode(false);
+  p.openGallery();
+  out.gallery = { visible: !document.getElementById('gallery').classList.contains('hidden'), cards: document.querySelectorAll('#gallery-body .gallery-card').length, text: p.getGalleryText() };
+  p.closeGallery();
+  const poster = p.generatePoster();
+  out.poster = { data: poster.startsWith('data:image/png'), len: poster.length };
+  const snapAll = () => {
+    for (const mesh of p.state.pieces) {
+      const tp = new p.THREE.Vector3(), tq = new p.THREE.Quaternion();
+      mesh.userData.target.getWorldPosition(tp);
+      mesh.userData.target.getWorldQuaternion(tq);
+      mesh.position.copy(tp);
+      mesh.quaternion.copy(tq);
+      p.trySnap(mesh);
+    }
+  };
+  p.openDuel();
+  const startDuel = p.getDuelInfo();
+  p.duelAdvance();
+  snapAll();
+  const d1 = p.getDuelInfo();
+  p.duelAdvance();
+  snapAll();
+  const d2 = p.getDuelInfo();
+  const duelText = document.getElementById('duel-body').textContent;
+  p.duelAdvance();
+  out.duel = { start: !!startDuel, results1: d1 ? d1.results.length : -1, results2: d2 ? d2.results.length : -1, hasWinner: /获胜|平局/.test(duelText) };
+  return out;
+})()`);
+check('随机模式：每局切割不同且片数正确',
+  extras.random.mode === true && extras.random.pieces === 4 && extras.random.different === true,
+  JSON.stringify(extras.random));
+check('模型图鉴：18 张卡片与收集进度',
+  extras.gallery.visible === true && extras.gallery.cards === 18 && extras.gallery.text.includes('★'),
+  JSON.stringify({ visible: extras.gallery.visible, cards: extras.gallery.cards }));
+check('完成海报：生成 PNG DataURL', extras.poster.data === true && extras.poster.len > 5000, JSON.stringify(extras.poster));
+const i18nTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.setSettingsValue('lang', 'en');
+  const introTitle = document.querySelector('#intro h1').textContent;
+  p.showDifficulty();
+  const menuTitle = document.querySelector('#difficulty h2').textContent;
+  const firstBtn = document.querySelector('#difficulty .diff-btn').textContent;
+  p.setSettingsValue('lang', 'zh');
+  const introTitleZh = document.querySelector('#intro h1').textContent;
+  return { introTitle, menuTitle, firstBtn, introTitleZh };
+})()`);
+check('中英双语：切换语言后标题/菜单/每日挑战为英文',
+  i18nTest.introTitle === 'Wanxiang Guixing' && i18nTest.menuTitle.includes('Select Model')
+  && i18nTest.firstBtn.includes('Daily Challenge') && i18nTest.introTitleZh === '万象归形',
+  JSON.stringify(i18nTest));
+
+check('双人轮流：两人结果与胜负判定',
+  extras.duel.start === true && extras.duel.results1 === 1 && extras.duel.results2 === 2 && extras.duel.hasWinner === true,
+  JSON.stringify(extras.duel));
+
 // 1.15) 稳定性：版本信息 / WebGL 上下文丢失 / 关卡加载失败兜底
 const stability = await evalJs(`(async () => {
   const p = window.__wanxiang;
@@ -250,7 +316,7 @@ const board = await evalJs(`(() => {
   const visible = !document.getElementById('board').classList.contains('hidden');
   const text = p.getBoardText();
   const rows = document.querySelectorAll('#board-body .board-level').length;
-  const supported = p.supportedCounts('rocket').length;
+  const supported = p.supportedCounts(p.state.modelKey).length;
   document.getElementById('board-close').click();
   const closed = document.getElementById('board').classList.contains('hidden');
   return { hasBtn, visible, text, rows, supported, closed };
