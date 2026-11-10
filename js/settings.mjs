@@ -14,6 +14,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   musicVol: 0.22,     // 0 ~ 1
   sfxVol: 1.0,        // 0 ~ 1
   lang: 'zh',         // zh | en
+  uiScale: 1,          // 1 | 1.15 | 1.3
+  menuSide: 'center',  // left | center | right
 });
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -27,6 +29,8 @@ export function clampSettings(raw = {}) {
   if (Number.isFinite(raw.musicVol)) out.musicVol = clamp(raw.musicVol, 0, 1);
   if (Number.isFinite(raw.sfxVol)) out.sfxVol = clamp(raw.sfxVol, 0, 1);
   if (raw.lang === 'en' || raw.lang === 'zh') out.lang = raw.lang;
+  if (Number.isFinite(raw.uiScale)) out.uiScale = clamp(raw.uiScale, 1, 1.3);
+  if (['left', 'center', 'right'].includes(raw.menuSide)) out.menuSide = raw.menuSide;
   return out;
 }
 

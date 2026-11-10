@@ -42,6 +42,8 @@ const DICT = {
   'settings.musicVol': { zh: '音乐音量', en: 'Music Volume' },
   'settings.sfxVol': { zh: '音效音量', en: 'SFX Volume' },
   'settings.lang': { zh: '语言', en: 'Language' },
+  'settings.uiScale': { zh: '界面缩放', en: 'UI Scale' },
+  'settings.menuSide': { zh: '菜单位置', en: 'Menu Side' },
   'tutorial.title': { zh: '🧩 上手 4 步', en: '🧩 Quick Start' },
   'tutorial.ok': { zh: '知道了，开始拼图', en: 'Got it — Start' },
   'win.title': { zh: '🎉 拼图完成！', en: '🎉 Puzzle Complete!' },
@@ -58,7 +60,7 @@ export const MODEL_EN = {
   penguin: 'Cute Penguin', gift: 'Gift Box', car: 'Mini Racer', xmas: 'Christmas Tree',
   rabbit: 'Cute Bunny', globe: 'Blue Earth', pumpkin: 'Jack-o-Lantern', turtle: 'Little Turtle',
   pig: 'Little Pig', heli: 'Helicopter', coffee: 'Coffee Cup', fish: 'Little Fish',
-  cat: 'Little Cat', cactus: 'Cactus',
+  cat: 'Little Cat', cactus: 'Cactus', frog: 'Little Frog', donut: 'Donut',
 };
 
 function detectLang() {
@@ -81,6 +83,15 @@ export function modelName(key, fallback) {
   if (lang !== 'en') return fallback;
   return MODEL_EN[key] || fallback;
 }
+export const PALETTE_EN = { classic: 'Classic', neon: 'Neon', warm: 'Warm Winter', mono: 'Cool Silver', festive: 'Festive', ocean: 'Ocean', contrast: 'High Contrast' };
+export function paletteName(k, f) { return lang === 'en' ? (PALETTE_EN[k] || f) : f; }
+export const THEME_EN = { night: 'Night Sky', snow: 'Snow Night', sunset: 'Sunset', dawn: 'Sakura', sea: 'Deep Sea', dusk: 'Dusk' };
+export function themeName(key, fallback) { return lang === 'en' ? (THEME_EN[key] || fallback) : fallback; }
+export function optLabel(z) {
+  if (lang !== 'en') return z;
+  const m = { '关': 'Off', '弱': 'Low', '中': 'Mid', '强': 'High', '低': 'Low', '标准': 'Default', '高': 'High', '左': 'Left', '右': 'Right', '大': 'Large', '特大': 'XL', '小': 'Small', '中文': '中文', 'English': 'English' };
+  return m[z] || z;
+}
 export const DIFFICULTY_EN = { 2: 'Easy', 3: 'Medium', 4: 'Hard', 6: 'Master', 8: 'Extreme' };
 export function diffName(n, fallback) { return lang === 'en' ? (DIFFICULTY_EN[n] || fallback) : fallback; }
 export const ACH_EN = {
@@ -94,6 +105,8 @@ export const ACH_EN = {
   eight_master: ['Extreme Master', 'Complete 8-piece mode on 8 models'],
   star_50: ['Star Collector', 'Collect 50 stars'],
   eight_three: ['Extreme Trio', 'Get 3 stars on 8-piece mode for 3 models'],
+  star_100: ['Star Hoarder', 'Collect 100 stars'],
+  all_perfect_6: ['Master Perfection', '3-star every model in 6-piece mode'],
   perfectionist: ['Perfectionist', 'Get 12 three-star levels in one difficulty'],
 };
 export function achName(id, fallback) { return lang === 'en' ? ((ACH_EN[id] && ACH_EN[id][0]) || fallback) : fallback; }

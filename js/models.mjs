@@ -608,6 +608,39 @@ function buildCactus(b) {
   sphere(b, yellow, { pos: [0, 0.76, 0], scale: [0.05, 0.04, 0.05] }, 1.0, 14, 10);
 }
 
+// ---------------- 模型 19：小青蛙 ----------------
+
+function buildFrog(b) {
+  const green = [0.34, 0.72, 0.36], greenD = [0.26, 0.58, 0.28], belly = [0.86, 0.94, 0.66];
+  const white = [0.98, 0.98, 0.94], dark = [0.08, 0.10, 0.08], pink = [0.95, 0.55, 0.55];
+  sphere(b, green, { pos: [0, -0.05, 0], scale: [0.62, 0.36, 0.72] }, 1.0, 36, 24);     // 身体
+  sphere(b, belly, { pos: [0, -0.20, 0.12], scale: [0.40, 0.20, 0.42] }, 1.0, 26, 16);  // 肚皮
+  sphere(b, green, { pos: [0, 0.30, 0.42], scale: [1, 0.85, 0.9] }, 0.42, 32, 20);      // 头
+  for (const s of [-1, 1]) {
+    sphere(b, white, { pos: [s * 0.24, 0.62, 0.40], scale: [1, 1, 0.9] }, 0.14, 20, 14); // 眼白
+    sphere(b, dark, { pos: [s * 0.24, 0.63, 0.51], scale: [1, 1, 0.6] }, 0.055, 14, 10); // 瞳孔
+    sphere(b, green, { pos: [s * 0.42, -0.18, 0.38], scale: [0.18, 0.12, 0.30] }, 1.0, 20, 12); // 前腿
+    sphere(b, greenD, { pos: [s * 0.45, -0.26, -0.30], scale: [0.22, 0.14, 0.34] }, 1.0, 20, 12); // 后腿
+  }
+  sphere(b, pink, { pos: [0, 0.16, 0.70], scale: [1, 0.5, 0.5] }, 0.05, 14, 10);        // 嘴
+}
+
+// ---------------- 模型 20：甜甜圈 ----------------
+
+function buildDonut(b) {
+  const dough = [0.80, 0.55, 0.28], doughD = [0.70, 0.45, 0.22];
+  const icing = [0.98, 0.55, 0.70], icingD = [0.92, 0.40, 0.58];
+  const sprinkles = [0.35, 0.75, 0.95];
+  torus(b, dough, { pos: [0, 0.05, 0], rot: [Math.PI / 2, 0, 0] }, 0.55, 0.24, 44, 20); // 面包圈
+  torus(b, icing, { pos: [0, 0.18, 0], rot: [Math.PI / 2, 0, 0] }, 0.55, 0.16, 44, 16); // 糖霜
+  // 糖粒：沿顶部圆周分布
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI * 2 * i) / 8;
+    box(b, i % 2 ? sprinkles : [0.98, 0.85, 0.35], { pos: [Math.cos(a) * 0.55, 0.30, Math.sin(a) * 0.55], rot: [0, a, 0.4] }, 0.16, 0.035, 0.05);
+  }
+  sphere(b, doughD, { pos: [0, 0.05, 0], scale: [0.24, 0.10, 0.24] }, 1.0, 20, 12); // 中心补面
+}
+
 // ---------------- 配色皮肤 ----------------
 // 只改顶点颜色、不改任何几何：切割平面表按几何标定，因此所有配色共用同一套
 // 切割参数（水密性/体积守恒与颜色无关）。
@@ -618,6 +651,7 @@ export const PALETTES = {
   mono: { name: '冷银', emoji: '❄️', hue: 0, sat: 0.08, light: 1.02 },
   festive: { name: '节日', emoji: '🎄', hue: -18, sat: 1.30, light: 1.05 },
   ocean: { name: '海洋', emoji: '🌊', hue: 170, sat: 1.15, light: 1.02 },
+  contrast: { name: '高对比', emoji: '🔆', hue: 200, sat: 1.65, light: 1.06 },
 };
 
 function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
@@ -683,6 +717,8 @@ export const MODELS = {
   fish: { name: '小鱼', emoji: '🐟', build: buildFish },
   cat: { name: '小猫', emoji: '🐱', build: buildCat },
   cactus: { name: '仙人掌', emoji: '🌵', build: buildCactus },
+  frog: { name: '小青蛙', emoji: '🐸', build: buildFrog },
+  donut: { name: '甜甜圈', emoji: '🍩', build: buildDonut },
 };
 
 // 构建模型 → { obj, center[3], radius }（包围球自动计算）
