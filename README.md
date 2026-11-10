@@ -29,6 +29,7 @@ node server.mjs         # HTTPS 8443 / HTTP 8081
 | 局域网 HTTPS | `node server.mjs` | Pico 浏览器直接打开，最方便 |
 | 单文件离线版 | `dist/WanxiangGuixing-offline.html` | three.js/VRButton/全部模块内联，拷到头盔或 U 盘即可 |
 | 独立 APK | `dist/WanxiangGuixing.apk` | 免电脑：内置页面服务（127.0.0.1:8898）+ 自动拉起浏览器 |
+| 在线游玩 | <https://zhaozehao10.github.io/wanxiang-guixing-vr/> | GitHub Pages 自动部署，Pico 浏览器直接打开（HTTPS） |
 
 ## 🎮 玩法
 
