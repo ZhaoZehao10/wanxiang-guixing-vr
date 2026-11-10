@@ -9,7 +9,7 @@ import { splitIntoPieces, splitWithPlanes, generateRandomPlanes, CUT_TABLE } fro
 import { MODELS, PALETTES } from './models.mjs';
 import { sfx, music } from './sfx.mjs';
 import { loadSettings, saveSettings, buildExport, parseExport, mergeProgress } from './settings.mjs';
-import { t, setLang, getLang, modelName, diffName, achName, achDesc } from './i18n.mjs';
+import { t, setLang, getLang, modelName, diffName, achName, achDesc, themeName, optLabel, paletteName } from './i18n.mjs';
 import {
   DIFFICULTY, DIFFICULTY_NAME, MODEL_KEYS, ACHIEVEMENTS,
   levelKey, parTime, starsFor, summarize,
@@ -19,8 +19,8 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.6.0';
-const BUILD_INFO = '18 模型 · 88 关 · 6 配色 · 5 主题';
+const APP_VERSION = '1.7.0';
+const BUILD_INFO = '20 模型 · 96 关 · 7 配色 · 6 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -95,6 +95,7 @@ const SCENE_THEMES = {
   snow: { name: '雪夜', emoji: '❄️', bg: 0x101b2e, fog: 0x101b2e, floor: 0x27405f, slope: 0x33507a, hemiSky: 0xd8e8ff, hemiGround: 0x4a5568, dir: 0xffffff, dir2: 0x99c4ff, rim: 0x88aaff, starOpacity: 0.45 },
   sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
   dawn: { name: '樱花', emoji: '🌸', bg: 0x2b1e2c, fog: 0x2b1e2c, floor: 0x3d2a42, slope: 0x50355a, hemiSky: 0xffd8ea, hemiGround: 0x5c4050, dir: 0xffe8f2, dir2: 0xff9ec9, rim: 0xff7ab0, starOpacity: 0.5 },
+  dusk: { name: '黄昏', emoji: '🌅', bg: 0x2a1a1e, fog: 0x2a1a1e, floor: 0x3a2a2a, slope: 0x4a3230, hemiSky: 0xffd0a0, hemiGround: 0x5a3a30, dir: 0xffd8b0, dir2: 0xff8a60, rim: 0xff6a80, starOpacity: 0.3 },
   sea: { name: '深海', emoji: '🌊', bg: 0x062029, fog: 0x062029, floor: 0x0c3a44, slope: 0x155a66, hemiSky: 0xbff4ff, hemiGround: 0x0e2c34, dir: 0xffffff, dir2: 0x66e0ff, rim: 0x2fd6b0, starOpacity: 0.25 },
 };
 
@@ -926,7 +927,7 @@ function winGame() {
   const achEl = $('win-achieve');
   const newNames = res.newly.map((id) => {
     const a = ACHIEVEMENTS.find((x) => x.id === id);
-    return a ? a.name : id;
+    return a ? achName(id, a.name) : id;
   });
   if (newNames.length) showVrToast(`🏆 解锁成就：${newNames.join('、')}`);
   if (achEl) {
@@ -956,12 +957,13 @@ let ghostNameCache = '';
 function ghostName() {
   if (ghostNameCache) return ghostNameCache;
   const def = MODELS[state.modelKey];
-  return def ? `${def.emoji} ${def.name}` : '模型';
+  return def ? `${def.emoji} ${modelName(state.modelKey, def.name)}` : '模型';
 }
 
 // ---------------- 游戏流程 ----------------
 
 function startGame(modelKey, n, opts = {}) {
+  state.dailyMode = opts.daily || null;
   try { if (music.isEnabled()) music.start(); } catch (e) { /* 音频不可用 */ }
   if (!MODELS[modelKey]) {
     showFatal('关卡加载失败', `未知模型「${modelKey}」。请返回菜单重新选择。`);
@@ -1015,6 +1017,22 @@ function dailyChallenge(dateStr = dayKey()) {
   return { date: dateStr, modelKey, name: MODELS[modelKey].name, emoji: MODELS[modelKey].emoji, n };
 }
 
+const DAILY_KEY = 'wanxiang.daily';
+function readDaily() { try { return JSON.parse(localStorage.getItem(DAILY_KEY) || '{}'); } catch (e) { return {}; } }
+function recordDaily(date, modelKey, n, secs) {
+  const d = readDaily();
+  const rec = d[date] && d[date].modelKey === modelKey && d[date].n === n ? d[date] : { modelKey, n, times: [] };
+  rec.times = [...new Set([...(rec.times || []), secs])].sort((a, b) => a - b).slice(0, 3);
+  d[date] = rec;
+  try { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); } catch (e) { /* ignore */ }
+}
+function dailyBoardText() {
+  const date = dayKey();
+  const d = readDaily()[date];
+  if (!d) return '今日暂无记录';
+  return d.times.map((s, i) => (i + 1) + '. ' + fmtDur(s)).join('　');
+}
+
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
@@ -1036,7 +1054,7 @@ function showDifficulty() {
   dcBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#ffd24d;background:rgba(255,210,77,.10)';
   dcBtn.innerHTML = `<b style="font-size:15px">${t('menu.daily', { name: modelName(dc.modelKey, dc.name), n: dc.n })}</b>`
     + `<span style="font-size:12px;color:#8b96b8">${t('menu.dailySub', { date: dc.date })}</span>`;
-  dcBtn.onclick = () => startGameUI(dc.modelKey, dc.n);
+  dcBtn.onclick = () => { state.dailyMode = dc; startGameUI(dc.modelKey, dc.n); };
   card.appendChild(dcBtn);
 
   // 排行榜入口：当前模型各难度的本地前三成绩
@@ -1106,7 +1124,7 @@ function showDifficulty() {
       b.style.opacity = supported ? '1' : '0.45';
       b.style.cursor = supported ? 'pointer' : 'not-allowed';
       b.onclick = supported ? () => startGameUI(state.modelKey, n) : null;
-      b.innerHTML = `<b style="font-size:18px">${n} 块</b><span>${DIFFICULTY_NAME[n]}</span>`
+      b.innerHTML = `<b style="font-size:18px">${t('menu.pieces', { n })}</b><span>${diffName(n, DIFFICULTY_NAME[n])}</span>`
         + `<small style="display:block;color:#ffd24d;font-size:12px;margin-top:3px">⭐ ${done}/${supportCount} 关</small>`
         + `<small style="display:block;color:#9fb0d8;font-size:11px;margin-top:2px">${recTxt}</small>`;
     }
@@ -1133,7 +1151,7 @@ function showDifficulty() {
     const b = document.createElement('button');
     b.className = 'diff-btn';
     b.style.cssText = 'min-width:86px;padding:8px 12px';
-    b.innerHTML = `<b style="font-size:16px">${pdef.emoji}</b><span>${pdef.name}</span>`;
+    b.innerHTML = `<b style="font-size:16px">${pdef.emoji}</b><span>${paletteName(pkey, pdef.name)}</span>`;
     if (pkey === state.palette) b.style.borderColor = '#6cd0ff';
     b.onclick = () => {
       state.palette = pkey;
@@ -1155,7 +1173,7 @@ function showDifficulty() {
     const b = document.createElement('button');
     b.className = 'diff-btn';
     b.style.cssText = 'min-width:80px;padding:8px 10px';
-    b.innerHTML = `<b style="font-size:16px">${tdef.emoji}</b><span>${tdef.name}</span>`;
+    b.innerHTML = `<b style="font-size:16px">${tdef.emoji}</b><span>${themeName(tkey, tdef.name)}</span>`;
     if (tkey === state.theme) b.style.borderColor = '#6cd0ff';
     b.onclick = () => {
       applyTheme(tkey);
@@ -1425,7 +1443,7 @@ function refreshVrProgress() {
   addText(`关卡 ${sum.done}/${sum.total} · 星星 ${sum.stars}/${sum.maxStars}`, 0.43, { color: '#9fd8ff' });
   addText(`成就 ${unlocked.length}/${ACHIEVEMENTS.length}`, 0.34, { color: '#ffd24d' });
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
-  addText(`${def.emoji} ${def.name}`, 0.23, { size: 48 });
+  addText(`${def.emoji} ${modelName(state.modelKey, def.name)}`, 0.23, { size: 48 });
   DIFFICULTY.forEach((n, i) => {
     const supported = supportedCounts(state.modelKey).includes(n);
     const rec = prog[levelKey(state.modelKey, n)];
@@ -1440,7 +1458,7 @@ function refreshVrProgress() {
   ACHIEVEMENTS.forEach((a, i) => {
     const col = i % 2, row = Math.floor(i / 2);
     const got = unlocked.includes(a.id);
-    addText(`${got ? '🏆' : '🔒'} ${a.name}`, -0.27 - row * 0.082, {
+    addText(`${got ? '🏆' : '🔒'} ${achName(a.id, a.name)}`, -0.27 - row * 0.082, {
       size: 28, color: got ? '#ffd24d' : '#6b7699', x: col ? 0.24 : -0.24, w: 0.40, h: 0.048,
     });
   });
@@ -1492,6 +1510,11 @@ function positionMenuInFront(snap = false) {
   dir.normalize();
   const dist = (state.tuning && state.tuning.menuDist) || 0.70;
   const target = cp.clone().addScaledVector(dir, dist);
+  const side = (state.settings && state.settings.menuSide) || 'center';
+  if (side !== 'center') {
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cq);
+    target.addScaledVector(right, side === 'left' ? -0.30 : 0.30);
+  }
   if (snap) {
     vrMenu.group.position.copy(target);
   } else {
@@ -1747,6 +1770,8 @@ const SETTING_ROWS = [
   { scope: 'settings', key: 'musicVol', label: '音乐音量', opts: [['关', 0], ['低', 0.35], ['中', 0.6], ['高', 0.9]] },
   { scope: 'settings', key: 'sfxVol', label: '音效音量', labelKey: 'settings.sfxVol', opts: [['关', 0], ['低', 0.5], ['高', 1]] },
   { scope: 'settings', key: 'lang', label: '语言', labelKey: 'settings.lang', opts: [['中文', 'zh'], ['English', 'en']] },
+  { scope: 'settings', key: 'uiScale', label: '界面缩放', labelKey: 'settings.uiScale', opts: [['标准', 1], ['大', 1.15], ['特大', 1.3]] },
+  { scope: 'settings', key: 'menuSide', label: '菜单位置', labelKey: 'settings.menuSide', opts: [['左', 'left'], ['中', 'center'], ['右', 'right']] },
 ];
 
 function buildSettingsUI() {
@@ -1777,7 +1802,7 @@ function buildSettingsUI() {
       const b = document.createElement('button');
       b.className = 'diff-btn';
       b.style.cssText = 'padding:6px 10px;min-width:52px';
-      b.textContent = txt;
+      b.textContent = optLabel(txt);
       const refresh = () => { b.style.borderColor = getVal() === val ? '#6cd0ff' : ''; };
       refresh();
       b.onclick = () => { setVal(val); btns.forEach((x) => x.refresh()); sfx.ui(); };
@@ -1835,6 +1860,8 @@ function applySettings() {
   if (targetRig) targetRig.position.y = BASE_TARGET_Y + (s.tableY || 0);
   applyQualityLevel(quality.level);
   if (starfield) starfield.visible = s.stars !== false && quality.level >= 1;
+  document.documentElement.style.setProperty('--ui-scale', String(s.uiScale || 1));
+  if (document.body) document.body.classList.toggle('ui-scale', (s.uiScale || 1) !== 1);
   try { music.setVolume(s.musicVol); } catch (e) { /* ignore */ }
   try { sfx.setVolume(s.sfxVol); } catch (e) { /* ignore */ }
 }
@@ -1961,16 +1988,17 @@ function fmtTime(t) {
 function buildBoardUI(mode = boardMode) {
   const body = $('board-body');
   if (!body) return;
-  boardMode = mode === 'global' ? 'global' : 'model';
+  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : 'model');
   const prog = readProgress();
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
   if ($('board-title')) {
     $('board-title').textContent = boardMode === 'global'
       ? '🏆 全模型总榜 · 各难度最快'
-      : `🏆 ${def.emoji} ${def.name} · 本地排行`;
+      : `🏆 ${def.emoji} ${modelName(state.modelKey, def.name)} · 本地排行`;
   }
   if ($('board-tab-model')) $('board-tab-model').style.borderColor = boardMode === 'model' ? '#6cd0ff' : '';
   if ($('board-tab-global')) $('board-tab-global').style.borderColor = boardMode === 'global' ? '#6cd0ff' : '';
+  if ($('board-tab-daily')) $('board-tab-daily').style.borderColor = boardMode === 'daily' ? '#6cd0ff' : '';
   body.innerHTML = '';
   const sum = summarize(prog, totalLevels());
   const head = document.createElement('div');
@@ -1989,6 +2017,17 @@ function buildBoardUI(mode = boardMode) {
     body.appendChild(row);
   };
 
+  if (boardMode === 'daily') {
+    const date = dayKey();
+    const d = readDaily()[date];
+    if ($('board-title')) $('board-title').textContent = '📅 今日挑战 · 本地记录';
+    if (d) {
+      mkRow(modelName(d.modelKey, (MODELS[d.modelKey] || {}).name || d.modelKey) + ' · ' + t('menu.pieces', { n: d.n }), '今日最佳', '前三：' + dailyBoardText());
+    } else {
+      mkRow('今日挑战', '暂无记录', '完成今日挑战后可在这里查看本地前三');
+    }
+    return;
+  }
   if (boardMode === 'global') {
     // 全模型总榜：每个难度取所有模型里的最快 3 条
     for (const n of DIFFICULTY) {
@@ -2002,7 +2041,7 @@ function buildBoardUI(mode = boardMode) {
       const line = top.length
         ? top.map((it, i) => `${i + 1}. ${MODELS[it.mk] ? MODELS[it.mk].emoji : ''}${MODELS[it.mk] ? MODELS[it.mk].name : it.mk} ${fmtTime(it.t)}`).join('　')
         : '暂无记录';
-      mkRow(`${n} 块 · ${DIFFICULTY_NAME[n] || ''}`, `${items.length} 个模型有记录`, `前三：${line}`);
+      mkRow(`${n} 块 · ${diffName(n, DIFFICULTY_NAME[n]) || ''}`, `${items.length} 个模型有记录`, `前三：${line}`);
     }
   } else {
     for (const n of supportedCounts(state.modelKey)) {
@@ -2010,7 +2049,7 @@ function buildBoardUI(mode = boardMode) {
       const top = (rec && Array.isArray(rec.top)) ? rec.top : [];
       const topTxt = top.length ? top.map((t, i) => `${i + 1}. ${fmtTime(t)}`).join('　') : '暂无记录';
       const starTxt = rec && rec.stars ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}` : '未挑战';
-      mkRow(`${n} 块 · ${DIFFICULTY_NAME[n] || ''}`, starTxt, `前三：${topTxt}`);
+      mkRow(`${n} 块 · ${diffName(n, DIFFICULTY_NAME[n]) || ''}`, starTxt, `前三：${topTxt}`);
     }
     if (!supportedCounts(state.modelKey).length) body.textContent = '该模型暂无可玩难度';
   }
@@ -2038,7 +2077,7 @@ function buildGalleryUI() {
     card.className = 'gallery-card';
     card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:10px;text-align:center;cursor:pointer';
     card.innerHTML = `<div style="font-size:34px">${def.emoji}</div>`
-      + `<b style="font-size:14px">${def.name}</b>`
+      + `<b style="font-size:14px">${modelName(key, def.name)}</b>`
       + `<div style="color:#ffd24d;font-size:12px;margin-top:4px">★ ${stars}/${maxStars}</div>`
       + `<small style="color:#8b96b8;font-size:11px">已通关 ${done}/${counts.length}</small>`;
     card.onclick = () => { closeGallery(); startGameUI(key, counts.includes(2) ? 2 : counts[0]); };
@@ -2082,7 +2121,7 @@ function generatePosterDataURL() {
   ctx.fillText(def.emoji, 360, 340);
   ctx.font = 'bold 44px "Microsoft YaHei", sans-serif';
   ctx.fillStyle = '#dfe7ff';
-  ctx.fillText(def.name, 360, 440);
+  ctx.fillText(modelName(state.modelKey, def.name), 360, 440);
   const stars = r.noRecord ? 0 : (r.stars || 0);
   ctx.font = '48px "Segoe UI Symbol", sans-serif';
   ctx.fillStyle = '#ffd24d';
@@ -2119,10 +2158,19 @@ function openDuel() {
   const counts = supportedCounts(state.modelKey);
   if (!counts.length) return;
   const n = counts.includes(state.pieceCount) ? state.pieceCount : counts[0];
-  duelState = { modelKey: state.modelKey, n, turn: 1, results: [] };
-  $('duel-body').textContent = `模型：${MODELS[state.modelKey].name} · ${n} 块\n两人轮流拼同一关，比较用时与星级（不写入正式成绩）。`;
+  duelState = { modelKey: state.modelKey, n, turn: 1, results: [], rounds: 1, wins: [0, 0], roundsPlayed: 0 };
+  $('duel-body').textContent = `模型：${modelName(state.modelKey, MODELS[state.modelKey].name)} · ${t('menu.pieces', { n })}\n两人轮流拼同一关，比较用时与星级（不写入正式成绩）。`;
   $('duel-ok').textContent = '开始（玩家1）';
   $('duel').classList.remove('hidden');
+}
+
+function setDuelRounds(rounds) {
+  if (!duelState) return;
+  duelState.rounds = rounds === 3 ? 3 : 1;
+  $('duel-body').textContent = '模型：' + modelName(duelState.modelKey, MODELS[duelState.modelKey].name) + ' · ' + t('menu.pieces', { n: duelState.n })
+    + (duelState.rounds === 3 ? '\n三局两胜，轮流拼同一关。' : '\n两人各拼一局，比较用时与星级。');
+  if ($('duel-mode-1')) $('duel-mode-1').style.borderColor = duelState.rounds === 1 ? '#6cd0ff' : '';
+  if ($('duel-mode-3')) $('duel-mode-3').style.borderColor = duelState.rounds === 3 ? '#6cd0ff' : '';
 }
 
 function closeDuel() {
@@ -2182,18 +2230,20 @@ function closeTutorial() {
   if (el) el.classList.add('hidden');
   const p = pendingStart;
   pendingStart = null;
-  if (p) startGame(p.modelKey, p.n, { random: !!p.random });
+  if (p) startGame(p.modelKey, p.n, { random: !!p.random, daily: p.daily });
 }
 function startGameUI(modelKey, n) {
   // 2D 覆盖层在 VR 里看不见：已进入沉浸式说明是头显内操作，直接开局，避免卡住
   const inVr = !!(renderer && renderer.xr && renderer.xr.isPresenting);
+  const daily = state.dailyMode;
+  state.dailyMode = null;
   if (!inVr && !tutorialSeen()) {
-    pendingStart = { modelKey, n, random: state.randomMode };
+    pendingStart = { modelKey, n, random: state.randomMode, daily };
     openTutorial();
     sfx.ui();
     return;
   }
-  startGame(modelKey, n, { random: state.randomMode });
+  startGame(modelKey, n, { random: state.randomMode, daily });
 }
 
 // ---------------- 启动 ----------------
@@ -2294,6 +2344,12 @@ if ($('data-close')) {
   });
   $('data-import').addEventListener('click', (e) => { e.stopPropagation(); applyImportText($('data-text').value); });
 }
+if ($('duel-mode-1')) {
+  $('duel-mode-1').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); setDuelRounds(1); });
+}
+if ($('duel-mode-3')) {
+  $('duel-mode-3').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); setDuelRounds(3); });
+}
 if ($('duel-ok')) {
   $('duel-ok').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); duelAdvance(); });
 }
@@ -2318,6 +2374,9 @@ if ($('board-tab-model')) {
 }
 if ($('board-tab-global')) {
   $('board-tab-global').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('global'); });
+}
+if ($('board-tab-daily')) {
+  $('board-tab-daily').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('daily'); });
 }
 if ($('tutorial-ok')) {
   $('tutorial-ok').addEventListener('click', (e) => {
@@ -2384,8 +2443,9 @@ window.__wanxiang = {
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery,
+  getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,
-  openDuel, closeDuel, duelAdvance,
+  openDuel, closeDuel, duelAdvance, setDuelRounds,
   getDuelInfo: () => (duelState ? { ...duelState, results: duelState.results.map((r) => ({ ...r })) } : null),
   getGalleryText: () => ($('gallery-body') ? $('gallery-body').textContent : ''),
   getBoardText: () => ($('board-body') ? $('board-body').textContent : ''),

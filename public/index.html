@@ -85,6 +85,7 @@
     <div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px">
       <button id="board-tab-model" class="diff-btn" style="padding:6px 14px">本模型</button>
       <button id="board-tab-global" class="diff-btn" style="padding:6px 14px">全模型总榜</button>
+      <button id="board-tab-daily" class="diff-btn" style="padding:6px 14px">今日挑战</button>
     </div>
     <div id="board-body"></div>
     <div style="text-align:center;margin-top:14px"><button id="board-close" class="win-btn">关闭</button></div>
@@ -104,6 +105,10 @@
   <div class="diff-card" style="max-width:560px;text-align:left">
     <h2 style="text-align:center" data-i18n="duel.title">👥 双人轮流</h2>
     <p id="duel-body" style="color:#cfd9f5;font-size:14px;line-height:1.9;white-space:pre-line"></p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+      <button id="duel-mode-1" class="win-btn">1 局</button>
+      <button id="duel-mode-3" class="win-btn">3 局 2 胜</button>
+    </div>
     <div style="text-align:center;margin-top:14px">
       <button id="duel-ok" class="win-btn">开始（玩家1）</button>
       <button id="duel-close" class="win-btn" style="background:rgba(108,208,255,.15)">关闭</button>

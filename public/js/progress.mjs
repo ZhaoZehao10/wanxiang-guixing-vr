@@ -102,6 +102,14 @@ export const ACHIEVEMENTS = [
     test: (p) => MODEL_KEYS.filter((mk) => (p[levelKey(mk, 8)] || {}).stars === 3).length >= 3,
   },
   {
+    id: 'star_100', name: '百星收藏家', desc: '累计获得 100 颗星',
+    test: (p) => Object.values(p).reduce((s, r) => s + (r.stars || 0), 0) >= 100,
+  },
+  {
+    id: 'all_perfect_6', name: '大师全三星', desc: '全部 12 个模型 6 块难度均拿到三星',
+    test: (p) => MODEL_KEYS.every((mk) => (p[levelKey(mk, 6)] || {}).stars === 3),
+  },
+  {
     id: 'perfectionist', name: '完美主义', desc: '同一难度集齐 12 个三星',
     test: (p) => DIFFICULTY.some((n) => MODEL_KEYS.every((mk) => (p[levelKey(mk, n)] || {}).stars === 3)),
   },

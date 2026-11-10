@@ -231,7 +231,7 @@ check('随机模式：每局切割不同且片数正确',
   extras.random.mode === true && extras.random.pieces === 4 && extras.random.different === true,
   JSON.stringify(extras.random));
 check('模型图鉴：18 张卡片与收集进度',
-  extras.gallery.visible === true && extras.gallery.cards === 18 && extras.gallery.text.includes('★'),
+  extras.gallery.visible === true && extras.gallery.cards === 20 && extras.gallery.text.includes('★'),
   JSON.stringify({ visible: extras.gallery.visible, cards: extras.gallery.cards }));
 check('完成海报：生成 PNG DataURL', extras.poster.data === true && extras.poster.len > 5000, JSON.stringify(extras.poster));
 const i18nTest = await evalJs(`(() => {
@@ -249,6 +249,31 @@ check('中英双语：切换语言后标题/菜单/每日挑战为英文',
   i18nTest.introTitle === 'Wanxiang Guixing' && i18nTest.menuTitle.includes('Select Model')
   && i18nTest.firstBtn.includes('Daily Challenge') && i18nTest.introTitleZh === '万象归形',
   JSON.stringify(i18nTest));
+
+const moreFeatures = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.recordDaily(p.dayKey(), 'rocket', 2, 70);
+  p.openBoard();
+  document.getElementById('board-tab-daily').click();
+  const dailyRows = document.querySelectorAll('#board-body .board-level').length;
+  const dailyText = p.getBoardText();
+  p.closeBoard();
+  p.openDuel();
+  p.setDuelRounds(3);
+  const duelRounds = p.getDuelInfo().rounds;
+  const modeBtn = document.getElementById('duel-mode-3').textContent;
+  p.closeDuel();
+  p.setSettingsValue('uiScale', 1.3);
+  p.setSettingsValue('menuSide', 'left');
+  const uiScale = getComputedStyle(document.documentElement).getPropertyValue('--ui-scale').trim();
+  const s = p.getSettings();
+  p.setSettingsValue('uiScale', 1);
+  p.setSettingsValue('menuSide', 'center');
+  return { dailyRows, dailyText, duelRounds, modeBtn, uiScale, s };
+})()`);
+check('每日挑战本地榜：记录后显示前三', moreFeatures.dailyRows === 1 && moreFeatures.dailyText.includes('1. 1分10秒'), JSON.stringify({ rows: moreFeatures.dailyRows, text: moreFeatures.dailyText }));
+check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
+check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 
 check('双人轮流：两人结果与胜负判定',
   extras.duel.start === true && extras.duel.results1 === 1 && extras.duel.results2 === 2 && extras.duel.hasWinner === true,
@@ -515,7 +540,7 @@ const paletteTest = await evalJs(`(() => {
 })()`);
 check('配色皮肤：颜色随皮肤改变、片数正确、菜单有 6 种配色',
   paletteTest.neonSum !== paletteTest.classicSum && paletteTest.palette === 'classic'
-  && paletteTest.pieces === 2 && paletteTest.palBtns === 6, JSON.stringify(paletteTest));
+  && paletteTest.pieces === 2 && paletteTest.palBtns === 7, JSON.stringify(paletteTest));
 
 // 3.75) 场景主题：切换背景/雾颜色并可恢复
 const themeTest = await evalJs(`(() => {
@@ -605,8 +630,8 @@ const smoke = await evalJs(`(() => {
     practice: p.getPractice(), palette: p.getPalette(),
   };
 })()`);
-check('全菜单冒烟：18 模型/6 配色/开关按钮点击无异常',
-  smoke.fatal === false && smoke.models === 18 && smoke.palettes === 6
+check('全菜单冒烟：20 模型/6 配色/开关按钮点击无异常',
+  smoke.fatal === false && smoke.models === 20 && smoke.palettes === 7
   && smoke.practice === false && smoke.palette === 'classic', JSON.stringify(smoke));
 
 // 3.10) 练习模式：通关不写入进度
@@ -735,7 +760,7 @@ const ach = await evalJs(`(() => {
   const menuText = document.getElementById('difficulty').innerText;
   const diffBtns = [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent);
   const hasRecord = diffBtns.some((t) => t.includes('★') || t.includes('☆')) || diffBtns.some((t) => t.includes('未挑战'));
-  const hasAch = menuText.includes('成就 ') && menuText.includes('/11');
+  const hasAch = menuText.includes('成就 ') && menuText.includes('/13');
   return { list, winText, winVisible, hasAch, hasRecord };
 })()`);
 check('首通解锁 first_win 且胜利面板提示', ach.list.includes('first_win') && ach.winVisible && ach.winText.includes('初次拼合'), JSON.stringify(ach));
