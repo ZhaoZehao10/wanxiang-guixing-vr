@@ -272,6 +272,21 @@ const moreFeatures = await evalJs(`(() => {
   return { dailyRows, dailyText, duelRounds, modeBtn, uiScale, s };
 })()`);
 check('每日挑战本地榜：记录后显示前三', moreFeatures.dailyRows === 1 && moreFeatures.dailyText.includes('1. 1分10秒'), JSON.stringify({ rows: moreFeatures.dailyRows, text: moreFeatures.dailyText }));
+const statsTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  p.recordDaily(p.dayKey(y), 'rocket', 2, 80);
+  p.openStats();
+  const visible = !document.getElementById('stats').classList.contains('hidden');
+  const text = document.getElementById('stats-body').textContent;
+  const ds = p.getDailyStats();
+  p.closeStats();
+  return { visible, text, ds };
+})()`);
+check('统计面板：进度与每日挑战连续天数',
+  statsTest.visible === true && statsTest.text.includes('总进度') && statsTest.ds.days >= 2 && statsTest.ds.streak >= 2,
+  JSON.stringify({ visible: statsTest.visible, ds: statsTest.ds }));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 
