@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const BUILD_INFO = '20 模型 · 96 关 · 7 配色 · 6 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1033,6 +1033,45 @@ function dailyBoardText() {
   return d.times.map((s, i) => (i + 1) + '. ' + fmtDur(s)).join('　');
 }
 
+function dailyStats() {
+  const d = readDaily();
+  const dates = Object.keys(d).sort();
+  const has = (ds) => !!d[ds];
+  let streak = 0;
+  const day = new Date();
+  if (!has(dayKey(day))) day.setDate(day.getDate() - 1);
+  while (has(dayKey(day))) { streak++; day.setDate(day.getDate() - 1); }
+  return { days: dates.length, streak, totalPlays: dates.reduce((sum, k) => sum + ((d[k].times || []).length), 0) };
+}
+
+function buildStatsUI() {
+  const body = $('stats-body');
+  if (!body) return;
+  const sum = summarize(readProgress(), totalLevels());
+  const ds = dailyStats();
+  const unlocked = readAchievements().length;
+  const prog = readProgress();
+  const modelsDone = MODEL_KEYS.filter((mk) => supportedCounts(mk).some((n) => ((prog[levelKey(mk, n)] || {}).stars || 0) > 0)).length;
+  const cards = [
+    ['📈 ' + (getLang() === 'en' ? 'Progress' : '总进度'), sum.done + ' / ' + sum.total],
+    ['⭐ ' + (getLang() === 'en' ? 'Stars' : '星星'), sum.stars + ' / ' + sum.maxStars],
+    ['⏱️ ' + (getLang() === 'en' ? 'Best total time' : '最佳总时长'), sum.bestTotal ? Math.floor(sum.bestTotal / 60) + '分' + (sum.bestTotal % 60) + '秒' : '—'],
+    ['🏆 ' + (getLang() === 'en' ? 'Achievements' : '成就'), unlocked + ' / ' + ACHIEVEMENTS.length],
+    ['📅 ' + (getLang() === 'en' ? 'Daily challenge' : '每日挑战'), (getLang() === 'en' ? 'Streak ' + ds.streak + ' days · ' + ds.days + ' total' : '连续 ' + ds.streak + ' 天 · 累计 ' + ds.days + ' 天')],
+    ['🧩 ' + (getLang() === 'en' ? 'Models cleared' : '模型收集'), modelsDone + ' / ' + MODEL_KEYS.length],
+  ];
+  body.innerHTML = '';
+  for (const [label, value] of cards) {
+    const div = document.createElement('div');
+    div.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;text-align:center';
+    div.innerHTML = '<div style="color:#8b96b8;font-size:12px">' + label + '</div><div style="font-size:22px;font-weight:bold;margin-top:4px">' + value + '</div>';
+    body.appendChild(div);
+  }
+}
+
+function openStats() { buildStatsUI(); $('stats').classList.remove('hidden'); }
+function closeStats() { $('stats').classList.add('hidden'); }
+
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
@@ -1080,6 +1119,14 @@ function showDifficulty() {
   duelBtn.innerHTML = `<b style="font-size:14px">${t('menu.duel')}</b>`;
   duelBtn.onclick = () => { sfx.ui(); openDuel(); };
   card.appendChild(duelBtn);
+
+  // 统计入口
+  const statsBtn = document.createElement('button');
+  statsBtn.className = 'diff-btn';
+  statsBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  statsBtn.innerHTML = '<b style="font-size:14px">📊 统计 · 进度与每日挑战</b>';
+  statsBtn.onclick = () => { sfx.ui(); openStats(); };
+  card.appendChild(statsBtn);
 
   const row1 = document.createElement('div');
   row1.className = 'diff-row';
@@ -2344,6 +2391,9 @@ if ($('data-close')) {
   });
   $('data-import').addEventListener('click', (e) => { e.stopPropagation(); applyImportText($('data-text').value); });
 }
+if ($('stats-close')) {
+  $('stats-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeStats(); });
+}
 if ($('duel-mode-1')) {
   $('duel-mode-1').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); setDuelRounds(1); });
 }
@@ -2442,7 +2492,8 @@ window.__wanxiang = {
   openDataPanel, closeDataPanel,
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
-  openBoard, closeBoard, openGallery, closeGallery,
+  openBoard, closeBoard, openGallery, closeGallery, openStats, closeStats,
+  getDailyStats: () => dailyStats(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,
   openDuel, closeDuel, duelAdvance, setDuelRounds,

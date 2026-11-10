@@ -189,3 +189,7 @@ html, body {
 
 /* 界面缩放（无障碍）：只缩放 2D 覆盖层，不影响 WebGL 画布 */
 body.ui-scale #intro, body.ui-scale #difficulty, body.ui-scale #hud, body.ui-scale #win, body.ui-scale #settings, body.ui-scale #data-panel, body.ui-scale #board, body.ui-scale #gallery, body.ui-scale #duel, body.ui-scale #tutorial, body.ui-scale #selfcheck, body.ui-scale #fatal { zoom: var(--ui-scale, 1); }
+
+/* 统计面板 */
+#stats { display: flex; align-items: center; justify-content: center; }
+#stats.hidden { display: none; }
