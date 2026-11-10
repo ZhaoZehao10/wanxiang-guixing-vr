@@ -31,7 +31,7 @@ const SUITES = [
   { name: '离线单文件端到端', file: 'test/offline-e2e.mjs' },
   { name: 'APK 运行链路端到端', file: 'test/apk-serve-e2e.mjs' },
   { name: '浏览器性能', file: 'test/perf-browser.mjs', slow: true, server: true },
-  { name: '稳定性浸泡', file: 'test/soak.mjs', slow: true, soak: true, server: true },
+  { name: '稳定性浸泡', file: 'test/soak.mjs', slow: true, soak: true, server: true, timeoutMs: 45 * 60 * 1000 },
 ].filter((s) => !(FAST && s.slow) && !(s.soak && !process.argv.includes('--soak')));
 
 function serverUp() {
@@ -79,7 +79,7 @@ for (const suite of SUITES) {
   const start = Date.now();
   process.stdout.write(`\n=== ${suite.name} (${suite.file}) ===\n`);
   const r = spawnSync(NODE, [path.join(ROOT, suite.file)], {
-    cwd: ROOT, encoding: 'utf8', timeout: 600000,
+    cwd: ROOT, encoding: 'utf8', timeout: suite.timeoutMs || 600000,
   });
   const out = ((r.stdout || '') + (r.stderr || '')).trim();
   // 只打印最后几行，避免刷屏；失败时打印更多
