@@ -95,7 +95,7 @@ export function modelName(key, fallback) {
 }
 export const PALETTE_EN = { classic: 'Classic', neon: 'Neon', warm: 'Warm Winter', mono: 'Cool Silver', festive: 'Festive', ocean: 'Ocean', contrast: 'High Contrast' };
 export function paletteName(k, f) { return lang === 'en' ? (PALETTE_EN[k] || f) : f; }
-export const THEME_EN = { night: 'Night Sky', snow: 'Snow Night', sunset: 'Sunset', dawn: 'Sakura', sea: 'Deep Sea', dusk: 'Dusk' };
+export const THEME_EN = { night: 'Night Sky', snow: 'Snow Night', sunset: 'Sunset', dawn: 'Sakura', sea: 'Deep Sea', dusk: 'Dusk', nebula: 'Nebula' };
 export function themeName(key, fallback) { return lang === 'en' ? (THEME_EN[key] || fallback) : fallback; }
 export function optLabel(z) {
   if (lang !== 'en') return z;
