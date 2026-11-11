@@ -19,8 +19,8 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.8.0';
-const BUILD_INFO = '20 模型 · 96 关 · 7 配色 · 6 主题';
+const APP_VERSION = '1.9.0';
+const BUILD_INFO = '20 模型 · 96 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -96,6 +96,7 @@ const SCENE_THEMES = {
   sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
   dawn: { name: '樱花', emoji: '🌸', bg: 0x2b1e2c, fog: 0x2b1e2c, floor: 0x3d2a42, slope: 0x50355a, hemiSky: 0xffd8ea, hemiGround: 0x5c4050, dir: 0xffe8f2, dir2: 0xff9ec9, rim: 0xff7ab0, starOpacity: 0.5 },
   dusk: { name: '黄昏', emoji: '🌅', bg: 0x2a1a1e, fog: 0x2a1a1e, floor: 0x3a2a2a, slope: 0x4a3230, hemiSky: 0xffd0a0, hemiGround: 0x5a3a30, dir: 0xffd8b0, dir2: 0xff8a60, rim: 0xff6a80, starOpacity: 0.3 },
+  nebula: { name: '星云', emoji: '🌌', bg: 0x120a24, fog: 0x120a24, floor: 0x1e1440, slope: 0x2a1a55, hemiSky: 0xd0c0ff, hemiGround: 0x2a1040, dir: 0xffffff, dir2: 0xaa88ff, rim: 0xff6ad0, starOpacity: 0.85 },
   sea: { name: '深海', emoji: '🌊', bg: 0x062029, fog: 0x062029, floor: 0x0c3a44, slope: 0x155a66, hemiSky: 0xbff4ff, hemiGround: 0x0e2c34, dir: 0xffffff, dir2: 0x66e0ff, rim: 0x2fd6b0, starOpacity: 0.25 },
 };
 
@@ -1041,7 +1042,15 @@ function dailyStats() {
   const day = new Date();
   if (!has(dayKey(day))) day.setDate(day.getDate() - 1);
   while (has(dayKey(day))) { streak++; day.setDate(day.getDate() - 1); }
-  return { days: dates.length, streak, totalPlays: dates.reduce((sum, k) => sum + ((d[k].times || []).length), 0) };
+  const now = new Date();
+  const dow = (now.getDay() + 6) % 7;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - dow);
+  weekStart.setHours(0, 0, 0, 0);
+  const monthKey = dayKey(now).slice(0, 7);
+  const weekDone = dates.filter((ds) => new Date(ds + 'T00:00:00') >= weekStart).length;
+  const monthDone = dates.filter((ds) => ds.slice(0, 7) === monthKey).length;
+  return { days: dates.length, streak, weekDone, monthDone, totalPlays: dates.reduce((sum, k) => sum + ((d[k].times || []).length), 0) };
 }
 
 function dailyHistory(days = 14) {
@@ -1071,7 +1080,7 @@ function buildStatsUI() {
     ['⭐ ' + (getLang() === 'en' ? 'Stars' : '星星'), sum.stars + ' / ' + sum.maxStars],
     ['⏱️ ' + (getLang() === 'en' ? 'Best total time' : '最佳总时长'), sum.bestTotal ? Math.floor(sum.bestTotal / 60) + '分' + (sum.bestTotal % 60) + '秒' : '—'],
     ['🏆 ' + (getLang() === 'en' ? 'Achievements' : '成就'), unlocked + ' / ' + ACHIEVEMENTS.length],
-    ['📅 ' + (getLang() === 'en' ? 'Daily challenge' : '每日挑战'), (getLang() === 'en' ? 'Streak ' + ds.streak + ' days · ' + ds.days + ' total' : '连续 ' + ds.streak + ' 天 · 累计 ' + ds.days + ' 天')],
+    ['📅 ' + (getLang() === 'en' ? 'Daily challenge' : '每日挑战'), (getLang() === 'en' ? 'Streak ' + ds.streak + ' · week ' + ds.weekDone + '/7 · month ' + ds.monthDone : '连续 ' + ds.streak + ' 天 · 本周 ' + ds.weekDone + '/7 · 本月 ' + ds.monthDone)],
     ['🧩 ' + (getLang() === 'en' ? 'Models cleared' : '模型收集'), modelsDone + ' / ' + MODEL_KEYS.length],
   ];
   body.innerHTML = '';
@@ -2100,7 +2109,7 @@ function buildBoardUI(mode = boardMode) {
     const d = readDaily()[date];
     if ($('board-title')) $('board-title').textContent = '📅 今日挑战 · 本地记录';
     if (d) {
-      mkRow(modelName(d.modelKey, (MODELS[d.modelKey] || {}).name || d.modelKey) + ' · ' + t('menu.pieces', { n: d.n }), '今日最佳', '前三：' + dailyBoardText() + ' · ' + (getLang() === 'en' ? '7-day ' : '近7天 ') + dailyHistory(7).filter((x) => x.done).length + '/7');
+      mkRow(modelName(d.modelKey, (MODELS[d.modelKey] || {}).name || d.modelKey) + ' · ' + t('menu.pieces', { n: d.n }), '今日最佳', '前三：' + dailyBoardText() + ' · ' + (getLang() === 'en' ? 'week ' : '本周 ') + dailyStats().weekDone + '/7');
     } else {
       mkRow('今日挑战', '暂无记录', '完成今日挑战后可在这里查看本地前三');
     }
