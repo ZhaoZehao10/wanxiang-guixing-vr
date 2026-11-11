@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 const BUILD_INFO = '20 模型 · 96 关 · 7 配色 · 6 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1044,6 +1044,20 @@ function dailyStats() {
   return { days: dates.length, streak, totalPlays: dates.reduce((sum, k) => sum + ((d[k].times || []).length), 0) };
 }
 
+function dailyHistory(days = 14) {
+  const d = readDaily();
+  const out = [];
+  const cur = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const dt = new Date(cur);
+    dt.setDate(cur.getDate() - i);
+    const ds = dayKey(dt);
+    const rec = d[ds];
+    out.push({ date: ds, done: !!rec, best: rec && rec.times && rec.times.length ? rec.times[0] : null });
+  }
+  return out;
+}
+
 function buildStatsUI() {
   const body = $('stats-body');
   if (!body) return;
@@ -1061,6 +1075,25 @@ function buildStatsUI() {
     ['🧩 ' + (getLang() === 'en' ? 'Models cleared' : '模型收集'), modelsDone + ' / ' + MODEL_KEYS.length],
   ];
   body.innerHTML = '';
+  const hist = dailyHistory(14);
+  const histWrap = document.createElement('div');
+  histWrap.style.cssText = 'grid-column:1 / -1;border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px';
+  histWrap.innerHTML = '<div style="color:#8b96b8;font-size:12px;margin-bottom:8px">'
+    + (getLang() === 'en' ? 'Last 14 days' : '近 14 天挑战') + '</div>';
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(14,1fr);gap:5px';
+  for (const h of hist) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    cell.dataset.done = h.done ? '1' : '0';
+    cell.style.cssText = 'height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#cfd9f5;'
+      + (h.done ? 'background:rgba(109,255,168,.35);border:1px solid rgba(109,255,168,.6)' : 'background:rgba(140,165,255,.10);border:1px solid rgba(140,165,255,.2)');
+    cell.title = h.date + (h.best ? ' · ' + fmtDur(h.best) : ' · ' + (getLang() === 'en' ? 'none' : '未完成'));
+    cell.textContent = h.date.slice(5);
+    grid.appendChild(cell);
+  }
+  histWrap.appendChild(grid);
+  body.appendChild(histWrap);
   for (const [label, value] of cards) {
     const div = document.createElement('div');
     div.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;text-align:center';
@@ -1861,7 +1894,7 @@ function buildSettingsUI() {
   }
   const p = document.createElement('p');
   p.style.cssText = 'font-size:12px;color:#8b96b8;margin:12px 0 0;line-height:1.6';
-  p.textContent = '磁吸/震动/菜单距离立即生效；渲染比例与星空影响画质；桌面高度适合坐姿玩家。';
+  p.textContent = t('settings.note');
   body.appendChild(p);
 
   const bar = document.createElement('div');
@@ -1929,15 +1962,13 @@ let dataMode = 'export';
 function openDataPanel(mode) {
   dataMode = mode === 'import' ? 'import' : 'export';
   const isExport = dataMode === 'export';
-  $('data-title').textContent = isExport ? '📤 导出存档' : '📥 导入存档';
+  $('data-title').textContent = isExport ? t('data.exportTitle') : t('data.importTitle');
   $('data-text').value = isExport ? buildExportText() : '';
   $('data-download').style.display = isExport ? '' : 'none';
   $('data-copy').style.display = isExport ? '' : 'none';
   $('data-pick').style.display = isExport ? 'none' : '';
   $('data-import').style.display = isExport ? 'none' : '';
-  $('data-msg').textContent = isExport
-    ? '保存或复制下方 JSON，可在其他设备导入。'
-    : '粘贴 JSON 或选择文件，然后点「导入存档」。';
+  $('data-msg').textContent = isExport ? t('data.hintExport') : t('data.hintImport');
   $('data-panel').classList.remove('hidden');
 }
 
@@ -2069,7 +2100,7 @@ function buildBoardUI(mode = boardMode) {
     const d = readDaily()[date];
     if ($('board-title')) $('board-title').textContent = '📅 今日挑战 · 本地记录';
     if (d) {
-      mkRow(modelName(d.modelKey, (MODELS[d.modelKey] || {}).name || d.modelKey) + ' · ' + t('menu.pieces', { n: d.n }), '今日最佳', '前三：' + dailyBoardText());
+      mkRow(modelName(d.modelKey, (MODELS[d.modelKey] || {}).name || d.modelKey) + ' · ' + t('menu.pieces', { n: d.n }), '今日最佳', '前三：' + dailyBoardText() + ' · ' + (getLang() === 'en' ? '7-day ' : '近7天 ') + dailyHistory(7).filter((x) => x.done).length + '/7');
     } else {
       mkRow('今日挑战', '暂无记录', '完成今日挑战后可在这里查看本地前三');
     }
@@ -2126,7 +2157,7 @@ function buildGalleryUI() {
     card.innerHTML = `<div style="font-size:34px">${def.emoji}</div>`
       + `<b style="font-size:14px">${modelName(key, def.name)}</b>`
       + `<div style="color:#ffd24d;font-size:12px;margin-top:4px">★ ${stars}/${maxStars}</div>`
-      + `<small style="color:#8b96b8;font-size:11px">已通关 ${done}/${counts.length}</small>`;
+      + `<small style="color:#8b96b8;font-size:11px">${t('gallery.cleared', { done, total: counts.length })}</small>`;
     card.onclick = () => { closeGallery(); startGameUI(key, counts.includes(2) ? 2 : counts[0]); };
     body.appendChild(card);
   }
