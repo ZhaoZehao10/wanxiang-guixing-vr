@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 const BUILD_INFO = '20 模型 · 96 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -905,7 +905,7 @@ function winGame() {
   state.winTime = performance.now();
   const secs = Math.round((state.winTime - state.startTime) / 1000);
   const noRecord = state.practice || state.randomMode || !!duelState;
-  $('win-time').textContent = state.practice ? '练习模式' : state.randomMode ? '随机模式' : `${Math.floor(secs / 60)}分${secs % 60}秒`;
+  $('win-time').textContent = state.practice ? t('win.practice') : state.randomMode ? t('win.random') : `${Math.floor(secs / 60)}分${secs % 60}秒`;
   $('win-model').textContent = `${ghostName()} · ${state.pieces.length} 块${state.practice ? ' · 练习' : state.randomMode ? ' · 随机' : ''}`;
   // 成绩入库 + 成就评估（练习/随机模式跳过，不污染记录）
   const res = noRecord
@@ -918,9 +918,9 @@ function winGame() {
   const bestEl = $('win-best');
   if (bestEl) {
     bestEl.textContent = state.practice
-      ? '练习模式 · 不计时、不记录成绩'
+      ? t('win.practiceBest')
       : state.randomMode
-        ? '随机模式 · 每局切割不同、不记录成绩'
+        ? t('win.randomBest')
         : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`
           + (res.rec.top && res.rec.top.length ? ` · 前三 ${res.rec.top.map((t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`).join(' / ')}` : '');
   }
@@ -1205,10 +1205,10 @@ function showDifficulty() {
       const done = MODEL_KEYS.filter((mk) => ((prog[levelKey(mk, n)] || {}).stars || 0) > 0).length;
       const rec = prog[levelKey(state.modelKey, n)];
       const recTxt = !supported
-        ? '该模型无此难度'
+        ? t('board.noDifficulty')
         : (rec && rec.stars > 0
           ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)} ${Math.floor(rec.bestTime / 60)}分${rec.bestTime % 60}秒`
-          : '未挑战');
+          : t('board.notChallenged'));
       b.disabled = !supported;
       b.style.opacity = supported ? '1' : '0.45';
       b.style.cursor = supported ? 'pointer' : 'not-allowed';
@@ -1415,7 +1415,7 @@ function buildVrMenu() {
   const BOTTOM_W = 0.20;
   const bottomX = (i) => (i - 2) * 0.215;
 
-  const start = makeVrButton('开始', () => {
+  const start = makeVrButton(t('vr.start'), () => {
     sfx.ui();
     startGameUI(state.modelKey, state.pieceCount);
     toggleVrMenu(false);
@@ -1425,7 +1425,7 @@ function buildVrMenu() {
   g.add(start);
   vrMenu.buttons.push(start);
 
-  const hintBtn = makeVrButton('提示', () => {
+  const hintBtn = makeVrButton(t('vr.hint'), () => {
     sfx.ui();
     triggerHint();
     refreshVrMenu();
@@ -1437,7 +1437,7 @@ function buildVrMenu() {
 
   // 配色：循环切换皮肤；游戏中切换会以新配色重开当前关卡（几何不变，切割表通用）
   const paletteKeys = Object.keys(PALETTES);
-  const paletteBtn = makeVrButton('配色', () => {
+  const paletteBtn = makeVrButton(t('vr.palette'), () => {
     const idx = Math.max(0, paletteKeys.indexOf(state.palette));
     state.palette = paletteKeys[(idx + 1) % paletteKeys.length];
     savePalette(state.palette);
@@ -1452,7 +1452,7 @@ function buildVrMenu() {
   g.add(paletteBtn);
   vrMenu.buttons.push(paletteBtn);
 
-  const musicBtn = makeVrButton('音乐', () => {
+  const musicBtn = makeVrButton(t('vr.music'), () => {
     const on = music.toggle();
     updateMusicButton();
     sfx.ui();
@@ -1464,7 +1464,7 @@ function buildVrMenu() {
   vrMenu.buttons.push(musicBtn);
 
   // 进度页入口（VR 内查看关卡星级与成就）
-  const progressBtn = makeVrButton('进度', () => {
+  const progressBtn = makeVrButton(t('vr.progress'), () => {
     sfx.ui();
     showVrPage('progress');
   }, BOTTOM_W);
@@ -1528,7 +1528,7 @@ function refreshVrProgress() {
   const prog = readProgress();
   const sum = summarize(prog);
   const unlocked = readAchievements();
-  addText('进度总览', 0.56, { size: 56, w: 0.66, h: 0.10 });
+  addText(t('vr.progressTitle'), 0.56, { size: 56, w: 0.66, h: 0.10 });
   addText(`关卡 ${sum.done}/${sum.total} · 星星 ${sum.stars}/${sum.maxStars}`, 0.43, { color: '#9fd8ff' });
   addText(`成就 ${unlocked.length}/${ACHIEVEMENTS.length}`, 0.34, { color: '#ffd24d' });
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
@@ -1551,7 +1551,7 @@ function refreshVrProgress() {
       size: 28, color: got ? '#ffd24d' : '#6b7699', x: col ? 0.24 : -0.24, w: 0.40, h: 0.048,
     });
   });
-  const back = makeVrButton('返回', () => { sfx.ui(); showVrPage('main'); }, 0.22);
+  const back = makeVrButton(t('vr.back'), () => { sfx.ui(); showVrPage('main'); }, 0.22);
   back.position.set(0, -0.6, 0.02);
   page.add(back);
   vrMenu.progressLines = lines;
@@ -1786,7 +1786,7 @@ function animate() {
   if (state.mode === 'playing') {
     const s = Math.floor((performance.now() - state.startTime) / 1000);
     $('timer').textContent = state.practice
-      ? '练习中'
+      ? (getLang() === 'en' ? 'Practice' : '练习中')
       : `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   }
 
@@ -2080,7 +2080,7 @@ function buildBoardUI(mode = boardMode) {
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
   if ($('board-title')) {
     $('board-title').textContent = boardMode === 'global'
-      ? '🏆 全模型总榜 · 各难度最快'
+      ? t('board.globalTitle')
       : `🏆 ${def.emoji} ${modelName(state.modelKey, def.name)} · 本地排行`;
   }
   if ($('board-tab-model')) $('board-tab-model').style.borderColor = boardMode === 'model' ? '#6cd0ff' : '';
@@ -2107,11 +2107,11 @@ function buildBoardUI(mode = boardMode) {
   if (boardMode === 'daily') {
     const date = dayKey();
     const d = readDaily()[date];
-    if ($('board-title')) $('board-title').textContent = '📅 今日挑战 · 本地记录';
+    if ($('board-title')) $('board-title').textContent = t('board.dailyTitle');
     if (d) {
       mkRow(modelName(d.modelKey, (MODELS[d.modelKey] || {}).name || d.modelKey) + ' · ' + t('menu.pieces', { n: d.n }), '今日最佳', '前三：' + dailyBoardText() + ' · ' + (getLang() === 'en' ? 'week ' : '本周 ') + dailyStats().weekDone + '/7');
     } else {
-      mkRow('今日挑战', '暂无记录', '完成今日挑战后可在这里查看本地前三');
+      mkRow(t('board.dailyTitle'), t('board.none'), '');
     }
     return;
   }
@@ -2127,7 +2127,7 @@ function buildBoardUI(mode = boardMode) {
       const top = items.slice(0, 3);
       const line = top.length
         ? top.map((it, i) => `${i + 1}. ${MODELS[it.mk] ? MODELS[it.mk].emoji : ''}${MODELS[it.mk] ? MODELS[it.mk].name : it.mk} ${fmtTime(it.t)}`).join('　')
-        : '暂无记录';
+        : t('board.none');
       mkRow(`${n} 块 · ${diffName(n, DIFFICULTY_NAME[n]) || ''}`, `${items.length} 个模型有记录`, `前三：${line}`);
     }
   } else {
@@ -2135,10 +2135,10 @@ function buildBoardUI(mode = boardMode) {
       const rec = prog[levelKey(state.modelKey, n)];
       const top = (rec && Array.isArray(rec.top)) ? rec.top : [];
       const topTxt = top.length ? top.map((t, i) => `${i + 1}. ${fmtTime(t)}`).join('　') : '暂无记录';
-      const starTxt = rec && rec.stars ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}` : '未挑战';
+      const starTxt = rec && rec.stars ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)}` : t('board.notChallenged');
       mkRow(`${n} 块 · ${diffName(n, DIFFICULTY_NAME[n]) || ''}`, starTxt, `前三：${topTxt}`);
     }
-    if (!supportedCounts(state.modelKey).length) body.textContent = '该模型暂无可玩难度';
+    if (!supportedCounts(state.modelKey).length) body.textContent = t('board.noPlayable');
   }
 }
 
