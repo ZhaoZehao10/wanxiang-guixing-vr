@@ -276,15 +276,19 @@ const statsTest = await evalJs(`(() => {
   const p = window.__wanxiang;
   const y = new Date(); y.setDate(y.getDate() - 1);
   p.recordDaily(p.dayKey(y), 'rocket', 2, 80);
+  const y2 = new Date(); y2.setDate(y2.getDate() - 2);
+  p.recordDaily(p.dayKey(y2), 'rocket', 2, 90);
   p.openStats();
   const visible = !document.getElementById('stats').classList.contains('hidden');
   const text = document.getElementById('stats-body').textContent;
   const ds = p.getDailyStats();
+  const cells = document.querySelectorAll('#stats-body .day-cell').length;
+  const doneCells = document.querySelectorAll('#stats-body .day-cell[data-done="1"]').length;
   p.closeStats();
-  return { visible, text, ds };
+  return { visible, text, ds, cells, doneCells };
 })()`);
 check('统计面板：进度与每日挑战连续天数',
-  statsTest.visible === true && statsTest.text.includes('总进度') && statsTest.ds.days >= 2 && statsTest.ds.streak >= 2,
+  statsTest.visible === true && statsTest.text.includes('总进度') && statsTest.ds.days >= 3 && statsTest.ds.streak >= 3 && statsTest.cells === 14 && statsTest.doneCells >= 3,
   JSON.stringify({ visible: statsTest.visible, ds: statsTest.ds }));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
