@@ -19,8 +19,8 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.9.1';
-const BUILD_INFO = '20 模型 · 96 关 · 7 配色 · 7 主题';
+const APP_VERSION = '1.10.0';
+const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -2035,24 +2035,24 @@ function applyImportText(text) {
 function diagnosticsText() {
   const q = { level: quality.level, auto: quality.auto, pixelRatio: renderer.getPixelRatio(), starfieldVisible: !!(starfield && starfield.visible) };
   return [
-    '万象归形 诊断信息',
-    '时间: ' + new Date().toISOString(),
-    '版本: ' + APP_VERSION + ' · ' + BUILD_INFO,
+    tr('万象归形 诊断信息', 'Wanxiang Guixing Diagnostics'),
+    tr('时间: ', 'Time: ') + new Date().toISOString(),
+    tr('版本: ', 'Version: ') + APP_VERSION + ' · ' + BUILD_INFO,
     'UA: ' + navigator.userAgent,
-    '屏幕: ' + screen.width + '×' + screen.height + ' @' + (window.devicePixelRatio || 1),
-    '安全上下文: ' + window.isSecureContext,
-    'WebXR: ' + (typeof navigator.xr !== 'undefined'),
-    '画质: level=' + q.level + ' auto=' + q.auto + ' pixelRatio=' + q.pixelRatio + ' stars=' + q.starfieldVisible,
-    '模型: ' + state.modelKey + ' · ' + state.pieceCount + ' 块 · ' + state.mode,
-    '已归位: ' + state.placedCount + '/' + state.pieces.length,
-    '主题/配色: ' + state.theme + ' / ' + state.palette,
-    '本地存储键数: ' + Object.keys(localStorage).length,
+    tr('屏幕: ', 'Screen: ') + screen.width + '×' + screen.height + ' @' + (window.devicePixelRatio || 1),
+    tr('安全上下文: ', 'Secure context: ') + window.isSecureContext,
+    tr('WebXR: ', 'WebXR: ') + (typeof navigator.xr !== 'undefined'),
+    tr('画质: level=', 'Quality: level=') + q.level + ' auto=' + q.auto + ' pixelRatio=' + q.pixelRatio + ' stars=' + q.starfieldVisible,
+    tr('模型: ', 'Model: ') + state.modelKey + ' · ' + state.pieceCount + tr(' 块 · ', ' pcs · ') + state.mode,
+    tr('已归位: ', 'Placed: ') + state.placedCount + '/' + state.pieces.length,
+    tr('主题/配色: ', 'Theme/Palette: ') + state.theme + ' / ' + state.palette,
+    tr('本地存储键数: ', 'Local storage keys: ') + Object.keys(localStorage).length,
   ].join('\n');
 }
 
 async function copyDiagnostics() {
   const ok = await copyText(diagnosticsText());
-  $('data-msg').textContent = ok ? '✅ 诊断信息已复制到剪贴板' : '❌ 复制失败，请手动选择文本';
+  $('data-msg').textContent = ok ? (getLang() === 'en' ? '✅ Diagnostics copied to clipboard' : '✅ 诊断信息已复制到剪贴板') : (getLang() === 'en' ? '❌ Copy failed, please select the text manually' : '❌ 复制失败，请手动选择文本');
 }
 
 // 打开方式提示：file:// 或非本机 http:// 下 WebXR 可能不可用
@@ -2343,31 +2343,32 @@ function updateMusicButton() {
 
 // 设备自检：进 VR 前确认安全上下文 / WebXR / WebGL 状态（真机排查用）
 async function runSelfCheck() {
+  const tr = (zh, en) => (getLang() === 'en' ? en : zh);
   const body = $('selfcheck-body');
   if (!body) return;
   const L = [];
   const mark = (ok, label, detail) => L.push(`${ok === null ? 'ℹ️' : ok ? '✅' : '❌'} ${label}${detail ? '：' + detail : ''}`);
-  mark(window.isSecureContext === true, '安全上下文（HTTPS / localhost）',
-    window.isSecureContext ? '是' : '否 — 浏览器不会暴露 WebXR');
+  mark(window.isSecureContext === true, tr('安全上下文（HTTPS / localhost）', 'Secure context (HTTPS / localhost)'),
+    window.isSecureContext ? tr('是', 'yes') : tr('否 — 浏览器不会暴露 WebXR', 'no — WebXR will be hidden'));
   const hasXR = typeof navigator.xr !== 'undefined';
-  mark(hasXR, 'navigator.xr', hasXR ? '存在' : '不存在');
-  let immersive = '未知';
+  mark(hasXR, 'navigator.xr', hasXR ? tr('存在', 'present') : tr('不存在', 'missing'));
+  let immersive = tr('未知', 'unknown');
   if (hasXR) {
-    try { immersive = await navigator.xr.isSessionSupported('immersive-vr'); } catch (e) { immersive = '查询失败：' + e.message; }
+    try { immersive = await navigator.xr.isSessionSupported('immersive-vr'); } catch (e) { immersive = tr('查询失败：', 'query failed: ') + e.message; }
   }
-  mark(immersive === true, 'immersive-vr 会话', String(immersive));
+  mark(immersive === true, tr('immersive-vr 会话', 'immersive-vr session'), String(immersive));
   try {
     const gl = renderer.getContext();
     const dbg = gl.getExtension('WEBGL_debug_renderer_info');
-    mark(true, 'WebGL', `${gl.getParameter(gl.VERSION)} · ${dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '渲染器信息不可用'}`);
-  } catch (e) { mark(false, 'WebGL', '读取失败'); }
-  mark(null, '屏幕', `${screen.width}×${screen.height} @${(window.devicePixelRatio || 1).toFixed(2)}x`);
-  mark(null, '版本', `${APP_VERSION} · ${BUILD_INFO}`);
+    mark(true, 'WebGL', `${gl.getParameter(gl.VERSION)} · ${dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : tr('渲染器信息不可用', 'renderer info unavailable')}`);
+  } catch (e) { mark(false, 'WebGL', tr('读取失败', 'read failed')); }
+  mark(null, tr('屏幕', 'Screen'), `${screen.width}×${screen.height} @${(window.devicePixelRatio || 1).toFixed(2)}x`);
+  mark(null, tr('版本', 'Version'), `${APP_VERSION} · ${BUILD_INFO}`);
   mark(null, 'UA', navigator.userAgent);
   L.push('');
   L.push(immersive === true
-    ? '建议：可直接点击 ENTER VR 进入游戏。'
-    : '建议：确认使用 https:// 地址且浏览器允许 WebXR；若头显内仍不可用，请改用 APK 版。');
+    ? tr('建议：可直接点击 ENTER VR 进入游戏。', 'Tip: click ENTER VR to start.')
+    : tr('建议：确认使用 https:// 地址且浏览器允许 WebXR；若头显内仍不可用，请改用 APK 版。', 'Tip: use https:// and allow WebXR in the browser; if unavailable on the headset, use the APK.'));
   body.textContent = L.join('\n');
   $('selfcheck').classList.remove('hidden');
 }
