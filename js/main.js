@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.13.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1067,6 +1067,21 @@ function dailyHistory(days = 14) {
   return out;
 }
 
+function dailyYear(days = 365) {
+  const d = readDaily();
+  const out = [];
+  const cur = new Date();
+  cur.setHours(0, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i--) {
+    const dt = new Date(cur);
+    dt.setDate(cur.getDate() - i);
+    const ds = dayKey(dt);
+    const rec = d[ds];
+    out.push({ date: ds, done: !!rec, best: rec && rec.times && rec.times.length ? rec.times[0] : null });
+  }
+  return out;
+}
+
 let statsMonthOffset = 0;
 
 function dailyMonth(year, month) {
@@ -1158,6 +1173,27 @@ function buildStatsUI() {
   const nextBtn = monthWrap.querySelector('.month-next');
   if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); sfx.ui(); statsMonthOffset--; buildStatsUI(); };
   if (nextBtn && !nextBtn.disabled) nextBtn.onclick = (e) => { e.stopPropagation(); sfx.ui(); statsMonthOffset++; buildStatsUI(); };
+
+  const year = dailyYear();
+  const yearWrap = document.createElement('div');
+  yearWrap.style.cssText = 'grid-column:1 / -1;border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px';
+  yearWrap.innerHTML = '<div style="color:#8b96b8;font-size:12px;margin-bottom:8px">'
+    + (getLang() === 'en' ? 'Last 365 days' : '近一年挑战') + '</div>';
+  const yg = document.createElement('div');
+  yg.style.cssText = 'display:grid;grid-template-columns:repeat(53,1fr);grid-template-rows:repeat(7,10px);grid-auto-flow:column;gap:2px';
+  const first = new Date(); first.setDate(first.getDate() - 364); first.setHours(0, 0, 0, 0);
+  const offset = (first.getDay() + 6) % 7;
+  for (let i = 0; i < offset; i++) yg.appendChild(document.createElement('div'));
+  for (const item of year) {
+    const cell = document.createElement('div');
+    cell.className = 'year-cell';
+    cell.dataset.done = item.done ? '1' : '0';
+    cell.style.cssText = 'border-radius:2px;' + (item.done ? 'background:rgba(109,255,168,.55)' : 'background:rgba(140,165,255,.12)');
+    cell.title = item.date + (item.best ? ' · ' + fmtDur(item.best) : '');
+    yg.appendChild(cell);
+  }
+  yearWrap.appendChild(yg);
+  body.appendChild(yearWrap);
   for (const [label, value] of cards) {
     const div = document.createElement('div');
     div.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;text-align:center';
