@@ -641,6 +641,41 @@ function buildDonut(b) {
   sphere(b, doughD, { pos: [0, 0.05, 0], scale: [0.24, 0.10, 0.24] }, 1.0, 20, 12); // 中心补面
 }
 
+// ---------------- 模型 21：小熊 ----------------
+
+function buildBear(b) {
+  const fur = [0.55, 0.36, 0.22], furD = [0.45, 0.28, 0.16], tan = [0.85, 0.68, 0.48], dark = [0.10, 0.08, 0.07];
+  sphere(b, fur, { pos: [0, 0.05, 0], scale: [0.58, 0.62, 0.46] }, 1.0, 32, 22);      // 身体
+  sphere(b, tan, { pos: [0, 0.02, 0.28], scale: [0.30, 0.32, 0.18] }, 1.0, 24, 16);   // 肚皮
+  sphere(b, fur, { pos: [0, 0.72, 0.05], scale: [1, 0.92, 0.92] }, 0.48, 32, 22);      // 头
+  for (const s of [-1, 1]) {
+    sphere(b, furD, { pos: [s * 0.33, 1.02, 0.02], scale: [0.18, 0.18, 0.12] }, 1.0, 18, 12); // 耳朵
+    sphere(b, tan, { pos: [s * 0.33, 1.02, 0.07], scale: [0.10, 0.10, 0.06] }, 1.0, 14, 10); // 耳内
+    sphere(b, dark, { pos: [s * 0.17, 0.80, 0.41], scale: [1, 1, 0.6] }, 0.055, 14, 10);   // 眼
+    sphere(b, fur, { pos: [s * 0.52, 0.10, 0], scale: [0.16, 0.30, 0.16] }, 1.0, 20, 14);  // 手臂
+    sphere(b, furD, { pos: [s * 0.28, -0.48, 0.02], scale: [0.20, 0.16, 0.24] }, 1.0, 20, 12); // 脚
+  }
+  sphere(b, tan, { pos: [0, 0.60, 0.40], scale: [0.26, 0.18, 0.18] }, 1.0, 22, 14);   // 口鼻
+  sphere(b, dark, { pos: [0, 0.63, 0.55], scale: [0.08, 0.06, 0.05] }, 1.0, 12, 8);    // 鼻子
+}
+
+// ---------------- 模型 22：猫头鹰 ----------------
+
+function buildOwl(b) {
+  const brown = [0.42, 0.30, 0.20], brownL = [0.62, 0.48, 0.32], cream = [0.92, 0.86, 0.72];
+  const white = [0.98, 0.97, 0.92], dark = [0.08, 0.07, 0.06], orange = [0.95, 0.58, 0.18];
+  sphere(b, brown, { pos: [0, 0.0, 0], scale: [0.55, 0.68, 0.50] }, 1.0, 32, 22);   // 身体
+  sphere(b, cream, { pos: [0, 0.02, 0.20], scale: [0.34, 0.42, 0.28] }, 1.0, 24, 16); // 胸腹
+  sphere(b, brownL, { pos: [0, 0.68, 0.05], scale: [0.50, 0.42, 0.42] }, 1.0, 30, 20); // 头
+  for (const s of [-1, 1]) {
+    sphere(b, white, { pos: [s * 0.19, 0.72, 0.38], scale: [0.20, 0.20, 0.10] }, 1.0, 20, 14); // 眼盘
+    sphere(b, dark, { pos: [s * 0.19, 0.72, 0.47], scale: [0.10, 0.10, 0.05] }, 1.0, 14, 10);  // 瞳
+    sphere(b, brown, { pos: [s * 0.48, -0.02, 0], scale: [0.12, 0.38, 0.20] }, 1.0, 20, 14);   // 翅膀
+    sphere(b, brownL, { pos: [s * 0.28, 0.98, 0.02], scale: [0.11, 0.16, 0.08] }, 1.0, 16, 10); // 耳羽
+  }
+  sphere(b, orange, { pos: [0, 0.58, 0.44], scale: [0.10, 0.16, 0.10] }, 1.0, 14, 10); // 喙
+}
+
 // ---------------- 配色皮肤 ----------------
 // 只改顶点颜色、不改任何几何：切割平面表按几何标定，因此所有配色共用同一套
 // 切割参数（水密性/体积守恒与颜色无关）。
@@ -718,6 +753,8 @@ export const MODELS = {
   cat: { name: '小猫', emoji: '🐱', build: buildCat },
   cactus: { name: '仙人掌', emoji: '🌵', build: buildCactus },
   frog: { name: '小青蛙', emoji: '🐸', build: buildFrog },
+  bear: { name: '小熊', emoji: '🐻', build: buildBear },
+  owl: { name: '猫头鹰', emoji: '🦉', build: buildOwl },
   donut: { name: '甜甜圈', emoji: '🍩', build: buildDonut },
 };
 

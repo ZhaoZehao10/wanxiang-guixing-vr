@@ -231,7 +231,7 @@ check('随机模式：每局切割不同且片数正确',
   extras.random.mode === true && extras.random.pieces === 4 && extras.random.different === true,
   JSON.stringify(extras.random));
 check('模型图鉴：18 张卡片与收集进度',
-  extras.gallery.visible === true && extras.gallery.cards === 20 && extras.gallery.text.includes('★'),
+  extras.gallery.visible === true && extras.gallery.cards === 22 && extras.gallery.text.includes('★'),
   JSON.stringify({ visible: extras.gallery.visible, cards: extras.gallery.cards }));
 check('完成海报：生成 PNG DataURL', extras.poster.data === true && extras.poster.len > 5000, JSON.stringify(extras.poster));
 const i18nTest = await evalJs(`(() => {
@@ -650,7 +650,7 @@ const smoke = await evalJs(`(() => {
   };
 })()`);
 check('全菜单冒烟：20 模型/6 配色/开关按钮点击无异常',
-  smoke.fatal === false && smoke.models === 20 && smoke.palettes === 7
+  smoke.fatal === false && smoke.models === 22 && smoke.palettes === 7
   && smoke.practice === false && smoke.palette === 'classic', JSON.stringify(smoke));
 
 // 3.10) 练习模式：通关不写入进度
