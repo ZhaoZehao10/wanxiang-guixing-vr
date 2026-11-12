@@ -130,6 +130,8 @@ export const ACH_EN = {
   eight_master: ['Extreme Master', 'Complete 8-piece mode on 8 models'],
   star_50: ['Star Collector', 'Collect 50 stars'],
   eight_three: ['Extreme Trio', 'Get 3 stars on 8-piece mode for 3 models'],
+  daily_30: ['Monthly Streak', 'Complete 30 days of daily challenges'],
+  daily_100: ['100-Day Challenge', 'Complete 100 days of daily challenges'],
   star_100: ['Star Hoarder', 'Collect 100 stars'],
   all_perfect_6: ['Master Perfection', '3-star every model in 6-piece mode'],
   perfectionist: ['Perfectionist', 'Get 12 three-star levels in one difficulty'],

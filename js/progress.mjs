@@ -102,6 +102,14 @@ export const ACHIEVEMENTS = [
     test: (p) => MODEL_KEYS.filter((mk) => (p[levelKey(mk, 8)] || {}).stars === 3).length >= 3,
   },
   {
+    id: 'daily_30', name: '月度坚持', desc: '累计完成 30 天每日挑战',
+    test: (p, extra) => (extra.dailyDays || 0) >= 30,
+  },
+  {
+    id: 'daily_100', name: '百日挑战', desc: '累计完成 100 天每日挑战',
+    test: (p, extra) => (extra.dailyDays || 0) >= 100,
+  },
+  {
     id: 'star_100', name: '百星收藏家', desc: '累计获得 100 颗星',
     test: (p) => Object.values(p).reduce((s, r) => s + (r.stars || 0), 0) >= 100,
   },
@@ -116,12 +124,12 @@ export const ACHIEVEMENTS = [
 ];
 
 // 返回本次新解锁的成就 id 列表（不改动传入数组）
-export function evaluateAchievements(progress, unlockedIds) {
+export function evaluateAchievements(progress, unlockedIds, extra = {}) {
   const newly = [];
   for (const a of ACHIEVEMENTS) {
     if (unlockedIds.includes(a.id)) continue;
     try {
-      if (a.test(progress)) newly.push(a.id);
+      if (a.test(progress, extra)) newly.push(a.id);
     } catch (e) { /* 单个成就判定异常不影响其他 */ }
   }
   return newly;
