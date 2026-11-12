@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.13.0';
+const APP_VERSION = '1.14.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -553,12 +553,12 @@ function readAchievements() { return loadAchievements(localStorage); }
 function writeAchievements(list) { saveAchievements(localStorage, list); }
 
 // 通关结算：写入成绩 → 评估成就 → 返回星级/最佳/新解锁成就
-function commitResult(modelKey, n, secs, hints) {
+function commitResult(modelKey, n, secs, hints, extra = {}) {
   const p = readProgress();
   const r = recordResult(p, modelKey, n, secs, hints);
   writeProgress(p);
   const unlocked = readAchievements();
-  const newly = evaluateAchievements(p, unlocked);
+  const newly = evaluateAchievements(p, unlocked, extra);
   if (newly.length) writeAchievements(unlocked.concat(newly));
   return { ...r, newly };
 }
@@ -910,7 +910,7 @@ function winGame() {
   // 成绩入库 + 成就评估（练习/随机模式跳过，不污染记录）
   const res = noRecord
     ? { stars: 0, rec: { bestTime: 0, plays: 0 }, newly: [] }
-    : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0);
+    : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days });
   state.lastResult = { secs, stars: res.stars, noRecord, modelKey: state.modelKey, pieceCount: state.pieceCount };
   if (duelState && duelState.results.length < 2) duelRecord(secs, state.pieceCount);
   const starsEl = $('win-stars');

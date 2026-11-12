@@ -116,11 +116,13 @@ console.log('\n=== 成就判定 ===');
   const p100 = {};
   for (const mk of MODEL_KEYS) recordResult(p100, mk, 2, 40, 0); // 20×3 = 60 星
   for (const mk of MODEL_KEYS) recordResult(p100, mk, 4, 40, 0); // +60 = 120 星
+  check('累计 30 天每日挑战 → daily_30', evaluateAchievements({}, [], { dailyDays: 30 }).includes('daily_30'));
+  check('累计 100 天每日挑战 → daily_100', evaluateAchievements({}, [], { dailyDays: 100 }).includes('daily_100'));
   check('累计 ≥100 星 → star_100', evaluateAchievements(p100, []).includes('star_100'), JSON.stringify(evaluateAchievements(p100, []).filter((x) => x === 'star_100')));
   const pM6 = {};
   for (const mk of MODEL_KEYS) recordResult(pM6, mk, 6, 40, 0); // 每关 3 星
   check('全部模型 6 块三星 → all_perfect_6', evaluateAchievements(pM6, []).includes('all_perfect_6'), JSON.stringify(evaluateAchievements(pM6, []).filter((x) => x === 'all_perfect_6')));
-  check('成就总数 = 13', ACHIEVEMENTS.length === 13);
+  check('成就总数 = 15', ACHIEVEMENTS.length === 15);
 }
 
 // ---------------- 统计概览 ----------------
