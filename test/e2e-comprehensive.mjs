@@ -284,11 +284,13 @@ const statsTest = await evalJs(`(() => {
   const ds = p.getDailyStats();
   const cells = document.querySelectorAll('#stats-body .day-cell').length;
   const doneCells = document.querySelectorAll('#stats-body .day-cell[data-done="1"]').length;
+  const monthCells = document.querySelectorAll('#stats-body .month-cell').length;
+  const monthDone = document.querySelectorAll('#stats-body .month-cell[data-done="1"]').length;
   p.closeStats();
-  return { visible, text, ds, cells, doneCells };
+  return { visible, text, ds, cells, doneCells, monthCells, monthDone };
 })()`);
 check('统计面板：进度与每日挑战连续天数',
-  statsTest.visible === true && statsTest.text.includes('总进度') && statsTest.ds.days >= 3 && statsTest.ds.streak >= 3 && statsTest.cells === 14 && statsTest.doneCells >= 3,
+  statsTest.visible === true && statsTest.text.includes('总进度') && statsTest.ds.days >= 3 && statsTest.ds.streak >= 3 && statsTest.cells === 14 && statsTest.doneCells >= 3 && statsTest.monthCells >= 28 && statsTest.monthDone >= 3,
   JSON.stringify({ visible: statsTest.visible, ds: statsTest.ds }));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));

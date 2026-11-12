@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.11.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1067,6 +1067,20 @@ function dailyHistory(days = 14) {
   return out;
 }
 
+function dailyMonth(year, month) {
+  const d = readDaily();
+  const first = new Date(year, month, 1);
+  const days = new Date(year, month + 1, 0).getDate();
+  const offset = (first.getDay() + 6) % 7; // 周一为 0
+  const out = [];
+  for (let i = 1; i <= days; i++) {
+    const ds = dayKey(new Date(year, month, i));
+    const rec = d[ds];
+    out.push({ day: i, date: ds, done: !!rec, best: rec && rec.times && rec.times.length ? rec.times[0] : null });
+  }
+  return { offset, days: out };
+}
+
 function buildStatsUI() {
   const body = $('stats-body');
   if (!body) return;
@@ -1103,6 +1117,34 @@ function buildStatsUI() {
   }
   histWrap.appendChild(grid);
   body.appendChild(histWrap);
+
+  const m = dailyMonth(new Date().getFullYear(), new Date().getMonth());
+  const monthWrap = document.createElement('div');
+  monthWrap.style.cssText = 'grid-column:1 / -1;border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px';
+  monthWrap.innerHTML = '<div style="color:#8b96b8;font-size:12px;margin-bottom:8px">'
+    + (getLang() === 'en' ? 'This month' : '本月挑战') + '</div>';
+  const mg = document.createElement('div');
+  mg.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:4px';
+  const wd = getLang() === 'en' ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['一', '二', '三', '四', '五', '六', '日'];
+  for (const w of wd) {
+    const h = document.createElement('div');
+    h.style.cssText = 'text-align:center;color:#8b96b8;font-size:10px';
+    h.textContent = w;
+    mg.appendChild(h);
+  }
+  for (let i = 0; i < m.offset; i++) mg.appendChild(document.createElement('div'));
+  for (const item of m.days) {
+    const cell = document.createElement('div');
+    cell.className = 'month-cell';
+    cell.dataset.done = item.done ? '1' : '0';
+    cell.style.cssText = 'height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#cfd9f5;'
+      + (item.done ? 'background:rgba(109,255,168,.35);border:1px solid rgba(109,255,168,.6)' : 'background:rgba(140,165,255,.10);border:1px solid rgba(140,165,255,.2)');
+    cell.title = item.date + (item.best ? ' · ' + fmtDur(item.best) : '');
+    cell.textContent = item.day;
+    mg.appendChild(cell);
+  }
+  monthWrap.appendChild(mg);
+  body.appendChild(monthWrap);
   for (const [label, value] of cards) {
     const div = document.createElement('div');
     div.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;text-align:center';

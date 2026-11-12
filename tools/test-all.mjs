@@ -5,7 +5,7 @@
 //
 //   --fast       跳过耗时较长的压力/性能套件（plane-fuzz、perf-browser）
 //   --no-server  假定 8443 已在运行，不自动拉起（用于 CI 里已有服务的情况）
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync, execSync } from 'node:child_process';
 import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,6 +33,13 @@ const SUITES = [
   { name: '浏览器性能', file: 'test/perf-browser.mjs', slow: true, server: true },
   { name: '稳定性浸泡', file: 'test/soak.mjs', slow: true, soak: true, server: true, timeoutMs: 45 * 60 * 1000 },
 ].filter((s) => !(FAST && s.slow) && !(s.soak && !process.argv.includes('--soak')));
+
+function killStaleChrome() {
+  if (process.platform !== 'win32') return;
+  try {
+    execSync('powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name=\'chrome.exe\'\" | Where-Object { $_.CommandLine -like \"*--headless*\" -or $_.CommandLine -like \"*wanxiang*\" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"', { stdio: 'ignore', timeout: 20000 });
+  } catch (e) { /* ignore */ }
+}
 
 function serverUp() {
   return new Promise((resolve) => {
@@ -76,6 +83,7 @@ const results = [];
 const t0 = Date.now();
 
 for (const suite of SUITES) {
+  killStaleChrome();
   const start = Date.now();
   process.stdout.write(`\n=== ${suite.name} (${suite.file}) ===\n`);
   const r = spawnSync(NODE, [path.join(ROOT, suite.file)], {
