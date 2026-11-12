@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1067,6 +1067,8 @@ function dailyHistory(days = 14) {
   return out;
 }
 
+let statsMonthOffset = 0;
+
 function dailyMonth(year, month) {
   const d = readDaily();
   const first = new Date(year, month, 1);
@@ -1118,11 +1120,18 @@ function buildStatsUI() {
   histWrap.appendChild(grid);
   body.appendChild(histWrap);
 
-  const m = dailyMonth(new Date().getFullYear(), new Date().getMonth());
+  const baseDate = new Date();
+  const monthDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + statsMonthOffset, 1);
+  const m = dailyMonth(monthDate.getFullYear(), monthDate.getMonth());
   const monthWrap = document.createElement('div');
   monthWrap.style.cssText = 'grid-column:1 / -1;border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px';
-  monthWrap.innerHTML = '<div style="color:#8b96b8;font-size:12px;margin-bottom:8px">'
-    + (getLang() === 'en' ? 'This month' : '本月挑战') + '</div>';
+  const monthLabel = monthDate.getFullYear() + '-' + String(monthDate.getMonth() + 1).padStart(2, '0');
+  monthWrap.dataset.month = monthLabel;
+  monthWrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+    + '<button class="win-btn month-prev" style="font-size:12px;padding:3px 8px">‹</button>'
+    + '<div style="color:#8b96b8;font-size:12px">' + (getLang() === 'en' ? 'Month ' : '本月挑战 ') + monthLabel + '</div>'
+    + '<button class="win-btn month-next" style="font-size:12px;padding:3px 8px"' + (statsMonthOffset >= 0 ? ' disabled' : '') + '>›</button>'
+    + '</div>';
   const mg = document.createElement('div');
   mg.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:4px';
   const wd = getLang() === 'en' ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['一', '二', '三', '四', '五', '六', '日'];
@@ -1145,6 +1154,10 @@ function buildStatsUI() {
   }
   monthWrap.appendChild(mg);
   body.appendChild(monthWrap);
+  const prevBtn = monthWrap.querySelector('.month-prev');
+  const nextBtn = monthWrap.querySelector('.month-next');
+  if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); sfx.ui(); statsMonthOffset--; buildStatsUI(); };
+  if (nextBtn && !nextBtn.disabled) nextBtn.onclick = (e) => { e.stopPropagation(); sfx.ui(); statsMonthOffset++; buildStatsUI(); };
   for (const [label, value] of cards) {
     const div = document.createElement('div');
     div.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;text-align:center';
@@ -1153,7 +1166,7 @@ function buildStatsUI() {
   }
 }
 
-function openStats() { buildStatsUI(); $('stats').classList.remove('hidden'); }
+function openStats() { statsMonthOffset = 0; buildStatsUI(); $('stats').classList.remove('hidden'); }
 function closeStats() { $('stats').classList.add('hidden'); }
 
 function showDifficulty() {
