@@ -331,11 +331,15 @@ const taRecord = await evalJs(`(() => {
   document.getElementById('board-tab-attack').click();
   const rows = document.querySelectorAll('#board-body .board-level').length;
   const text = document.getElementById('board-body').textContent;
+  const attackTitle = document.getElementById('board-title').textContent;
+  document.getElementById('board-tab-attack-global').click();
+  const globalRows = document.querySelectorAll('#board-body .board-level').length;
+  const globalTitle = document.getElementById('board-title').textContent;
   p.closeBoard();
   p.setTimeAttack(false);
-  return { best: rec ? rec.bestTime : 0, rows, text, title: document.getElementById('board-title').textContent };
+  return { best: rec ? rec.bestTime : 0, rows, text, globalRows, globalTitle, title: attackTitle };
 })()`);
-check('限时模式：胜利后记录独立最佳并可在限时榜查看', taRecord.best > 0 && taRecord.rows >= 5 && taRecord.title.includes('限时挑战'), JSON.stringify(taRecord));
+check('限时模式：胜利后记录独立最佳并可在限时榜查看', taRecord.best > 0 && taRecord.rows >= 5 && taRecord.title.includes('限时挑战') && taRecord.globalRows >= 5 && taRecord.globalTitle.includes('全模型'), JSON.stringify(taRecord));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
