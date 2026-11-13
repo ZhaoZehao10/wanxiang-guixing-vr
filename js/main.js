@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.15.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -900,6 +900,16 @@ function trySnap(mesh, hand) {
 }
 
 // 胜利后按扳机重新打开菜单（开始按钮 = 再来一局）
+function timeUp() {
+  if (state.mode !== 'playing') return;
+  state.mode = 'timeup';
+  state.grabbing.clear();
+  if (state.timeAttack) {
+    $('timeup-msg').textContent = (getLang() === 'en' ? 'Time is up! Try again or return to menu.' : '时间到！可以再试一次，或返回菜单。');
+    $('timeup').classList.remove('hidden');
+  }
+}
+
 function winGame() {
   state.mode = 'won';
   state.winTime = performance.now();
@@ -981,6 +991,8 @@ function startGame(modelKey, n, opts = {}) {
   state.lastPlacement = state.startTime;
   state.hintsUsed = 0;
   state.randomMode = opts.random !== undefined ? !!opts.random : state.randomMode;
+  state.timeAttack = opts.timeAttack !== undefined ? !!opts.timeAttack : state.timeAttack;
+  state.timeLimit = state.timeAttack ? Math.max(30, Math.round(parTime(n) * 1.5)) : 0;
   clearHint();
   $('intro').classList.add('hidden');
   $('difficulty').classList.add('hidden');
@@ -1421,6 +1433,19 @@ function showDifficulty() {
     sfx.ui();
   };
   row4.appendChild(randomBtn);
+
+  // 限时模式
+  const timeBtn = document.createElement('button');
+  timeBtn.className = 'diff-btn';
+  timeBtn.style.cssText = 'min-width:170px;padding:8px 12px';
+  const refreshTimeBtn = () => {
+    timeBtn.innerHTML = '<b style="font-size:14px">限时模式：' + (state.timeAttack ? '开' : '关') + '</b>'
+      + '<span style="font-size:12px;color:#8b96b8">倒计时内拼完</span>';
+    timeBtn.style.borderColor = state.timeAttack ? '#6cd0ff' : '';
+  };
+  refreshTimeBtn();
+  timeBtn.onclick = () => { state.timeAttack = !state.timeAttack; refreshTimeBtn(); sfx.ui(); };
+  row4.appendChild(timeBtn);
   card.appendChild(row4);
 
   // 成就栏（🔒 未解锁 / 🏆 已解锁，悬停看条件）
@@ -1875,10 +1900,19 @@ function animate() {
 
   // 计时器
   if (state.mode === 'playing') {
-    const s = Math.floor((performance.now() - state.startTime) / 1000);
-    $('timer').textContent = state.practice
-      ? (getLang() === 'en' ? 'Practice' : '练习中')
-      : `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    const elapsed = (performance.now() - state.startTime) / 1000;
+    if (state.timeAttack) {
+      const left = Math.max(0, Math.ceil(state.timeLimit - elapsed));
+      $('timer').textContent = '⏱ ' + String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+      $('timer').style.color = left <= 10 ? '#ff7a8a' : '';
+      if (left <= 0) timeUp();
+    } else {
+      const s = Math.floor(elapsed);
+      $('timer').textContent = state.practice
+        ? (getLang() === 'en' ? 'Practice' : '练习中')
+        : `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+      $('timer').style.color = '';
+    }
   }
 
   // 碎片投影：贴在斜坡表面上（已吸附/被抓住的碎片不投影）
@@ -2408,7 +2442,7 @@ function closeTutorial() {
   if (el) el.classList.add('hidden');
   const p = pendingStart;
   pendingStart = null;
-  if (p) startGame(p.modelKey, p.n, { random: !!p.random, daily: p.daily });
+  if (p) startGame(p.modelKey, p.n, { random: !!p.random, daily: p.daily, timeAttack: !!p.timeAttack });
 }
 function startGameUI(modelKey, n) {
   // 2D 覆盖层在 VR 里看不见：已进入沉浸式说明是头显内操作，直接开局，避免卡住
@@ -2416,12 +2450,12 @@ function startGameUI(modelKey, n) {
   const daily = state.dailyMode;
   state.dailyMode = null;
   if (!inVr && !tutorialSeen()) {
-    pendingStart = { modelKey, n, random: state.randomMode, daily };
+    pendingStart = { modelKey, n, random: state.randomMode, daily, timeAttack: state.timeAttack };
     openTutorial();
     sfx.ui();
     return;
   }
-  startGame(modelKey, n, { random: state.randomMode, daily });
+  startGame(modelKey, n, { random: state.randomMode, daily, timeAttack: state.timeAttack });
 }
 
 // ---------------- 启动 ----------------
@@ -2522,6 +2556,12 @@ if ($('data-close')) {
     try { $('data-text').value = await f.text(); $('data-msg').textContent = '已读取：' + f.name; } catch (err) { $('data-msg').textContent = '❌ 读取文件失败'; }
   });
   $('data-import').addEventListener('click', (e) => { e.stopPropagation(); applyImportText($('data-text').value); });
+}
+if ($('timeup-retry')) {
+  $('timeup-retry').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); $('timeup').classList.add('hidden'); startGame(state.modelKey, state.pieceCount, { timeAttack: true }); });
+}
+if ($('timeup-back')) {
+  $('timeup-back').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); $('timeup').classList.add('hidden'); state.timeAttack = false; showDifficulty(); });
 }
 if ($('stats-close')) {
   $('stats-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeStats(); });
@@ -2640,6 +2680,9 @@ window.__wanxiang = {
   setPractice: (on) => { state.practice = !!on; savePractice(state.practice); },
   getRandomMode: () => state.randomMode,
   setRandomMode: (on) => { state.randomMode = !!on; },
+  getTimeAttack: () => state.timeAttack,
+  setTimeAttack: (on) => { state.timeAttack = !!on; },
+  expireTimer: () => { if (state.timeAttack) state.startTime = performance.now() - (state.timeLimit * 1000 + 2000); },
   music,
   // 配色皮肤（测试与外部控制用）
   PALETTES, getPalette: () => state.palette,
