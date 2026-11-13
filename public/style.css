@@ -193,3 +193,6 @@ body.ui-scale #intro, body.ui-scale #difficulty, body.ui-scale #hud, body.ui-sca
 /* 统计面板 */
 #stats { display: flex; align-items: center; justify-content: center; }
 #stats.hidden { display: none; }
+
+/* 限时模式超时 */
+#timeup.hidden { display: none !important; }

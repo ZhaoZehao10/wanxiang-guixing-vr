@@ -109,6 +109,18 @@
     <div style="text-align:center;margin-top:14px"><button id="gallery-close" class="win-btn">关闭</button></div>
   </div>
 </div>
+<!-- 限时模式超时 -->
+<div id="timeup" class="hidden" style="position:fixed;inset:0;z-index:46;background:rgba(4,8,18,.88);display:flex;align-items:center;justify-content:center">
+  <div class="diff-card" style="max-width:520px;text-align:center">
+    <h2>⏰ 时间到</h2>
+    <p id="timeup-msg" style="color:#cfd9f5;font-size:14px;line-height:1.8"></p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px">
+      <button id="timeup-retry" class="win-btn">再试一次</button>
+      <button id="timeup-back" class="win-btn" style="background:rgba(108,208,255,.15)">返回菜单</button>
+    </div>
+  </div>
+</div>
+
 <!-- 双人轮流 -->
 <div id="duel" class="hidden" style="position:fixed;inset:0;z-index:47;background:rgba(4,8,18,.88)">
   <div class="diff-card" style="max-width:560px;text-align:left">

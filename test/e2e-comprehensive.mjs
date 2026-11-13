@@ -230,7 +230,7 @@ const extras = await evalJs(`(() => {
 check('随机模式：每局切割不同且片数正确',
   extras.random.mode === true && extras.random.pieces === 4 && extras.random.different === true,
   JSON.stringify(extras.random));
-check('模型图鉴：18 张卡片与收集进度',
+check('模型图鉴：22 张卡片与收集进度',
   extras.gallery.visible === true && extras.gallery.cards === 22 && extras.gallery.text.includes('★'),
   JSON.stringify({ visible: extras.gallery.visible, cards: extras.gallery.cards }));
 check('完成海报：生成 PNG DataURL', extras.poster.data === true && extras.poster.len > 5000, JSON.stringify(extras.poster));
@@ -298,6 +298,22 @@ const statsTest = await evalJs(`(() => {
 check('统计面板：进度与每日挑战连续天数',
   statsTest.visible === true && statsTest.text.includes('总进度') && statsTest.ds.days >= 3 && statsTest.ds.streak >= 3 && statsTest.cells === 14 && statsTest.doneCells >= 3 && statsTest.monthCells >= 28 && statsTest.monthDone >= 3 && statsTest.prevMonth !== statsTest.curMonth && statsTest.prevCells >= 28 && statsTest.yearCells >= 365,
   JSON.stringify({ visible: statsTest.visible, ds: statsTest.ds }));
+
+const timeAttack = await evalJs(`(async () => {
+  const p = window.__wanxiang;
+  p.setTimeAttack(true);
+  p.startGame('rocket', 2);
+  const active = p.getTimeAttack();
+  const limit = p.state.timeLimit;
+  p.expireTimer();
+  await new Promise((r) => setTimeout(r, 120));
+  const visible = !document.getElementById('timeup').classList.contains('hidden');
+  document.getElementById('timeup-back').click();
+  const closed = document.getElementById('timeup').classList.contains('hidden');
+  const off = p.getTimeAttack();
+  return { active, limit, visible, closed, off };
+})()`);
+check('限时模式：倒计时超时弹窗与返回', timeAttack.active === true && timeAttack.limit > 0 && timeAttack.visible === true && timeAttack.closed === true && timeAttack.off === false, JSON.stringify(timeAttack));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
