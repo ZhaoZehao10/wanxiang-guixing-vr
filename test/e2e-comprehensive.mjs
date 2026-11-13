@@ -341,6 +341,21 @@ const taRecord = await evalJs(`(() => {
 })()`);
 check('限时模式：胜利后记录独立最佳并可在限时榜查看', taRecord.best > 0 && taRecord.rows >= 5 && taRecord.title.includes('限时挑战') && taRecord.globalRows >= 5 && taRecord.globalTitle.includes('全模型'), JSON.stringify(taRecord));
 
+const weeklyTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  const wk = p.weekKey();
+  const wc = p.weeklyChallenge(wk);
+  p.recordWeekly(wk, 'rocket', 2, 65);
+  p.openBoard();
+  document.getElementById('board-tab-weekly').click();
+  const rows = document.querySelectorAll('#board-body .board-level').length;
+  const text = document.getElementById('board-body').textContent;
+  const title = document.getElementById('board-title').textContent;
+  p.closeBoard();
+  return { wk, wc, rows, text, title };
+})()`);
+check('本周挑战：确定性组合与本地榜', weeklyTest.rows === 1 && weeklyTest.text.includes('1分5秒') && weeklyTest.title.includes('本周挑战') && !!weeklyTest.wc.modelKey, JSON.stringify({ wk: weeklyTest.wk, rows: weeklyTest.rows }));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 
