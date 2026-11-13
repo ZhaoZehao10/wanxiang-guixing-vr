@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.17.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -2217,7 +2217,7 @@ function fmtTime(t) {
 function buildBoardUI(mode = boardMode) {
   const body = $('board-body');
   if (!body) return;
-  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : (mode === 'attack' ? 'attack' : 'model'));
+  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : (mode === 'attack' ? 'attack' : (mode === 'attackGlobal' ? 'attackGlobal' : 'model')));
   const prog = readProgress();
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
   if ($('board-title')) {
@@ -2229,6 +2229,7 @@ function buildBoardUI(mode = boardMode) {
   if ($('board-tab-global')) $('board-tab-global').style.borderColor = boardMode === 'global' ? '#6cd0ff' : '';
   if ($('board-tab-daily')) $('board-tab-daily').style.borderColor = boardMode === 'daily' ? '#6cd0ff' : '';
   if ($('board-tab-attack')) $('board-tab-attack').style.borderColor = boardMode === 'attack' ? '#6cd0ff' : '';
+  if ($('board-tab-attack-global')) $('board-tab-attack-global').style.borderColor = boardMode === 'attackGlobal' ? '#6cd0ff' : '';
   body.innerHTML = '';
   const sum = summarize(prog, totalLevels());
   const head = document.createElement('div');
@@ -2247,6 +2248,22 @@ function buildBoardUI(mode = boardMode) {
     body.appendChild(row);
   };
 
+  if (boardMode === 'attackGlobal') {
+    if ($('board-title')) $('board-title').textContent = (getLang() === 'en' ? '⏱ Time Attack · All Models' : '⏱ 限时全模型总榜');
+    const d = readTimeAttack();
+    for (const n of DIFFICULTY) {
+      const items = [];
+      for (const mk of MODEL_KEYS) {
+        const rec = d[levelKey(mk, n)];
+        if (rec && rec.bestTime) items.push({ mk, t: rec.bestTime });
+      }
+      items.sort((a, b) => a.t - b.t);
+      const top = items.slice(0, 3);
+      const line = top.length ? top.map((it, i) => (i + 1) + '. ' + (MODELS[it.mk] ? MODELS[it.mk].emoji : '') + modelName(it.mk, MODELS[it.mk] ? MODELS[it.mk].name : it.mk) + ' ' + fmtDur(it.t)).join('　') : t('board.none');
+      mkRow(t('menu.pieces', { n }) + ' · ' + diffName(n, DIFFICULTY_NAME[n]), (getLang() === 'en' ? items.length + ' models' : items.length + ' 个模型有记录'), (getLang() === 'en' ? 'Top 3: ' : '前三：') + line);
+    }
+    return;
+  }
   if (boardMode === 'attack') {
     if ($('board-title')) $('board-title').textContent = (getLang() === 'en' ? '⏱ Time Attack · Best per Difficulty' : '⏱ 限时挑战 · 本模型最佳');
     const d = readTimeAttack();
@@ -2629,6 +2646,9 @@ if ($('board-tab-daily')) {
 }
 if ($('board-tab-attack')) {
   $('board-tab-attack').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('attack'); });
+}
+if ($('board-tab-attack-global')) {
+  $('board-tab-attack-global').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('attackGlobal'); });
 }
 if ($('tutorial-ok')) {
   $('tutorial-ok').addEventListener('click', (e) => {
