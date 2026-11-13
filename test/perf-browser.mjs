@@ -32,8 +32,11 @@ async function evalJs(expr) {
 }
 await send('Page.enable');
 await send('Runtime.enable');
+await send('Network.enable');
+await send('Network.clearBrowserCache');
 await send('Page.navigate', { url: URL });
 await sleep(2000);
+await evalJs('(() => { const p = window.__wanxiang; p.setSettingsValue("uiScale", 1); p.setSettingsValue("menuSide", "center"); return true; })()');
 
 // CPU 限速 6x 模拟移动端芯片（Snapdragon XR2 ≈ 桌面 1/4~1/8 性能）
 await send('Emulation.setCPUThrottlingRate', { rate: 6 });

@@ -315,6 +315,28 @@ const timeAttack = await evalJs(`(async () => {
 })()`);
 check('限时模式：倒计时超时弹窗与返回', timeAttack.active === true && timeAttack.limit > 0 && timeAttack.visible === true && timeAttack.closed === true && timeAttack.off === false, JSON.stringify(timeAttack));
 
+const taRecord = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.setTimeAttack(true);
+  p.startGame('rocket', 2);
+  p.state.startTime -= 1500;
+  for (const mesh of p.state.pieces) {
+    const tp = new p.THREE.Vector3(), tq = new p.THREE.Quaternion();
+    mesh.userData.target.getWorldPosition(tp);
+    mesh.userData.target.getWorldQuaternion(tq);
+    mesh.position.copy(tp); mesh.quaternion.copy(tq); p.trySnap(mesh);
+  }
+  const rec = p.getTimeAttackRecords()['rocket|2'];
+  p.openBoard();
+  document.getElementById('board-tab-attack').click();
+  const rows = document.querySelectorAll('#board-body .board-level').length;
+  const text = document.getElementById('board-body').textContent;
+  p.closeBoard();
+  p.setTimeAttack(false);
+  return { best: rec ? rec.bestTime : 0, rows, text, title: document.getElementById('board-title').textContent };
+})()`);
+check('限时模式：胜利后记录独立最佳并可在限时榜查看', taRecord.best > 0 && taRecord.rows >= 5 && taRecord.title.includes('限时挑战'), JSON.stringify(taRecord));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 
