@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.15.0';
+const APP_VERSION = '1.16.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -914,13 +914,15 @@ function winGame() {
   state.mode = 'won';
   state.winTime = performance.now();
   const secs = Math.round((state.winTime - state.startTime) / 1000);
-  const noRecord = state.practice || state.randomMode || !!duelState;
+  const noRecord = state.practice || state.randomMode || state.timeAttack || !!duelState;
   $('win-time').textContent = state.practice ? t('win.practice') : state.randomMode ? t('win.random') : `${Math.floor(secs / 60)}分${secs % 60}秒`;
   $('win-model').textContent = `${ghostName()} · ${state.pieces.length} 块${state.practice ? ' · 练习' : state.randomMode ? ' · 随机' : ''}`;
   // 成绩入库 + 成就评估（练习/随机模式跳过，不污染记录）
   const res = noRecord
     ? { stars: 0, rec: { bestTime: 0, plays: 0 }, newly: [] }
     : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days });
+  let taBest = 0;
+  if (state.timeAttack && !state.practice) { taBest = recordTimeAttack(state.modelKey, state.pieceCount, secs).bestTime; }
   state.lastResult = { secs, stars: res.stars, noRecord, modelKey: state.modelKey, pieceCount: state.pieceCount };
   if (duelState && duelState.results.length < 2) duelRecord(secs, state.pieceCount);
   const starsEl = $('win-stars');
@@ -929,6 +931,8 @@ function winGame() {
   if (bestEl) {
     bestEl.textContent = state.practice
       ? t('win.practiceBest')
+      : state.timeAttack
+        ? (getLang() === 'en' ? 'Time attack · best ' + fmtDur(taBest) : '限时模式 · 最佳 ' + fmtDur(taBest))
       : state.randomMode
         ? t('win.randomBest')
         : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`
@@ -1216,6 +1220,19 @@ function buildStatsUI() {
 
 function openStats() { statsMonthOffset = 0; buildStatsUI(); $('stats').classList.remove('hidden'); }
 function closeStats() { $('stats').classList.add('hidden'); }
+
+const TIMEATTACK_KEY = 'wanxiang.timeattack';
+function readTimeAttack() { try { return JSON.parse(localStorage.getItem(TIMEATTACK_KEY) || '{}'); } catch (e) { return {}; } }
+function recordTimeAttack(modelKey, n, secs) {
+  const d = readTimeAttack();
+  const k = levelKey(modelKey, n);
+  const rec = d[k] || { bestTime: 0, plays: 0 };
+  if (!rec.bestTime || secs < rec.bestTime) rec.bestTime = secs;
+  rec.plays = (rec.plays || 0) + 1;
+  d[k] = rec;
+  try { localStorage.setItem(TIMEATTACK_KEY, JSON.stringify(d)); } catch (e) { /* ignore */ }
+  return rec;
+}
 
 function showDifficulty() {
   state.mode = 'difficulty';
@@ -2200,7 +2217,7 @@ function fmtTime(t) {
 function buildBoardUI(mode = boardMode) {
   const body = $('board-body');
   if (!body) return;
-  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : 'model');
+  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : (mode === 'attack' ? 'attack' : 'model'));
   const prog = readProgress();
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
   if ($('board-title')) {
@@ -2211,6 +2228,7 @@ function buildBoardUI(mode = boardMode) {
   if ($('board-tab-model')) $('board-tab-model').style.borderColor = boardMode === 'model' ? '#6cd0ff' : '';
   if ($('board-tab-global')) $('board-tab-global').style.borderColor = boardMode === 'global' ? '#6cd0ff' : '';
   if ($('board-tab-daily')) $('board-tab-daily').style.borderColor = boardMode === 'daily' ? '#6cd0ff' : '';
+  if ($('board-tab-attack')) $('board-tab-attack').style.borderColor = boardMode === 'attack' ? '#6cd0ff' : '';
   body.innerHTML = '';
   const sum = summarize(prog, totalLevels());
   const head = document.createElement('div');
@@ -2229,6 +2247,15 @@ function buildBoardUI(mode = boardMode) {
     body.appendChild(row);
   };
 
+  if (boardMode === 'attack') {
+    if ($('board-title')) $('board-title').textContent = (getLang() === 'en' ? '⏱ Time Attack · Best per Difficulty' : '⏱ 限时挑战 · 本模型最佳');
+    const d = readTimeAttack();
+    for (const n of supportedCounts(state.modelKey)) {
+      const rec = d[levelKey(state.modelKey, n)];
+      mkRow(t('menu.pieces', { n }) + ' · ' + diffName(n, DIFFICULTY_NAME[n]), rec && rec.bestTime ? fmtDur(rec.bestTime) : t('board.none'), rec ? (getLang() === 'en' ? 'played ' + rec.plays : '已玩 ' + rec.plays + ' 次') : '');
+    }
+    return;
+  }
   if (boardMode === 'daily') {
     const date = dayKey();
     const d = readDaily()[date];
@@ -2600,6 +2627,9 @@ if ($('board-tab-global')) {
 if ($('board-tab-daily')) {
   $('board-tab-daily').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('daily'); });
 }
+if ($('board-tab-attack')) {
+  $('board-tab-attack').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('attack'); });
+}
 if ($('tutorial-ok')) {
   $('tutorial-ok').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -2666,6 +2696,7 @@ window.__wanxiang = {
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery, openStats, closeStats,
   getDailyStats: () => dailyStats(),
+  getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,
   openDuel, closeDuel, duelAdvance, setDuelRounds,
