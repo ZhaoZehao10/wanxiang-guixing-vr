@@ -19,8 +19,8 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.21.0';
-const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
+const APP_VERSION = '1.22.0';
+const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -96,6 +96,8 @@ const SCENE_THEMES = {
   sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
   dawn: { name: '樱花', emoji: '🌸', bg: 0x2b1e2c, fog: 0x2b1e2c, floor: 0x3d2a42, slope: 0x50355a, hemiSky: 0xffd8ea, hemiGround: 0x5c4050, dir: 0xffe8f2, dir2: 0xff9ec9, rim: 0xff7ab0, starOpacity: 0.5 },
   dusk: { name: '黄昏', emoji: '🌅', bg: 0x2a1a1e, fog: 0x2a1a1e, floor: 0x3a2a2a, slope: 0x4a3230, hemiSky: 0xffd0a0, hemiGround: 0x5a3a30, dir: 0xffd8b0, dir2: 0xff8a60, rim: 0xff6a80, starOpacity: 0.3 },
+  morning: { name: '晨曦', emoji: '🌤️', bg: 0x1a2233, fog: 0x1a2233, floor: 0x2a3444, slope: 0x3a4a5a, hemiSky: 0xffe0b0, hemiGround: 0x405060, dir: 0xfff0d0, dir2: 0xffc080, rim: 0xffe0a0, starOpacity: 0.1 },
+  lava: { name: '熔岩', emoji: '🌋', bg: 0x1a0805, fog: 0x1a0805, floor: 0x3a1208, slope: 0x5a1a0a, hemiSky: 0xff8a50, hemiGround: 0x401008, dir: 0xffb070, dir2: 0xff4020, rim: 0xff6a00, starOpacity: 0.1 },
   nebula: { name: '星云', emoji: '🌌', bg: 0x120a24, fog: 0x120a24, floor: 0x1e1440, slope: 0x2a1a55, hemiSky: 0xd0c0ff, hemiGround: 0x2a1040, dir: 0xffffff, dir2: 0xaa88ff, rim: 0xff6ad0, starOpacity: 0.85 },
   sea: { name: '深海', emoji: '🌊', bg: 0x062029, fog: 0x062029, floor: 0x0c3a44, slope: 0x155a66, hemiSky: 0xbff4ff, hemiGround: 0x0e2c34, dir: 0xffffff, dir2: 0x66e0ff, rim: 0x2fd6b0, starOpacity: 0.25 },
 };
