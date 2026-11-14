@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.20.0';
+const APP_VERSION = '1.21.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -920,7 +920,7 @@ function winGame() {
   // 成绩入库 + 成就评估（练习/随机模式跳过，不污染记录）
   const res = noRecord
     ? { stars: 0, rec: { bestTime: 0, plays: 0 }, newly: [] }
-    : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days });
+    : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days, weeklyDone: Object.keys(readWeekly()).length, monthlyDone: Object.keys(readMonthly()).length, yearlyDone: Object.keys(readYearly()).length });
   let taBest = 0;
   if (state.timeAttack && !state.practice) { taBest = recordTimeAttack(state.modelKey, state.pieceCount, secs).bestTime; }
   state.lastResult = { secs, stars: res.stars, noRecord, modelKey: state.modelKey, pieceCount: state.pieceCount };

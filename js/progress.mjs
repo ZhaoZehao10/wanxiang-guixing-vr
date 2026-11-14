@@ -110,6 +110,18 @@ export const ACHIEVEMENTS = [
     test: (p, extra) => (extra.dailyDays || 0) >= 100,
   },
   {
+    id: 'weekly_4', name: '四周挑战者', desc: '累计完成 4 周本周挑战',
+    test: (p, extra) => (extra.weeklyDone || 0) >= 4,
+  },
+  {
+    id: 'monthly_3', name: '季度挑战者', desc: '累计完成 3 个月本月挑战',
+    test: (p, extra) => (extra.monthlyDone || 0) >= 3,
+  },
+  {
+    id: 'yearly_1', name: '年度挑战者', desc: '完成 1 次年度挑战',
+    test: (p, extra) => (extra.yearlyDone || 0) >= 1,
+  },
+  {
     id: 'star_100', name: '百星收藏家', desc: '累计获得 100 颗星',
     test: (p) => Object.values(p).reduce((s, r) => s + (r.stars || 0), 0) >= 100,
   },
