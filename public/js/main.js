@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.19.0';
+const APP_VERSION = '1.20.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1305,6 +1305,37 @@ function monthlyBoardText() {
   return d.times.map((s, i) => (i + 1) + '. ' + fmtDur(s)).join('　');
 }
 
+function yearKey(d = new Date()) { return String(d.getFullYear()); }
+
+function yearlyChallenge(key = yearKey()) {
+  let h = 2166136261 >>> 0;
+  for (const ch of key) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  h = Math.imul(h ^ 0xc2b2ae35, 3266489917) >>> 0;
+  const combos = [];
+  for (const mk of Object.keys(MODELS)) {
+    for (const n of DIFFICULTY) {
+      if (CUT_TABLE[mk] && CUT_TABLE[mk][n]) combos.push([mk, n]);
+    }
+  }
+  const [modelKey, n] = combos[h % combos.length];
+  return { year: key, modelKey, name: MODELS[modelKey].name, emoji: MODELS[modelKey].emoji, n };
+}
+
+const YEARLY_KEY = 'wanxiang.yearly';
+function readYearly() { try { return JSON.parse(localStorage.getItem(YEARLY_KEY) || '{}'); } catch (e) { return {}; } }
+function recordYearly(key, modelKey, n, secs) {
+  const d = readYearly();
+  const rec = d[key] && d[key].modelKey === modelKey && d[key].n === n ? d[key] : { modelKey, n, times: [] };
+  rec.times = [...new Set([...(rec.times || []), secs])].sort((a, b) => a - b).slice(0, 3);
+  d[key] = rec;
+  try { localStorage.setItem(YEARLY_KEY, JSON.stringify(d)); } catch (e) { /* ignore */ }
+}
+function yearlyBoardText() {
+  const d = readYearly()[yearKey()];
+  if (!d) return '今年暂无记录';
+  return d.times.map((s, i) => (i + 1) + '. ' + fmtDur(s)).join('　');
+}
+
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
@@ -1345,6 +1376,14 @@ function showDifficulty() {
     + '<span style="font-size:12px;color:#8b96b8">' + mc.month + ' · ' + (getLang() === 'en' ? 'Changes monthly' : '每月自动更换') + '</span>';
   mcBtn.onclick = () => { state.monthlyMode = mc; startGameUI(mc.modelKey, mc.n); };
   card.appendChild(mcBtn);
+  const yc = yearlyChallenge();
+  const ycBtn = document.createElement('button');
+  ycBtn.className = 'diff-btn';
+  ycBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#ff9f6e;background:rgba(255,159,110,.10)';
+  ycBtn.innerHTML = '<b style="font-size:15px">🎆 ' + (getLang() === 'en' ? 'Yearly Challenge' : '年度挑战') + ' · ' + modelName(yc.modelKey, yc.name) + ' · ' + t('menu.pieces', { n: yc.n }) + '</b>'
+    + '<span style="font-size:12px;color:#8b96b8">' + yc.year + ' · ' + (getLang() === 'en' ? 'Changes yearly' : '每年自动更换') + '</span>';
+  ycBtn.onclick = () => { state.yearlyMode = yc; startGameUI(yc.modelKey, yc.n); };
+  card.appendChild(ycBtn);
 
   // 排行榜入口：当前模型各难度的本地前三成绩
   const boardBtn = document.createElement('button');
@@ -2305,7 +2344,7 @@ function fmtTime(t) {
 function buildBoardUI(mode = boardMode) {
   const body = $('board-body');
   if (!body) return;
-  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : (mode === 'attack' ? 'attack' : (mode === 'attackGlobal' ? 'attackGlobal' : (mode === 'weekly' ? 'weekly' : (mode === 'monthly' ? 'monthly' : 'model')))));
+  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : (mode === 'attack' ? 'attack' : (mode === 'attackGlobal' ? 'attackGlobal' : (mode === 'weekly' ? 'weekly' : (mode === 'monthly' ? 'monthly' : (mode === 'yearly' ? 'yearly' : 'model'))))));
   const prog = readProgress();
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
   if ($('board-title')) {
@@ -2318,6 +2357,7 @@ function buildBoardUI(mode = boardMode) {
   if ($('board-tab-daily')) $('board-tab-daily').style.borderColor = boardMode === 'daily' ? '#6cd0ff' : '';
   if ($('board-tab-weekly')) $('board-tab-weekly').style.borderColor = boardMode === 'weekly' ? '#6cd0ff' : '';
   if ($('board-tab-monthly')) $('board-tab-monthly').style.borderColor = boardMode === 'monthly' ? '#6cd0ff' : '';
+  if ($('board-tab-yearly')) $('board-tab-yearly').style.borderColor = boardMode === 'yearly' ? '#6cd0ff' : '';
   if ($('board-tab-attack')) $('board-tab-attack').style.borderColor = boardMode === 'attack' ? '#6cd0ff' : '';
   if ($('board-tab-attack-global')) $('board-tab-attack-global').style.borderColor = boardMode === 'attackGlobal' ? '#6cd0ff' : '';
   body.innerHTML = '';
@@ -2338,6 +2378,13 @@ function buildBoardUI(mode = boardMode) {
     body.appendChild(row);
   };
 
+  if (boardMode === 'yearly') {
+    if ($('board-title')) $('board-title').textContent = (getLang() === 'en' ? '🎆 Yearly Challenge · Local' : '🎆 年度挑战 · 本地记录');
+    const yr = yearKey();
+    const yc = yearlyChallenge(yr);
+    mkRow(modelName(yc.modelKey, yc.name) + ' · ' + t('menu.pieces', { n: yc.n }), yc.year, (getLang() === 'en' ? 'Top 3: ' : '前三：') + yearlyBoardText());
+    return;
+  }
   if (boardMode === 'monthly') {
     if ($('board-title')) $('board-title').textContent = (getLang() === 'en' ? '📅 Monthly Challenge · Local' : '📅 本月挑战 · 本地记录');
     const mk = monthKey();
@@ -2590,7 +2637,7 @@ function closeTutorial() {
   if (el) el.classList.add('hidden');
   const p = pendingStart;
   pendingStart = null;
-  if (p) startGame(p.modelKey, p.n, { random: !!p.random, daily: p.daily, weekly: p.weekly, monthly: p.monthly, timeAttack: !!p.timeAttack });
+  if (p) startGame(p.modelKey, p.n, { random: !!p.random, daily: p.daily, weekly: p.weekly, monthly: p.monthly, yearly: p.yearly, timeAttack: !!p.timeAttack });
 }
 function startGameUI(modelKey, n) {
   // 2D 覆盖层在 VR 里看不见：已进入沉浸式说明是头显内操作，直接开局，避免卡住
@@ -2601,13 +2648,15 @@ function startGameUI(modelKey, n) {
   state.weeklyMode = null;
   const monthly = state.monthlyMode;
   state.monthlyMode = null;
+  const yearly = state.yearlyMode;
+  state.yearlyMode = null;
   if (!inVr && !tutorialSeen()) {
-    pendingStart = { modelKey, n, random: state.randomMode, daily, weekly, monthly, timeAttack: state.timeAttack };
+    pendingStart = { modelKey, n, random: state.randomMode, daily, weekly, monthly, yearly, timeAttack: state.timeAttack };
     openTutorial();
     sfx.ui();
     return;
   }
-  startGame(modelKey, n, { random: state.randomMode, daily, weekly, monthly, timeAttack: state.timeAttack });
+  startGame(modelKey, n, { random: state.randomMode, daily, weekly, monthly, yearly, timeAttack: state.timeAttack });
 }
 
 // ---------------- 启动 ----------------
@@ -2758,6 +2807,9 @@ if ($('board-tab-weekly')) {
 if ($('board-tab-monthly')) {
   $('board-tab-monthly').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('monthly'); });
 }
+if ($('board-tab-yearly')) {
+  $('board-tab-yearly').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('yearly'); });
+}
 if ($('board-tab-attack')) {
   $('board-tab-attack').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('attack'); });
 }
@@ -2829,7 +2881,7 @@ window.__wanxiang = {
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery, openStats, closeStats,
-  getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(),
+  getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,

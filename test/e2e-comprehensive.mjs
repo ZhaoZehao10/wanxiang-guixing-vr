@@ -371,6 +371,21 @@ const monthlyTest = await evalJs(`(() => {
 })()`);
 check('本月挑战：确定性组合与本地榜', monthlyTest.rows === 1 && monthlyTest.text.includes('1分15秒') && monthlyTest.title.includes('本月挑战') && !!monthlyTest.mc.modelKey, JSON.stringify({ mk: monthlyTest.mk, rows: monthlyTest.rows }));
 
+const yearlyTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  const yr = p.yearKey();
+  const yc = p.yearlyChallenge(yr);
+  p.recordYearly(yr, 'rocket', 2, 85);
+  p.openBoard();
+  document.getElementById('board-tab-yearly').click();
+  const rows = document.querySelectorAll('#board-body .board-level').length;
+  const text = document.getElementById('board-body').textContent;
+  const title = document.getElementById('board-title').textContent;
+  p.closeBoard();
+  return { yr, yc, rows, text, title };
+})()`);
+check('年度挑战：确定性组合与本地榜', yearlyTest.rows === 1 && yearlyTest.text.includes('1分25秒') && yearlyTest.title.includes('年度挑战') && !!yearlyTest.yc.modelKey, JSON.stringify({ yr: yearlyTest.yr, rows: yearlyTest.rows }));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 
