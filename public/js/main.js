@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.18.0';
+const APP_VERSION = '1.19.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 7 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1272,6 +1272,39 @@ function weeklyBoardText() {
   return d.times.map((s, i) => (i + 1) + '. ' + fmtDur(s)).join('　');
 }
 
+function monthKey(d = new Date()) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function monthlyChallenge(key = monthKey()) {
+  let h = 2166136261 >>> 0;
+  for (const ch of key) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  h = Math.imul(h ^ 0x85ebca6b, 2246822519) >>> 0;
+  const combos = [];
+  for (const mk of Object.keys(MODELS)) {
+    for (const n of DIFFICULTY) {
+      if (CUT_TABLE[mk] && CUT_TABLE[mk][n]) combos.push([mk, n]);
+    }
+  }
+  const [modelKey, n] = combos[h % combos.length];
+  return { month: key, modelKey, name: MODELS[modelKey].name, emoji: MODELS[modelKey].emoji, n };
+}
+
+const MONTHLY_KEY = 'wanxiang.monthly';
+function readMonthly() { try { return JSON.parse(localStorage.getItem(MONTHLY_KEY) || '{}'); } catch (e) { return {}; } }
+function recordMonthly(key, modelKey, n, secs) {
+  const d = readMonthly();
+  const rec = d[key] && d[key].modelKey === modelKey && d[key].n === n ? d[key] : { modelKey, n, times: [] };
+  rec.times = [...new Set([...(rec.times || []), secs])].sort((a, b) => a - b).slice(0, 3);
+  d[key] = rec;
+  try { localStorage.setItem(MONTHLY_KEY, JSON.stringify(d)); } catch (e) { /* ignore */ }
+}
+function monthlyBoardText() {
+  const d = readMonthly()[monthKey()];
+  if (!d) return '本月暂无记录';
+  return d.times.map((s, i) => (i + 1) + '. ' + fmtDur(s)).join('　');
+}
+
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
@@ -1303,6 +1336,15 @@ function showDifficulty() {
   wcBtn.onclick = () => { state.weeklyMode = wc; startGameUI(wc.modelKey, wc.n); };
   card.appendChild(dcBtn);
   card.appendChild(wcBtn);
+
+  const mc = monthlyChallenge();
+  const mcBtn = document.createElement('button');
+  mcBtn.className = 'diff-btn';
+  mcBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#66d9a0;background:rgba(102,217,160,.10)';
+  mcBtn.innerHTML = '<b style="font-size:15px">📅 ' + (getLang() === 'en' ? 'Monthly Challenge' : '本月挑战') + ' · ' + modelName(mc.modelKey, mc.name) + ' · ' + t('menu.pieces', { n: mc.n }) + '</b>'
+    + '<span style="font-size:12px;color:#8b96b8">' + mc.month + ' · ' + (getLang() === 'en' ? 'Changes monthly' : '每月自动更换') + '</span>';
+  mcBtn.onclick = () => { state.monthlyMode = mc; startGameUI(mc.modelKey, mc.n); };
+  card.appendChild(mcBtn);
 
   // 排行榜入口：当前模型各难度的本地前三成绩
   const boardBtn = document.createElement('button');
@@ -2263,7 +2305,7 @@ function fmtTime(t) {
 function buildBoardUI(mode = boardMode) {
   const body = $('board-body');
   if (!body) return;
-  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : (mode === 'attack' ? 'attack' : (mode === 'attackGlobal' ? 'attackGlobal' : (mode === 'weekly' ? 'weekly' : 'model'))));
+  boardMode = mode === 'global' ? 'global' : (mode === 'daily' ? 'daily' : (mode === 'attack' ? 'attack' : (mode === 'attackGlobal' ? 'attackGlobal' : (mode === 'weekly' ? 'weekly' : (mode === 'monthly' ? 'monthly' : 'model')))));
   const prog = readProgress();
   const def = MODELS[state.modelKey] || { emoji: '🧩', name: '模型' };
   if ($('board-title')) {
@@ -2275,6 +2317,7 @@ function buildBoardUI(mode = boardMode) {
   if ($('board-tab-global')) $('board-tab-global').style.borderColor = boardMode === 'global' ? '#6cd0ff' : '';
   if ($('board-tab-daily')) $('board-tab-daily').style.borderColor = boardMode === 'daily' ? '#6cd0ff' : '';
   if ($('board-tab-weekly')) $('board-tab-weekly').style.borderColor = boardMode === 'weekly' ? '#6cd0ff' : '';
+  if ($('board-tab-monthly')) $('board-tab-monthly').style.borderColor = boardMode === 'monthly' ? '#6cd0ff' : '';
   if ($('board-tab-attack')) $('board-tab-attack').style.borderColor = boardMode === 'attack' ? '#6cd0ff' : '';
   if ($('board-tab-attack-global')) $('board-tab-attack-global').style.borderColor = boardMode === 'attackGlobal' ? '#6cd0ff' : '';
   body.innerHTML = '';
@@ -2295,6 +2338,13 @@ function buildBoardUI(mode = boardMode) {
     body.appendChild(row);
   };
 
+  if (boardMode === 'monthly') {
+    if ($('board-title')) $('board-title').textContent = (getLang() === 'en' ? '📅 Monthly Challenge · Local' : '📅 本月挑战 · 本地记录');
+    const mk = monthKey();
+    const mc = monthlyChallenge(mk);
+    mkRow(modelName(mc.modelKey, mc.name) + ' · ' + t('menu.pieces', { n: mc.n }), mc.month, (getLang() === 'en' ? 'Top 3: ' : '前三：') + monthlyBoardText());
+    return;
+  }
   if (boardMode === 'weekly') {
     if ($('board-title')) $('board-title').textContent = (getLang() === 'en' ? '🏁 Weekly Challenge · Local' : '🏁 本周挑战 · 本地记录');
     const wk = weekKey();
@@ -2540,7 +2590,7 @@ function closeTutorial() {
   if (el) el.classList.add('hidden');
   const p = pendingStart;
   pendingStart = null;
-  if (p) startGame(p.modelKey, p.n, { random: !!p.random, daily: p.daily, weekly: p.weekly, timeAttack: !!p.timeAttack });
+  if (p) startGame(p.modelKey, p.n, { random: !!p.random, daily: p.daily, weekly: p.weekly, monthly: p.monthly, timeAttack: !!p.timeAttack });
 }
 function startGameUI(modelKey, n) {
   // 2D 覆盖层在 VR 里看不见：已进入沉浸式说明是头显内操作，直接开局，避免卡住
@@ -2549,13 +2599,15 @@ function startGameUI(modelKey, n) {
   state.dailyMode = null;
   const weekly = state.weeklyMode;
   state.weeklyMode = null;
+  const monthly = state.monthlyMode;
+  state.monthlyMode = null;
   if (!inVr && !tutorialSeen()) {
-    pendingStart = { modelKey, n, random: state.randomMode, daily, weekly, timeAttack: state.timeAttack };
+    pendingStart = { modelKey, n, random: state.randomMode, daily, weekly, monthly, timeAttack: state.timeAttack };
     openTutorial();
     sfx.ui();
     return;
   }
-  startGame(modelKey, n, { random: state.randomMode, daily, weekly, timeAttack: state.timeAttack });
+  startGame(modelKey, n, { random: state.randomMode, daily, weekly, monthly, timeAttack: state.timeAttack });
 }
 
 // ---------------- 启动 ----------------
@@ -2703,6 +2755,9 @@ if ($('board-tab-daily')) {
 if ($('board-tab-weekly')) {
   $('board-tab-weekly').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('weekly'); });
 }
+if ($('board-tab-monthly')) {
+  $('board-tab-monthly').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('monthly'); });
+}
 if ($('board-tab-attack')) {
   $('board-tab-attack').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); buildBoardUI('attack'); });
 }
@@ -2774,7 +2829,7 @@ window.__wanxiang = {
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery, openStats, closeStats,
-  getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(),
+  getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,
