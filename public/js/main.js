@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.29.0';
+const APP_VERSION = '1.30.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -923,7 +923,8 @@ function winGame() {
   const res = noRecord
     ? { stars: 0, rec: { bestTime: 0, plays: 0 }, newly: [] }
     : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days, weeklyDone: Object.keys(readWeekly()).length, monthlyDone: Object.keys(readMonthly()).length, yearlyDone: Object.keys(readYearly()).length });
-  let taBest = 0;
+  let taBest = 0, practiceRec = null;
+  if (state.practice) practiceRec = recordPracticeBest(state.modelKey, state.pieceCount, secs);
   if (state.timeAttack && !state.practice) { taBest = recordTimeAttack(state.modelKey, state.pieceCount, secs).bestTime; }
   state.lastResult = { secs, stars: res.stars, noRecord, modelKey: state.modelKey, pieceCount: state.pieceCount };
   if (duelState && duelState.results.length < 2) duelRecord(secs, state.pieceCount);
@@ -932,7 +933,7 @@ function winGame() {
   const bestEl = $('win-best');
   if (bestEl) {
     bestEl.textContent = state.practice
-      ? t('win.practiceBest')
+      ? (getLang() === 'en' ? 'Practice · best ' + fmtDur(practiceRec.bestTime) + ' · ' + practiceRec.plays + ' plays' : '练习模式 · 最佳 ' + fmtDur(practiceRec.bestTime) + ' · 已练 ' + practiceRec.plays + ' 次')
       : state.timeAttack
         ? (getLang() === 'en' ? 'Time attack · best ' + fmtDur(taBest) : '限时模式 · 最佳 ' + fmtDur(taBest))
       : state.randomMode
@@ -1436,6 +1437,19 @@ function toggleFavorite(key) {
   return next;
 }
 
+const PRACTICE_BEST_KEY = 'wanxiang.practiceBest';
+function readPracticeBest() { try { return JSON.parse(localStorage.getItem(PRACTICE_BEST_KEY) || '{}'); } catch (e) { return {}; } }
+function recordPracticeBest(modelKey, n, secs) {
+  const d = readPracticeBest();
+  const k = levelKey(modelKey, n);
+  const rec = d[k] || { bestTime: 0, plays: 0 };
+  if (!rec.bestTime || secs < rec.bestTime) rec.bestTime = secs;
+  rec.plays = (rec.plays || 0) + 1;
+  d[k] = rec;
+  try { localStorage.setItem(PRACTICE_BEST_KEY, JSON.stringify(d)); } catch (e) { /* ignore */ }
+  return rec;
+}
+
 function challengeBadge(rec) {
   if (!rec || !Array.isArray(rec.times) || !rec.times.length) return getLang() === 'en' ? '⬜ Not done' : '⬜ 未完成';
   return (getLang() === 'en' ? '✅ Done · best ' : '✅ 已完成 · 最佳 ') + fmtDur(rec.times[0]);
@@ -1576,13 +1590,16 @@ function showDifficulty() {
         : (rec && rec.stars > 0
           ? `${'★'.repeat(rec.stars)}${'☆'.repeat(3 - rec.stars)} ${Math.floor(rec.bestTime / 60)}分${rec.bestTime % 60}秒`
           : t('board.notChallenged'));
+      const prec = readPracticeBest()[levelKey(state.modelKey, n)];
+      const practiceTxt = prec && prec.bestTime ? ' · 练 ' + fmtDur(prec.bestTime) : '';
+
       b.disabled = !supported;
       b.style.opacity = supported ? '1' : '0.45';
       b.style.cursor = supported ? 'pointer' : 'not-allowed';
       b.onclick = supported ? () => startGameUI(state.modelKey, n) : null;
       b.innerHTML = `<b style="font-size:18px">${t('menu.pieces', { n })}</b><span>${diffName(n, DIFFICULTY_NAME[n])}</span>`
         + `<small style="display:block;color:#ffd24d;font-size:12px;margin-top:3px">⭐ ${done}/${supportCount} 关</small>`
-        + `<small style="display:block;color:#9fb0d8;font-size:11px;margin-top:2px">${recTxt}</small>`;
+        + `<small style="display:block;color:#9fb0d8;font-size:11px;margin-top:2px">${recTxt}${practiceTxt}</small>`;
     }
   };
   for (const n of DIFFICULTY) {
@@ -3013,7 +3030,7 @@ window.__wanxiang = {
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport,
-  getFavorites: () => readFavorites(), toggleFavorite,
+  getFavorites: () => readFavorites(), toggleFavorite, getPracticeRecords: () => readPracticeBest(),
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(),
   getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
