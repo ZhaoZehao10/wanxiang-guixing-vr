@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.39.0';
+const APP_VERSION = '1.40.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1107,6 +1107,20 @@ function dailyHistory(days = 14) {
   return out;
 }
 
+function weeklyHistory(weeks = 12) {
+  const d = readWeekly();
+  const out = [];
+  const now = new Date();
+  for (let i = weeks - 1; i >= 0; i--) {
+    const dt = new Date(now);
+    dt.setDate(now.getDate() - i * 7);
+    const k = weekKey(dt);
+    const rec = d[k];
+    out.push({ week: k, done: !!rec, best: rec && rec.times && rec.times.length ? rec.times[0] : null });
+  }
+  return out;
+}
+
 function dailyYear(days = 365) {
   const d = readDaily();
   const out = [];
@@ -1236,6 +1250,25 @@ function buildStatsUI() {
   }
   yearWrap.appendChild(yg);
   body.appendChild(yearWrap);
+
+  const wh = weeklyHistory(12);
+  const weekWrap = document.createElement('div');
+  weekWrap.style.cssText = 'grid-column:1 / -1;border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px';
+  weekWrap.innerHTML = '<div style="color:#8b96b8;font-size:12px;margin-bottom:8px">' + (getLang() === 'en' ? 'Last 12 weeks' : '近 12 周挑战') + '</div>';
+  const wg = document.createElement('div');
+  wg.style.cssText = 'display:grid;grid-template-columns:repeat(12,1fr);gap:5px';
+  for (const w of wh) {
+    const cell = document.createElement('div');
+    cell.className = 'week-cell';
+    cell.dataset.done = w.done ? '1' : '0';
+    cell.style.cssText = 'height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#cfd9f5;'
+      + (w.done ? 'background:rgba(109,255,168,.40);border:1px solid rgba(109,255,168,.65)' : 'background:rgba(140,165,255,.10);border:1px solid rgba(140,165,255,.2)');
+    cell.title = w.week + (w.best ? ' · ' + fmtDur(w.best) : '');
+    cell.textContent = w.week.slice(-3);
+    wg.appendChild(cell);
+  }
+  weekWrap.appendChild(wg);
+  body.appendChild(weekWrap);
   const reportBtn = document.createElement('button');
   reportBtn.id = 'yearreport-btn';
   reportBtn.className = 'win-btn';
