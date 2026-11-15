@@ -413,6 +413,17 @@ const achGallery = await evalJs(`(() => {
 })()`);
 check('成就图鉴：18 项与解锁状态', achGallery.visible === true && achGallery.cards === 18 && achGallery.closed === true && achGallery.text.includes('初次拼合') && achGallery.poster.startsWith('data:image/png') && achGallery.posterLen > 5000, JSON.stringify({ cards: achGallery.cards }));
 
+const challengeBadges = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.recordDaily(p.dayKey(), 'rocket', 2, 60);
+  p.showDifficulty();
+  const btn = [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('今日挑战'));
+  const text = btn ? btn.textContent : '';
+  const done = text.includes('已完成');
+  return { text, done };
+})()`);
+check('挑战按钮：显示完成状态与最佳成绩', challengeBadges.done === true && challengeBadges.text.includes('1分'), JSON.stringify({ text: challengeBadges.text.slice(0, 80) }));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 

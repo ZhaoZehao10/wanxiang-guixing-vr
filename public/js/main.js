@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.27.0';
+const APP_VERSION = '1.28.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1426,6 +1426,11 @@ function downloadAchievementPoster() {
   try { const a = document.createElement('a'); a.href = generateAchievementPoster(); a.download = 'WanxiangGuixing-achievements.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
 }
 
+function challengeBadge(rec) {
+  if (!rec || !Array.isArray(rec.times) || !rec.times.length) return getLang() === 'en' ? '⬜ Not done' : '⬜ 未完成';
+  return (getLang() === 'en' ? '✅ Done · best ' : '✅ 已完成 · 最佳 ') + fmtDur(rec.times[0]);
+}
+
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
@@ -1446,14 +1451,14 @@ function showDifficulty() {
   dcBtn.className = 'diff-btn';
   dcBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#ffd24d;background:rgba(255,210,77,.10)';
   dcBtn.innerHTML = `<b style="font-size:15px">${t('menu.daily', { name: modelName(dc.modelKey, dc.name), n: dc.n })}</b>`
-    + `<span style="font-size:12px;color:#8b96b8">${t('menu.dailySub', { date: dc.date })}</span>`;
+    + `<span style="font-size:12px;color:#8b96b8">${t('menu.dailySub', { date: dc.date })} · ${challengeBadge(readDaily()[dc.date])}</span>`;
   dcBtn.onclick = () => { state.dailyMode = dc; startGameUI(dc.modelKey, dc.n); };
   const wc = weeklyChallenge();
   const wcBtn = document.createElement('button');
   wcBtn.className = 'diff-btn';
   wcBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#8b96ff;background:rgba(140,150,255,.10)';
   wcBtn.innerHTML = '<b style="font-size:15px">🏁 ' + (getLang() === 'en' ? 'Weekly Challenge' : '本周挑战') + ' · ' + modelName(wc.modelKey, wc.name) + ' · ' + t('menu.pieces', { n: wc.n }) + '</b>'
-    + '<span style="font-size:12px;color:#8b96b8">' + wc.week + ' · ' + (getLang() === 'en' ? 'Changes weekly' : '每周自动更换') + '</span>';
+    + '<span style="font-size:12px;color:#8b96b8">' + wc.week + ' · ' + (getLang() === 'en' ? 'Changes weekly' : '每周自动更换') + ' · ' + challengeBadge(readWeekly()[wc.week]) + '</span>';
   wcBtn.onclick = () => { state.weeklyMode = wc; startGameUI(wc.modelKey, wc.n); };
   card.appendChild(dcBtn);
   card.appendChild(wcBtn);
@@ -1463,7 +1468,7 @@ function showDifficulty() {
   mcBtn.className = 'diff-btn';
   mcBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#66d9a0;background:rgba(102,217,160,.10)';
   mcBtn.innerHTML = '<b style="font-size:15px">📅 ' + (getLang() === 'en' ? 'Monthly Challenge' : '本月挑战') + ' · ' + modelName(mc.modelKey, mc.name) + ' · ' + t('menu.pieces', { n: mc.n }) + '</b>'
-    + '<span style="font-size:12px;color:#8b96b8">' + mc.month + ' · ' + (getLang() === 'en' ? 'Changes monthly' : '每月自动更换') + '</span>';
+    + '<span style="font-size:12px;color:#8b96b8">' + mc.month + ' · ' + (getLang() === 'en' ? 'Changes monthly' : '每月自动更换') + ' · ' + challengeBadge(readMonthly()[mc.month]) + '</span>';
   mcBtn.onclick = () => { state.monthlyMode = mc; startGameUI(mc.modelKey, mc.n); };
   card.appendChild(mcBtn);
   const yc = yearlyChallenge();
@@ -1471,7 +1476,7 @@ function showDifficulty() {
   ycBtn.className = 'diff-btn';
   ycBtn.style.cssText = 'width:100%;margin-bottom:10px;border-color:#ff9f6e;background:rgba(255,159,110,.10)';
   ycBtn.innerHTML = '<b style="font-size:15px">🎆 ' + (getLang() === 'en' ? 'Yearly Challenge' : '年度挑战') + ' · ' + modelName(yc.modelKey, yc.name) + ' · ' + t('menu.pieces', { n: yc.n }) + '</b>'
-    + '<span style="font-size:12px;color:#8b96b8">' + yc.year + ' · ' + (getLang() === 'en' ? 'Changes yearly' : '每年自动更换') + '</span>';
+    + '<span style="font-size:12px;color:#8b96b8">' + yc.year + ' · ' + (getLang() === 'en' ? 'Changes yearly' : '每年自动更换') + ' · ' + challengeBadge(readYearly()[yc.year]) + '</span>';
   ycBtn.onclick = () => { state.yearlyMode = yc; startGameUI(yc.modelKey, yc.n); };
   card.appendChild(ycBtn);
 
