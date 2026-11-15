@@ -456,6 +456,23 @@ const practiceTest = await evalJs(`(() => {
 })()`);
 check('练习模式：独立最佳记录', practiceTest.best > 0 && practiceTest.plays >= 1, JSON.stringify(practiceTest));
 
+const randomStats = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.setRandomMode(true);
+  p.startGame('rocket', 4);
+  p.state.startTime -= 1500;
+  for (const mesh of p.state.pieces) {
+    const tp = new p.THREE.Vector3(), tq = new p.THREE.Quaternion();
+    mesh.userData.target.getWorldPosition(tp);
+    mesh.userData.target.getWorldQuaternion(tq);
+    mesh.position.copy(tp); mesh.quaternion.copy(tq); p.trySnap(mesh);
+  }
+  const rec = p.getRandomStats()['rocket|4'];
+  p.setRandomMode(false);
+  return { best: rec ? rec.bestTime : 0, plays: rec ? rec.plays : 0 };
+})()`);
+check('随机模式：独立统计次数/最佳', randomStats.best > 0 && randomStats.plays >= 1, JSON.stringify(randomStats));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 

@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.30.0';
+const APP_VERSION = '1.31.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -925,6 +925,8 @@ function winGame() {
     : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days, weeklyDone: Object.keys(readWeekly()).length, monthlyDone: Object.keys(readMonthly()).length, yearlyDone: Object.keys(readYearly()).length });
   let taBest = 0, practiceRec = null;
   if (state.practice) practiceRec = recordPracticeBest(state.modelKey, state.pieceCount, secs);
+  let randomRec = null;
+  if (state.randomMode && !state.practice) randomRec = recordRandomStats(state.modelKey, state.pieceCount, secs);
   if (state.timeAttack && !state.practice) { taBest = recordTimeAttack(state.modelKey, state.pieceCount, secs).bestTime; }
   state.lastResult = { secs, stars: res.stars, noRecord, modelKey: state.modelKey, pieceCount: state.pieceCount };
   if (duelState && duelState.results.length < 2) duelRecord(secs, state.pieceCount);
@@ -937,7 +939,7 @@ function winGame() {
       : state.timeAttack
         ? (getLang() === 'en' ? 'Time attack · best ' + fmtDur(taBest) : '限时模式 · 最佳 ' + fmtDur(taBest))
       : state.randomMode
-        ? t('win.randomBest')
+        ? (getLang() === 'en' ? 'Random · ' + randomRec.plays + ' plays · best ' + fmtDur(randomRec.bestTime) : '随机模式 · 已玩 ' + randomRec.plays + ' 次 · 最佳 ' + fmtDur(randomRec.bestTime))
         : `最佳记录 ${Math.floor(res.rec.bestTime / 60)}分${res.rec.bestTime % 60}秒 · 已玩 ${res.rec.plays} 次`
           + (res.rec.top && res.rec.top.length ? ` · 前三 ${res.rec.top.map((t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`).join(' / ')}` : '');
   }
@@ -1132,6 +1134,7 @@ function buildStatsUI() {
     ['🏆 ' + (getLang() === 'en' ? 'Achievements' : '成就'), unlocked + ' / ' + ACHIEVEMENTS.length],
     ['📅 ' + (getLang() === 'en' ? 'Daily challenge' : '每日挑战'), (getLang() === 'en' ? 'Streak ' + ds.streak + ' · week ' + ds.weekDone + '/7 · month ' + ds.monthDone : '连续 ' + ds.streak + ' 天 · 本周 ' + ds.weekDone + '/7 · 本月 ' + ds.monthDone)],
     ['🧩 ' + (getLang() === 'en' ? 'Models cleared' : '模型收集'), modelsDone + ' / ' + MODEL_KEYS.length],
+    ['🎲 ' + (getLang() === 'en' ? 'Random mode' : '随机模式'), (() => { const rs = Object.values(readRandomStats()); const plays = rs.reduce((a, r) => a + (r.plays || 0), 0); const best = rs.reduce((a, r) => (r.bestTime && (!a || r.bestTime < a) ? r.bestTime : a), 0); return (getLang() === 'en' ? plays + ' plays · best ' : plays + ' 次 · 最佳 ') + (best ? fmtDur(best) : '—'); })()],
     ['🏁 ' + (getLang() === 'en' ? 'Challenges' : '挑战完成'), (getLang() === 'en' ? 'W ' + Object.keys(readWeekly()).length + ' · M ' + Object.keys(readMonthly()).length + ' · Y ' + Object.keys(readYearly()).length : '周 ' + Object.keys(readWeekly()).length + ' · 月 ' + Object.keys(readMonthly()).length + ' · 年 ' + Object.keys(readYearly()).length)],
   ];
   body.innerHTML = '';
@@ -1435,6 +1438,19 @@ function toggleFavorite(key) {
   const next = list.includes(key) ? list.filter((k) => k !== key) : [...list, key];
   try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(next)); } catch (e) { /* ignore */ }
   return next;
+}
+
+const RANDOM_STATS_KEY = 'wanxiang.randomStats';
+function readRandomStats() { try { return JSON.parse(localStorage.getItem(RANDOM_STATS_KEY) || '{}'); } catch (e) { return {}; } }
+function recordRandomStats(modelKey, n, secs) {
+  const d = readRandomStats();
+  const k = levelKey(modelKey, n);
+  const rec = d[k] || { bestTime: 0, plays: 0 };
+  if (!rec.bestTime || secs < rec.bestTime) rec.bestTime = secs;
+  rec.plays = (rec.plays || 0) + 1;
+  d[k] = rec;
+  try { localStorage.setItem(RANDOM_STATS_KEY, JSON.stringify(d)); } catch (e) { /* ignore */ }
+  return rec;
 }
 
 const PRACTICE_BEST_KEY = 'wanxiang.practiceBest';
@@ -3030,7 +3046,7 @@ window.__wanxiang = {
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport,
-  getFavorites: () => readFavorites(), toggleFavorite, getPracticeRecords: () => readPracticeBest(),
+  getFavorites: () => readFavorites(), toggleFavorite, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(),
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(),
   getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
