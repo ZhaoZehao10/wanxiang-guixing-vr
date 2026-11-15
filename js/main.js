@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.26.0';
+const APP_VERSION = '1.27.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1392,6 +1392,39 @@ function buildAchievementsUI() {
 
 function openAchievements() { buildAchievementsUI(); $('achievements').classList.remove('hidden'); }
 function closeAchievements() { $('achievements').classList.add('hidden'); }
+
+function generateAchievementPoster() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 720; canvas.height = 1080;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 720, 1080);
+  g.addColorStop(0, '#0b1020'); g.addColorStop(1, '#2a1630');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 720, 1080);
+  const unlocked = readAchievements();
+  ctx.textAlign = 'center'; ctx.fillStyle = '#dfe7ff';
+  ctx.font = 'bold 42px "Segoe UI", "PingFang SC", sans-serif';
+  ctx.fillText('万象归形', 360, 110);
+  ctx.font = '22px "Segoe UI", sans-serif'; ctx.fillStyle = '#8b96b8';
+  ctx.fillText('ACHIEVEMENTS · ' + unlocked.length + ' / ' + ACHIEVEMENTS.length, 360, 150);
+  ctx.textAlign = 'left';
+  let y = 220;
+  for (const a of ACHIEVEMENTS) {
+    const got = unlocked.includes(a.id);
+    ctx.font = '24px "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillStyle = got ? '#ffd24d' : '#5a6688';
+    ctx.fillText(got ? '🏆' : '🔒', 60, y);
+    ctx.fillStyle = got ? '#cfd9f5' : '#5a6688';
+    ctx.fillText((got ? '' : '') + achName(a.id, a.name), 110, y);
+    y += 42;
+  }
+  ctx.textAlign = 'center'; ctx.fillStyle = '#6cd0ff'; ctx.font = '20px "Segoe UI", sans-serif';
+  ctx.fillText('24 模型 · 116 关 · ' + new Date().toLocaleDateString('zh-CN'), 360, 1030);
+  return canvas.toDataURL('image/png');
+}
+
+function downloadAchievementPoster() {
+  try { const a = document.createElement('a'); a.href = generateAchievementPoster(); a.download = 'WanxiangGuixing-achievements.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
+}
 
 function showDifficulty() {
   state.mode = 'difficulty';
@@ -2833,6 +2866,9 @@ if ($('yearreport-close')) {
 if ($('yearreport-copy')) {
   $('yearreport-copy').addEventListener('click', async (e) => { e.stopPropagation(); sfx.ui(); await copyText(yearReportText()); });
 }
+if ($('ach-poster')) {
+  $('ach-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadAchievementPoster(); });
+}
 if ($('achievements-close')) {
   $('achievements-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeAchievements(); });
 }
@@ -2953,7 +2989,7 @@ window.__wanxiang = {
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport,
-  getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''),
+  getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(),
   getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
