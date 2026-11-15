@@ -498,9 +498,12 @@ const resetTest = await evalJs(`(() => {
   const ds = p.getDailyStats();
   const pr = p.getPracticeRecords();
   const rs = p.getRandomStats();
-  return { progKeys: Object.keys(prog).length, days: ds.days, practice: Object.keys(pr).length, random: Object.keys(rs).length };
+  p.showDifficulty();
+  const dailyBtn = [...document.querySelectorAll('#difficulty .diff-btn')].find((b) => b.textContent.includes('今日挑战'));
+  const pending = dailyBtn ? dailyBtn.classList.contains('challenge-pending') : false;
+  return { progKeys: Object.keys(prog).length, days: ds.days, practice: Object.keys(pr).length, random: Object.keys(rs).length, pending };
 })()`);
-check('一键重置：进度与挑战记录清空', resetTest.progKeys === 0 && resetTest.days === 0 && resetTest.practice === 0 && resetTest.random === 0, JSON.stringify(resetTest));
+check('一键重置：进度与挑战记录清空', resetTest.progKeys === 0 && resetTest.days === 0 && resetTest.practice === 0 && resetTest.random === 0 && resetTest.pending === true, JSON.stringify(resetTest));
 
 const stability = await evalJs(`(async () => {
   const p = window.__wanxiang;
