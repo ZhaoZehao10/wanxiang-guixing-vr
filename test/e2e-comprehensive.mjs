@@ -424,6 +424,21 @@ const challengeBadges = await evalJs(`(() => {
 })()`);
 check('挑战按钮：显示完成状态与最佳成绩', challengeBadges.done === true && challengeBadges.text.includes('1分'), JSON.stringify({ text: challengeBadges.text.slice(0, 80) }));
 
+const favTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.toggleFavorite('panda');
+  p.showDifficulty();
+  const row = document.querySelector('#difficulty .diff-row');
+  const first = row ? row.children[0] : null;
+  const text = first ? first.textContent : '';
+  const star = first ? first.lastElementChild : null;
+  const sorted = text.includes('熊猫');
+  p.toggleFavorite('panda');
+  p.showDifficulty();
+  return { sorted, star: star ? star.textContent : '', favs: p.getFavorites() };
+})()`);
+check('模型收藏：置顶排序与星标', favTest.sorted === true && favTest.star === '⭐' && favTest.favs.length === 0, JSON.stringify(favTest));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 

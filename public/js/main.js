@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.28.0';
+const APP_VERSION = '1.29.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1426,6 +1426,16 @@ function downloadAchievementPoster() {
   try { const a = document.createElement('a'); a.href = generateAchievementPoster(); a.download = 'WanxiangGuixing-achievements.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
 }
 
+const FAVORITES_KEY = 'wanxiang.favorites';
+function readFavorites() { try { const a = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); return Array.isArray(a) ? a.filter((k) => MODELS[k]) : []; } catch (e) { return []; } }
+function isFavorite(key) { return readFavorites().includes(key); }
+function toggleFavorite(key) {
+  const list = readFavorites();
+  const next = list.includes(key) ? list.filter((k) => k !== key) : [...list, key];
+  try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(next)); } catch (e) { /* ignore */ }
+  return next;
+}
+
 function challengeBadge(rec) {
   if (!rec || !Array.isArray(rec.times) || !rec.times.length) return getLang() === 'en' ? '⬜ Not done' : '⬜ 未完成';
   return (getLang() === 'en' ? '✅ Done · best ' : '✅ 已完成 · 最佳 ') + fmtDur(rec.times[0]);
@@ -1520,7 +1530,9 @@ function showDifficulty() {
 
   const row1 = document.createElement('div');
   row1.className = 'diff-row';
-  for (const [key, def] of Object.entries(MODELS)) {
+  const orderedKeys = Object.keys(MODELS).sort((a, b) => Number(isFavorite(b)) - Number(isFavorite(a)));
+  for (const key of orderedKeys) {
+    const def = MODELS[key];
     const b = document.createElement('button');
     b.className = 'diff-btn';
     // 星数进度：该模型所有支持难度的星级合计（帮助挑"还没玩过的模型"）
@@ -1528,6 +1540,13 @@ function showDifficulty() {
     const modelMax = supportedCounts(key).length * 3;
     b.innerHTML = `<b style="font-size:22px">${def.emoji}</b><span>${modelName(key, def.name)}</span>`
       + `<small style="display:block;color:#ffd24d;font-size:11px;margin-top:2px">★ ${modelStars}/${modelMax}</small>`;
+    const favStar = document.createElement('span');
+    favStar.textContent = isFavorite(key) ? '⭐' : '☆';
+    favStar.title = isFavorite(key) ? '取消收藏' : '收藏';
+    favStar.style.cssText = 'position:absolute;top:2px;right:6px;font-size:13px;cursor:pointer;opacity:.9';
+    favStar.onclick = (e) => { e.stopPropagation(); toggleFavorite(key); sfx.ui(); showDifficulty(); };
+    b.style.position = 'relative';
+    b.appendChild(favStar);
     if (key === state.modelKey) b.style.borderColor = '#6cd0ff';
     b.onclick = () => {
       state.modelKey = key;
@@ -2994,6 +3013,7 @@ window.__wanxiang = {
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport,
+  getFavorites: () => readFavorites(), toggleFavorite,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(),
   getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
