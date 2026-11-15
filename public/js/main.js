@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.25.0';
+const APP_VERSION = '1.26.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1373,6 +1373,26 @@ function openYearReport() {
 }
 function closeYearReport() { $('yearreport').classList.add('hidden'); }
 
+function buildAchievementsUI() {
+  const body = $('achievements-body');
+  if (!body) return;
+  const unlocked = readAchievements();
+  body.innerHTML = '';
+  for (const a of ACHIEVEMENTS) {
+    const got = unlocked.includes(a.id);
+    const card = document.createElement('div');
+    card.className = 'achievement-card';
+    card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;opacity:' + (got ? '1' : '0.6');
+    card.innerHTML = '<div style="font-size:22px">' + (got ? '🏆' : '🔒') + '</div>'
+      + '<b style="font-size:14px">' + achName(a.id, a.name) + '</b>'
+      + '<div style="color:#8b96b8;font-size:12px;margin-top:4px;line-height:1.5">' + achDesc(a.id, a.desc) + '</div>';
+    body.appendChild(card);
+  }
+}
+
+function openAchievements() { buildAchievementsUI(); $('achievements').classList.remove('hidden'); }
+function closeAchievements() { $('achievements').classList.add('hidden'); }
+
 function showDifficulty() {
   state.mode = 'difficulty';
   $('intro').classList.add('hidden');
@@ -1437,6 +1457,12 @@ function showDifficulty() {
   galleryBtn.innerHTML = `<b style="font-size:14px">${t('menu.gallery')}</b>`;
   galleryBtn.onclick = () => { sfx.ui(); openGallery(); };
   card.appendChild(galleryBtn);
+  const achBtn = document.createElement('button');
+  achBtn.className = 'diff-btn';
+  achBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  achBtn.innerHTML = '<b style="font-size:14px">🏅 ' + (getLang() === 'en' ? 'Achievements · ' + ACHIEVEMENTS.length : '成就图鉴 · ' + ACHIEVEMENTS.length + ' 项') + '</b>';
+  achBtn.onclick = () => { sfx.ui(); openAchievements(); };
+  card.appendChild(achBtn);
 
   // 双人轮流入口
   const duelBtn = document.createElement('button');
@@ -2807,6 +2833,9 @@ if ($('yearreport-close')) {
 if ($('yearreport-copy')) {
   $('yearreport-copy').addEventListener('click', async (e) => { e.stopPropagation(); sfx.ui(); await copyText(yearReportText()); });
 }
+if ($('achievements-close')) {
+  $('achievements-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeAchievements(); });
+}
 if ($('stats-close')) {
   $('stats-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeStats(); });
 }
@@ -2923,7 +2952,8 @@ window.__wanxiang = {
   openDataPanel, closeDataPanel,
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
-  openBoard, closeBoard, openGallery, closeGallery, openStats, closeStats, openYearReport, closeYearReport,
+  openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport,
+  getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''),
   getYearReportText: () => yearReportText(),
   getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),

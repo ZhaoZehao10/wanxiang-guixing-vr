@@ -199,3 +199,7 @@ body.ui-scale #intro, body.ui-scale #difficulty, body.ui-scale #hud, body.ui-sca
 
 /* 年度报告 */
 #yearreport.hidden { display: none !important; }
+
+/* 成就图鉴 */
+#achievements { display: flex; align-items: center; justify-content: center; }
+#achievements.hidden { display: none; }
