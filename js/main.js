@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.24.0';
+const APP_VERSION = '1.25.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1131,6 +1131,7 @@ function buildStatsUI() {
     ['🏆 ' + (getLang() === 'en' ? 'Achievements' : '成就'), unlocked + ' / ' + ACHIEVEMENTS.length],
     ['📅 ' + (getLang() === 'en' ? 'Daily challenge' : '每日挑战'), (getLang() === 'en' ? 'Streak ' + ds.streak + ' · week ' + ds.weekDone + '/7 · month ' + ds.monthDone : '连续 ' + ds.streak + ' 天 · 本周 ' + ds.weekDone + '/7 · 本月 ' + ds.monthDone)],
     ['🧩 ' + (getLang() === 'en' ? 'Models cleared' : '模型收集'), modelsDone + ' / ' + MODEL_KEYS.length],
+    ['🏁 ' + (getLang() === 'en' ? 'Challenges' : '挑战完成'), (getLang() === 'en' ? 'W ' + Object.keys(readWeekly()).length + ' · M ' + Object.keys(readMonthly()).length + ' · Y ' + Object.keys(readYearly()).length : '周 ' + Object.keys(readWeekly()).length + ' · 月 ' + Object.keys(readMonthly()).length + ' · 年 ' + Object.keys(readYearly()).length)],
   ];
   body.innerHTML = '';
   const hist = dailyHistory(14);
