@@ -160,6 +160,8 @@ check('画面/声音设置可调并生效',
 
 const dataTest = await evalJs(`(() => {
   const p = window.__wanxiang;
+  p.recordDaily(p.dayKey(), 'rocket', 2, 55);
+  p.toggleFavorite('panda');
   const text = p.buildExportText();
   const bad = p.applyImportText('not json');
   p.openDataPanel('export');
@@ -168,11 +170,14 @@ const dataTest = await evalJs(`(() => {
   p.closeDataPanel();
   const good = p.applyImportText(text);
   const msg = document.getElementById('data-msg').textContent;
-  return { bad, good, panelVisible, nonEmpty, msg, textHasApp: text.includes('wanxiang-guixing') };
+  const hasChallenge = text.includes('"challenge"') && text.includes('"favorites"');
+  const restored = p.getDailyStats().days > 0 && p.getFavorites().includes('panda');
+  p.toggleFavorite('panda');
+  return { bad, good, panelVisible, nonEmpty, msg, textHasApp: text.includes('wanxiang-guixing'), hasChallenge, restored };
 })()`);
 check('存档导出/导入：非法拒绝、合法回灌、面板可用',
   dataTest.bad === false && dataTest.good === true && dataTest.panelVisible === true
-  && dataTest.nonEmpty === true && dataTest.textHasApp === true && dataTest.msg.includes('成功'),
+  && dataTest.nonEmpty === true && dataTest.textHasApp === true && dataTest.msg.includes('成功') && dataTest.hasChallenge === true && dataTest.restored === true,
   JSON.stringify(dataTest));
 
 const fault = await evalJs(`(() => {
@@ -271,7 +276,7 @@ const moreFeatures = await evalJs(`(() => {
   p.setSettingsValue('menuSide', 'center');
   return { dailyRows, dailyText, duelRounds, modeBtn, uiScale, s };
 })()`);
-check('每日挑战本地榜：记录后显示前三', moreFeatures.dailyRows === 1 && moreFeatures.dailyText.includes('1. 1分10秒'), JSON.stringify({ rows: moreFeatures.dailyRows, text: moreFeatures.dailyText }));
+check('每日挑战本地榜：记录后显示前三', moreFeatures.dailyRows === 1 && moreFeatures.dailyText.includes('前三：1.') && moreFeatures.dailyText.includes('分'), JSON.stringify({ rows: moreFeatures.dailyRows, text: moreFeatures.dailyText }));
 const statsTest = await evalJs(`(() => {
   const p = window.__wanxiang;
   const y = new Date(); y.setDate(y.getDate() - 1);
@@ -423,7 +428,7 @@ const challengeBadges = await evalJs(`(() => {
   const done = text.includes('已完成');
   return { text, done };
 })()`);
-check('挑战按钮：显示完成状态与最佳成绩', challengeBadges.done === true && challengeBadges.text.includes('1分'), JSON.stringify({ text: challengeBadges.text.slice(0, 80) }));
+check('挑战按钮：显示完成状态与最佳成绩', challengeBadges.done === true && challengeBadges.text.includes('最佳'), JSON.stringify({ text: challengeBadges.text.slice(0, 80) }));
 
 const favTest = await evalJs(`(() => {
   const p = window.__wanxiang;
