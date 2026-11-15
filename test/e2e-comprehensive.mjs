@@ -408,9 +408,10 @@ const achGallery = await evalJs(`(() => {
   const text = p.getAchievementGalleryText();
   document.getElementById('achievements-close').click();
   const closed = document.getElementById('achievements').classList.contains('hidden');
-  return { visible, cards, text, closed };
+  const poster = p.generateAchievementPoster();
+  return { visible, cards, text, closed, poster, posterLen: poster.length };
 })()`);
-check('成就图鉴：18 项与解锁状态', achGallery.visible === true && achGallery.cards === 18 && achGallery.closed === true && achGallery.text.includes('初次拼合'), JSON.stringify({ cards: achGallery.cards }));
+check('成就图鉴：18 项与解锁状态', achGallery.visible === true && achGallery.cards === 18 && achGallery.closed === true && achGallery.text.includes('初次拼合') && achGallery.poster.startsWith('data:image/png') && achGallery.posterLen > 5000, JSON.stringify({ cards: achGallery.cards }));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
