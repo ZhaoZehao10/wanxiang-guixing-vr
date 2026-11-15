@@ -396,9 +396,10 @@ const yearReport = await evalJs(`(() => {
   document.getElementById('yearreport-close').click();
   const closed = document.getElementById('yearreport').classList.contains('hidden');
   p.closeStats();
-  return { visible, text, closed, hook: p.getYearReportText() };
+  const poster = p.generateChallengePoster();
+  return { visible, text, closed, hook: p.getYearReportText(), poster, posterLen: poster.length };
 })()`);
-check('年度报告：汇总进度/挑战并显示/关闭', yearReport.visible === true && yearReport.closed === true && yearReport.text.includes('年度报告') && yearReport.text.includes('总进度') && yearReport.hook.includes('年度报告'), JSON.stringify({ visible: yearReport.visible, closed: yearReport.closed }));
+check('年度报告：汇总进度/挑战并显示/关闭', yearReport.visible === true && yearReport.closed === true && yearReport.text.includes('年度报告') && yearReport.text.includes('总进度') && yearReport.hook.includes('年度报告') && yearReport.poster.startsWith('data:image/png') && yearReport.posterLen > 5000, JSON.stringify({ visible: yearReport.visible, closed: yearReport.closed }));
 
 const achGallery = await evalJs(`(() => {
   const p = window.__wanxiang;

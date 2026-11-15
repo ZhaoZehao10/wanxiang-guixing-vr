@@ -37,7 +37,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.35.0';
+const APP_VERSION = '1.36.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1242,6 +1242,13 @@ function buildStatsUI() {
   reportBtn.textContent = getLang() === 'en' ? '🎆 Year Report' : '🎆 年度报告';
   reportBtn.onclick = (e) => { e.stopPropagation(); sfx.ui(); openYearReport(); };
   body.appendChild(reportBtn);
+  const challengePosterBtn = document.createElement('button');
+  challengePosterBtn.id = 'challenge-poster-btn';
+  challengePosterBtn.className = 'win-btn';
+  challengePosterBtn.style.cssText = 'grid-column:1 / -1;margin-top:4px';
+  challengePosterBtn.textContent = getLang() === 'en' ? '🖼️ Challenge Poster' : '🖼️ 挑战海报';
+  challengePosterBtn.onclick = (e) => { e.stopPropagation(); sfx.ui(); downloadChallengePoster(); };
+  body.appendChild(challengePosterBtn);
   for (const [label, value] of cards) {
     const div = document.createElement('div');
     div.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;text-align:center';
@@ -1487,6 +1494,41 @@ function recordPracticeBest(modelKey, n, secs) {
 function challengeBadge(rec) {
   if (!rec || !Array.isArray(rec.times) || !rec.times.length) return getLang() === 'en' ? '⬜ Not done' : '⬜ 未完成';
   return (getLang() === 'en' ? '✅ Done · best ' : '✅ 已完成 · 最佳 ') + fmtDur(rec.times[0]);
+}
+
+function generateChallengePoster() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 720; canvas.height = 1080;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 720, 1080);
+  g.addColorStop(0, '#0b1020'); g.addColorStop(1, '#2a1630');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 720, 1080);
+  const ds = dailyStats();
+  const wk = Object.keys(readWeekly()).length, mo = Object.keys(readMonthly()).length, yr = Object.keys(readYearly()).length;
+  ctx.textAlign = 'center'; ctx.fillStyle = '#dfe7ff'; ctx.font = 'bold 42px "Segoe UI", "PingFang SC", sans-serif';
+  ctx.fillText('挑战记录', 360, 130);
+  ctx.font = '20px "Segoe UI", sans-serif'; ctx.fillStyle = '#8b96b8';
+  ctx.fillText('WANXIANG GUIXING · CHALLENGES', 360, 170);
+  const rows = [
+    ['每日挑战', '连续 ' + ds.streak + ' 天 · 累计 ' + ds.days + ' 天'],
+    ['本周挑战', wk + ' 周完成'],
+    ['本月挑战', mo + ' 月完成'],
+    ['年度挑战', yr + ' 年完成'],
+    ['限时记录', Object.keys(readTimeAttack()).length + ' 个关卡'],
+  ];
+  let y = 300;
+  for (const [k, v] of rows) {
+    ctx.textAlign = 'left'; ctx.font = '26px "Segoe UI", "PingFang SC", sans-serif'; ctx.fillStyle = '#8b96b8'; ctx.fillText(k, 110, y);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24d'; ctx.fillText(v, 610, y);
+    y += 100;
+  }
+  ctx.textAlign = 'center'; ctx.fillStyle = '#6cd0ff'; ctx.font = '20px "Segoe UI", sans-serif';
+  ctx.fillText('24 模型 · 116 关 · ' + new Date().toLocaleDateString('zh-CN'), 360, 1020);
+  return canvas.toDataURL('image/png');
+}
+
+function downloadChallengePoster() {
+  try { const a = document.createElement('a'); a.href = generateChallengePoster(); a.download = 'WanxiangGuixing-challenges.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
 }
 
 function showDifficulty() {
@@ -3114,7 +3156,7 @@ window.__wanxiang = {
   getChangelogText: () => changelogText(),
   getFavorites: () => readFavorites(), toggleFavorite, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
-  getYearReportText: () => yearReportText(),
+  getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
   getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
