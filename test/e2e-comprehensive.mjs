@@ -386,6 +386,20 @@ const yearlyTest = await evalJs(`(() => {
 })()`);
 check('年度挑战：确定性组合与本地榜', yearlyTest.rows === 1 && yearlyTest.text.includes('1分25秒') && yearlyTest.title.includes('年度挑战') && !!yearlyTest.yc.modelKey, JSON.stringify({ yr: yearlyTest.yr, rows: yearlyTest.rows }));
 
+const yearReport = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.openStats();
+  const btn = document.getElementById('yearreport-btn');
+  if (btn) btn.click();
+  const visible = !document.getElementById('yearreport').classList.contains('hidden');
+  const text = document.getElementById('yearreport-body').textContent;
+  document.getElementById('yearreport-close').click();
+  const closed = document.getElementById('yearreport').classList.contains('hidden');
+  p.closeStats();
+  return { visible, text, closed, hook: p.getYearReportText() };
+})()`);
+check('年度报告：汇总进度/挑战并显示/关闭', yearReport.visible === true && yearReport.closed === true && yearReport.text.includes('年度报告') && yearReport.text.includes('总进度') && yearReport.hook.includes('年度报告'), JSON.stringify({ visible: yearReport.visible, closed: yearReport.closed }));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 
