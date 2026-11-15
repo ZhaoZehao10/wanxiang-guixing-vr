@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.22.0';
+const APP_VERSION = '1.23.0';
 const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1212,6 +1212,13 @@ function buildStatsUI() {
   }
   yearWrap.appendChild(yg);
   body.appendChild(yearWrap);
+  const reportBtn = document.createElement('button');
+  reportBtn.id = 'yearreport-btn';
+  reportBtn.className = 'win-btn';
+  reportBtn.style.cssText = 'grid-column:1 / -1;margin-top:4px';
+  reportBtn.textContent = getLang() === 'en' ? '🎆 Year Report' : '🎆 年度报告';
+  reportBtn.onclick = (e) => { e.stopPropagation(); sfx.ui(); openYearReport(); };
+  body.appendChild(reportBtn);
   for (const [label, value] of cards) {
     const div = document.createElement('div');
     div.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;text-align:center';
@@ -1337,6 +1344,33 @@ function yearlyBoardText() {
   if (!d) return '今年暂无记录';
   return d.times.map((s, i) => (i + 1) + '. ' + fmtDur(s)).join('　');
 }
+
+function yearReportText() {
+  const year = yearKey();
+  const p = readProgress();
+  const sum = summarize(p, totalLevels());
+  const ds = dailyStats();
+  const top = MODEL_KEYS.map((mk) => ({ mk, stars: supportedCounts(mk).reduce((acc, n) => acc + (((p[levelKey(mk, n)] || {}).stars) || 0), 0) }))
+    .sort((a, b) => b.stars - a.stars).slice(0, 3).filter((x) => x.stars > 0);
+  return [
+    '万象归形 · ' + year + ' 年度报告',
+    '总进度: ' + sum.done + '/' + sum.total + ' 关',
+    '星星: ' + sum.stars + '/' + sum.maxStars,
+    '最佳总时长: ' + (sum.bestTotal ? fmtDur(sum.bestTotal) : '—'),
+    '成就: ' + readAchievements().length + '/' + ACHIEVEMENTS.length,
+    '每日挑战: 连续 ' + ds.streak + ' 天 · 累计 ' + ds.days + ' 天 · 本周 ' + ds.weekDone + '/7',
+    '周挑战: ' + Object.keys(readWeekly()).length + ' 周 · 月挑战: ' + Object.keys(readMonthly()).length + ' 月 · 年挑战: ' + Object.keys(readYearly()).length + ' 年',
+    '最佳模型: ' + (top.length ? top.map((x) => modelName(x.mk, MODELS[x.mk].name) + ' ' + x.stars + '★').join(' / ') : '暂无'),
+    '',
+    '生成时间: ' + new Date().toLocaleString('zh-CN'),
+  ].join('\n');
+}
+
+function openYearReport() {
+  $('yearreport-body').textContent = yearReportText();
+  $('yearreport').classList.remove('hidden');
+}
+function closeYearReport() { $('yearreport').classList.add('hidden'); }
 
 function showDifficulty() {
   state.mode = 'difficulty';
@@ -2766,6 +2800,12 @@ if ($('timeup-retry')) {
 if ($('timeup-back')) {
   $('timeup-back').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); $('timeup').classList.add('hidden'); state.timeAttack = false; showDifficulty(); });
 }
+if ($('yearreport-close')) {
+  $('yearreport-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeYearReport(); });
+}
+if ($('yearreport-copy')) {
+  $('yearreport-copy').addEventListener('click', async (e) => { e.stopPropagation(); sfx.ui(); await copyText(yearReportText()); });
+}
 if ($('stats-close')) {
   $('stats-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeStats(); });
 }
@@ -2882,7 +2922,8 @@ window.__wanxiang = {
   openDataPanel, closeDataPanel,
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
-  openBoard, closeBoard, openGallery, closeGallery, openStats, closeStats,
+  openBoard, closeBoard, openGallery, closeGallery, openStats, closeStats, openYearReport, closeYearReport,
+  getYearReportText: () => yearReportText(),
   getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
