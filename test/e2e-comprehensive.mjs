@@ -434,7 +434,7 @@ const favTest = await evalJs(`(() => {
   const p = window.__wanxiang;
   p.toggleFavorite('panda');
   p.showDifficulty();
-  const row = document.querySelector('#difficulty .diff-row');
+  const row = document.querySelector('#difficulty .diff-row:not(.model-filter)');
   const first = row ? row.children[0] : null;
   const text = first ? first.textContent : '';
   const star = first ? first.lastElementChild : null;
@@ -498,6 +498,21 @@ const changelog = await evalJs(`(() => {
   return { visible, text, closed };
 })()`);
 check('更新日志：可打开/关闭且包含版本记录', changelog.visible === true && changelog.closed === true && changelog.text.includes('1.34.0') && changelog.text.includes('1.24.0'), JSON.stringify({ visible: changelog.visible, closed: changelog.closed }));
+
+const filterTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.toggleFavorite('panda');
+  p.setModelFilter('fav');
+  p.showDifficulty();
+  const row = document.querySelector('#difficulty .diff-row:not(.model-filter)');
+  const count = row ? row.children.length : -1;
+  const text = row ? row.textContent : '';
+  p.setModelFilter('all');
+  p.toggleFavorite('panda');
+  p.showDifficulty();
+  return { count, text };
+})()`);
+check('模型筛选：收藏视图只显示收藏模型', filterTest.count === 1 && filterTest.text.includes('熊猫'), JSON.stringify({ count: filterTest.count }));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
@@ -633,12 +648,12 @@ const supports = await evalJs(`(() => {
   const xmas = p.supportedCounts('xmas');
   p.state.modelKey = 'xmas';
   p.showDifficulty();
-  const diffRow = document.querySelectorAll('#difficulty .diff-row')[1];
+  const diffRow = document.querySelectorAll('#difficulty .diff-row')[2];
   const btn8 = [...diffRow.children].find((b) => b.textContent.includes('8 块'));
   const xmasDisabled = btn8 ? btn8.disabled : null;
   p.state.modelKey = 'rocket';
   p.showDifficulty();
-  const diffRow2 = document.querySelectorAll('#difficulty .diff-row')[1];
+  const diffRow2 = document.querySelectorAll('#difficulty .diff-row')[2];
   const btn8b = [...diffRow2.children].find((b) => b.textContent.includes('8 块'));
   const rocketDisabled = btn8b ? btn8b.disabled : null;
   return { rocket, xmas, xmasDisabled, rocketDisabled };
@@ -776,7 +791,7 @@ const paletteTest = await evalJs(`(() => {
   p.startGame('rocket', 2);
   const classicSum = colorOf(p.state.pieces[0]);
   p.showDifficulty();
-  const palRow = document.querySelectorAll('#difficulty .diff-row')[2]; // 第 3 行 = 配色皮肤
+  const palRow = document.querySelectorAll('#difficulty .diff-row')[3]; // 第 3 行 = 配色皮肤
   const palBtns = palRow ? palRow.children.length : 0;
   return { neonSum, classicSum, palBtns, palette: p.getPalette(), pieces: p.state.pieces.length };
 })()`);
@@ -856,7 +871,7 @@ check('磁吸辅助：接近目标时逐帧拉近（关闭后停止）',
 const smoke = await evalJs(`(() => {
   const p = window.__wanxiang;
   p.showDifficulty();
-  const rows = [...document.querySelectorAll('#difficulty .diff-row')];
+  const rows = [...document.querySelectorAll('#difficulty .diff-row:not(.model-filter)')];
   const modelBtns = [...rows[0].children];
   const paletteBtns = [...rows[2].children];
   let clicks = 0;
