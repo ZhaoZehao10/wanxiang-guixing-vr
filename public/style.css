@@ -207,3 +207,6 @@ body.ui-scale #intro, body.ui-scale #difficulty, body.ui-scale #hud, body.ui-sca
 /* 未完成的每日挑战提醒 */
 .challenge-pending { animation: challengePulse 2s ease-in-out infinite; }
 @keyframes challengePulse { 0%, 100% { box-shadow: 0 0 0 rgba(255,210,77,0); } 50% { box-shadow: 0 0 16px rgba(255,210,77,.45); } }
+
+/* 更新日志 */
+#changelog.hidden { display: none !important; }

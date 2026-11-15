@@ -482,6 +482,17 @@ const achProgress = await evalJs(`(() => {
 })()`);
 check('菜单成就进度条与下一成就', achProgress.width !== '' && achProgress.next.length > 0, JSON.stringify(achProgress));
 
+const changelog = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.openChangelog();
+  const visible = !document.getElementById('changelog').classList.contains('hidden');
+  const text = p.getChangelogText();
+  document.getElementById('changelog-close').click();
+  const closed = document.getElementById('changelog').classList.contains('hidden');
+  return { visible, text, closed };
+})()`);
+check('更新日志：可打开/关闭且包含版本记录', changelog.visible === true && changelog.closed === true && changelog.text.includes('1.34.0') && changelog.text.includes('1.24.0'), JSON.stringify({ visible: changelog.visible, closed: changelog.closed }));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 
