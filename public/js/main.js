@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.32.0';
+const APP_VERSION = '1.33.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -2299,6 +2299,15 @@ const SETTING_ROWS = [
   { scope: 'settings', key: 'menuSide', label: '菜单位置', labelKey: 'settings.menuSide', opts: [['左', 'left'], ['中', 'center'], ['右', 'right']] },
 ];
 
+function resetAllProgress() {
+  saveProgress(localStorage, {});
+  saveAchievements(localStorage, []);
+  for (const key of [DAILY_KEY, WEEKLY_KEY, MONTHLY_KEY, YEARLY_KEY, TIMEATTACK_KEY, PRACTICE_BEST_KEY, RANDOM_STATS_KEY]) {
+    try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+  }
+  buildSettingsUI();
+}
+
 function buildSettingsUI() {
   const body = $('settings-body');
   if (!body) return;
@@ -2355,6 +2364,20 @@ function buildSettingsUI() {
   bar.appendChild(mk('📤 导出存档', () => openDataPanel('export')));
   bar.appendChild(mk('📥 导入存档', () => openDataPanel('import')));
   bar.appendChild(mk('🩺 复制诊断信息', () => copyDiagnostics()));
+  let resetArmed = false;
+  let resetTimer = null;
+  const resetBtn = mk('🗑️ 重置进度', () => {
+    if (!resetArmed) {
+      resetArmed = true;
+      resetBtn.textContent = '⚠️ 再点一次确认重置';
+      resetBtn.style.borderColor = '#ff7a8a';
+      resetTimer = setTimeout(() => { resetArmed = false; resetBtn.textContent = '🗑️ 重置进度'; resetBtn.style.borderColor = ''; }, 4000);
+    } else {
+      clearTimeout(resetTimer);
+      resetAllProgress();
+    }
+  });
+  bar.appendChild(resetBtn);
   body.appendChild(bar);
 }
 
@@ -3060,7 +3083,7 @@ window.__wanxiang = {
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
   openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport,
-  getFavorites: () => readFavorites(), toggleFavorite, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(),
+  getFavorites: () => readFavorites(), toggleFavorite, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(),
   getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),

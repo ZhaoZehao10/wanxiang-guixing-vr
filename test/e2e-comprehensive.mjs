@@ -490,6 +490,18 @@ check('双人轮流：两人结果与胜负判定',
   JSON.stringify(extras.duel));
 
 // 1.15) 稳定性：版本信息 / WebGL 上下文丢失 / 关卡加载失败兜底
+const resetTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.recordDaily(p.dayKey(), 'rocket', 2, 70);
+  p.resetAllProgress();
+  const prog = p.loadProgress();
+  const ds = p.getDailyStats();
+  const pr = p.getPracticeRecords();
+  const rs = p.getRandomStats();
+  return { progKeys: Object.keys(prog).length, days: ds.days, practice: Object.keys(pr).length, random: Object.keys(rs).length };
+})()`);
+check('一键重置：进度与挑战记录清空', resetTest.progKeys === 0 && resetTest.days === 0 && resetTest.practice === 0 && resetTest.random === 0, JSON.stringify(resetTest));
+
 const stability = await evalJs(`(async () => {
   const p = window.__wanxiang;
   const buildInfo = document.getElementById('build-info').textContent;
