@@ -19,8 +19,8 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.23.0';
-const BUILD_INFO = '22 模型 · 106 关 · 7 配色 · 9 主题';
+const APP_VERSION = '1.24.0';
+const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -2333,7 +2333,7 @@ function applyImportText(text) {
   }
   applySettings();
   applyTuning();
-  $('data-msg').textContent = '✅ 导入成功：进度 / 成就 / 设置已恢复';
+  $('data-msg').textContent = getLang() === 'en' ? '✅ Imported: progress / achievements / settings / challenges' : '✅ 导入成功：进度 / 成就 / 设置 / 挑战记录已恢复';
   return true;
 }
 
