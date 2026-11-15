@@ -54,11 +54,12 @@ console.log('=== 导出 / 导入 ===');
 {
   const progress = { 'rocket|2': { stars: 3, bestTime: 70, plays: 2, hints: 0, top: [70, 90] } };
   const settings = { renderScale: 0.85, stars: true, tableY: 0, musicVol: 0.4, sfxVol: 1 };
-  const payload = buildExport({ progress, achievements: ['first_win', 'first_8'], settings, tuning: { magnet: 0.18 } }, { version: '1.4.1' });
+  const payload = buildExport({ progress, achievements: ['first_win', 'first_8'], settings, tuning: { magnet: 0.18 }, challenge: { daily: { '2026-01-01': { modelKey: 'rocket', n: 2, times: [65] } } } }, { version: '1.4.1' });
   check('导出结构完整', payload.app === 'wanxiang-guixing' && payload.schema === 1 && payload.version === '1.4.1');
   check('导出进度被清洗', payload.progress['rocket|2'].stars === 3);
+  check('导出包含挑战记录', payload.challenge.daily['2026-01-01'].times[0] === 65);
   const parsed = parseExport(JSON.stringify(payload));
-  check('导出→解析往返一致', parsed.ok && parsed.data.progress['rocket|2'].bestTime === 70 && parsed.data.achievements.length === 2 && parsed.data.tuning.magnet === 0.18, JSON.stringify(parsed));
+  check('导出→解析往返一致', parsed.ok && parsed.data.progress['rocket|2'].bestTime === 70 && parsed.data.achievements.length === 2 && parsed.data.tuning.magnet === 0.18 && parsed.data.challenge.daily['2026-01-01'].times[0] === 65, JSON.stringify(parsed));
   check('拒绝非 JSON', parseExport('not json').ok === false);
   check('拒绝非本游戏存档', parseExport(JSON.stringify({ app: 'other', schema: 1 })).ok === false);
   check('拒绝过新 schema', parseExport(JSON.stringify({ app: 'wanxiang-guixing', schema: 99 })).ok === false);

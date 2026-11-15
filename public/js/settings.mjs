@@ -75,7 +75,7 @@ export function sanitizeProgress(raw) {
   return out;
 }
 
-export function buildExport({ progress = {}, achievements = [], settings = {}, tuning = {} } = {}, meta = {}) {
+export function buildExport({ progress = {}, achievements = [], settings = {}, tuning = {}, challenge = {} } = {}, meta = {}) {
   return {
     app: 'wanxiang-guixing',
     schema: EXPORT_SCHEMA,
@@ -85,6 +85,7 @@ export function buildExport({ progress = {}, achievements = [], settings = {}, t
     achievements: Array.isArray(achievements) ? achievements.filter((x) => typeof x === 'string') : [],
     settings: clampSettings(settings),
     tuning: (tuning && typeof tuning === 'object') ? { ...tuning } : {},
+    challenge: (challenge && typeof challenge === 'object') ? { ...challenge } : {},
   };
 }
 
@@ -107,6 +108,7 @@ export function parseExport(text) {
       achievements: Array.isArray(data.achievements) ? data.achievements.filter((x) => typeof x === 'string') : [],
       settings: clampSettings(data.settings),
       tuning: (data.tuning && typeof data.tuning === 'object') ? data.tuning : {},
+      challenge: (data.challenge && typeof data.challenge === 'object') ? data.challenge : {},
     },
   };
 }
