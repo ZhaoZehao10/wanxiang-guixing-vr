@@ -473,6 +473,15 @@ const randomStats = await evalJs(`(() => {
 })()`);
 check('随机模式：独立统计次数/最佳', randomStats.best > 0 && randomStats.plays >= 1, JSON.stringify(randomStats));
 
+const achProgress = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.showDifficulty();
+  const bar = document.querySelector('.ach-progress > div');
+  const next = document.querySelector('.ach-next');
+  return { width: bar ? bar.style.width : '', next: next ? next.textContent : '' };
+})()`);
+check('菜单成就进度条与下一成就', achProgress.width !== '' && achProgress.next.length > 0, JSON.stringify(achProgress));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 

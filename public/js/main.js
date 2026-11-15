@@ -19,7 +19,7 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.31.0';
+const APP_VERSION = '1.32.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1751,16 +1751,30 @@ function showDifficulty() {
   achLabel.style.cssText = 'color:#8b96b8;font-size:13px;margin:12px 0 4px';
   achLabel.textContent = `成就 ${unlocked.length}/${ACHIEVEMENTS.length}`;
   card.appendChild(achLabel);
+  const achPct = Math.round((unlocked.length / Math.max(1, ACHIEVEMENTS.length)) * 100);
+  const barWrap = document.createElement('div');
+  barWrap.className = 'ach-progress';
+  barWrap.style.cssText = 'height:6px;border-radius:3px;background:rgba(140,165,255,.15);overflow:hidden;margin:4px 0 8px';
+  const barFill = document.createElement('div');
+  barFill.style.cssText = 'height:100%;width:' + achPct + '%;background:linear-gradient(90deg,#ffd24d,#ff9f6e)';
+  barWrap.appendChild(barFill);
+  card.appendChild(barWrap);
+  const nextAch = ACHIEVEMENTS.find((a) => !unlocked.includes(a.id));
+  const nextLine = document.createElement('p');
+  nextLine.className = 'ach-next';
+  nextLine.style.cssText = 'color:#8b96b8;font-size:12px;margin:0 0 4px';
+  nextLine.textContent = nextAch ? (getLang() === 'en' ? 'Next: ' + achName(nextAch.id, nextAch.name) : '下一成就：' + achName(nextAch.id, nextAch.name)) : (getLang() === 'en' ? 'All achievements unlocked!' : '全部成就已解锁！');
+  card.appendChild(nextLine);
   const achRow = document.createElement('div');
   achRow.className = 'diff-row';
   achRow.style.cssText = 'gap:6px;font-size:12px';
   for (const a of ACHIEVEMENTS) {
     const got = unlocked.includes(a.id);
     const s = document.createElement('span');
-    s.title = a.desc;
+    s.title = achDesc(a.id, a.desc);
     s.style.cssText = `padding:4px 8px;border-radius:8px;border:1px solid ${got ? 'rgba(255,210,77,.5)' : 'rgba(140,165,255,.18)'};`
       + `color:${got ? '#ffd24d' : '#6b7699'};background:${got ? 'rgba(255,210,77,.10)' : 'transparent'}`;
-    s.textContent = `${got ? '🏆' : '🔒'} ${a.name}`;
+    s.textContent = `${got ? '🏆' : '🔒'} ${achName(a.id, a.name)}`;
     achRow.appendChild(s);
   }
   card.appendChild(achRow);
