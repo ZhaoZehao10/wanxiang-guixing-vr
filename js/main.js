@@ -19,7 +19,25 @@ import {
 
 // ---------------- 常量 ----------------
 
-const APP_VERSION = '1.34.0';
+const CHANGELOG = [
+  { v: '1.34.0', notes: ['每日挑战未完成脉冲提醒', '设置面板一键重置（二次确认）'] },
+  { v: '1.32.0', notes: ['菜单成就进度条与下一成就提示'] },
+  { v: '1.30.0', notes: ['练习模式独立最佳记录'] },
+  { v: '1.29.0', notes: ['模型收藏与置顶排序'] },
+  { v: '1.28.0', notes: ['挑战按钮显示完成状态与最佳成绩'] },
+  { v: '1.27.0', notes: ['成就分享海报'] },
+  { v: '1.26.0', notes: ['成就图鉴'] },
+  { v: '1.25.0', notes: ['挑战完成数统计'] },
+  { v: '1.24.0', notes: ['24 模型 / 116 关；存档含挑战记录'] },
+];
+
+function changelogText() {
+  return CHANGELOG.map((x) => 'v' + x.v + '\n' + x.notes.map((n) => '  · ' + n).join('\n')).join('\n\n');
+}
+function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
+function closeChangelog() { $('changelog').classList.add('hidden'); }
+
+const APP_VERSION = '1.35.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1558,6 +1576,12 @@ function showDifficulty() {
   statsBtn.innerHTML = '<b style="font-size:14px">📊 统计 · 进度与每日挑战</b>';
   statsBtn.onclick = () => { sfx.ui(); openStats(); };
   card.appendChild(statsBtn);
+  const logBtn = document.createElement('button');
+  logBtn.className = 'diff-btn';
+  logBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  logBtn.innerHTML = '<b style="font-size:14px">📜 ' + (getLang() === 'en' ? 'Changelog' : '更新日志') + '</b>';
+  logBtn.onclick = () => { sfx.ui(); openChangelog(); };
+  card.appendChild(logBtn);
 
   const row1 = document.createElement('div');
   row1.className = 'diff-row';
@@ -2964,6 +2988,9 @@ if ($('yearreport-copy')) {
 if ($('ach-poster')) {
   $('ach-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadAchievementPoster(); });
 }
+if ($('changelog-close')) {
+  $('changelog-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeChangelog(); });
+}
 if ($('achievements-close')) {
   $('achievements-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeAchievements(); });
 }
@@ -3083,7 +3110,8 @@ window.__wanxiang = {
   openDataPanel, closeDataPanel,
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
-  openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport,
+  openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport, openChangelog, closeChangelog,
+  getChangelogText: () => changelogText(),
   getFavorites: () => readFavorites(), toggleFavorite, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(),
