@@ -20,6 +20,7 @@ import {
 // ---------------- 常量 ----------------
 
 const CHANGELOG = [
+  { v: '1.37.0', notes: ['挑战/练习/随机统计与分享海报', '模型收藏、成就进度、更新日志', '一键重置与每日提醒'] },
   { v: '1.34.0', notes: ['每日挑战未完成脉冲提醒', '设置面板一键重置（二次确认）'] },
   { v: '1.32.0', notes: ['菜单成就进度条与下一成就提示'] },
   { v: '1.30.0', notes: ['练习模式独立最佳记录'] },
@@ -37,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.36.0';
+const APP_VERSION = '1.37.0';
 const BUILD_INFO = '24 模型 · 116 关 · 7 配色 · 9 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
