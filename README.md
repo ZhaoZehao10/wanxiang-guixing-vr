@@ -100,7 +100,7 @@ node server.mjs         # HTTPS 8443 / HTTP 8081
 ## 🧪 测试
 
 ```powershell
-node tools\test-all.mjs          # 15 套件串行，自动拉起/关闭 8443，约 320 秒
+node tools\test-all.mjs          # 16 套件串行，自动拉起/关闭 8443，约 320 秒
 node tools\test-all.mjs --soak   # 追加 30 分钟稳定性浸泡（发版前）
 node tools\test-all.mjs --fast   # 跳过压力/性能（约 60 秒）
 ```
@@ -166,7 +166,7 @@ public/            index.html / style.css / js/(models,puzzle,progress,main,sfx)
 apk-puzzle/        APK 壳工程（AndroidManifest、res、src、keystore 配置）
 tools/             calibrate-cuts / check-calibration / check-models /
                    make-offline-puzzle / make-icons-puzzle / build-apk-puzzle / test-all
-test/              15 套自动化测试与基线数据（另有可选 30 分钟 soak）
+test/              16 套自动化测试与基线数据（另有可选 30 分钟 soak）
 server.mjs         HTTPS 静态服务器（8443 / 8081）
 cert/              本地证书（gitignore，make-cert.mjs 生成）
 ```

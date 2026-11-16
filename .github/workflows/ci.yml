@@ -18,6 +18,8 @@ jobs:
         run: node tools/check-calibration.mjs
       - name: 切割单元测试（水密/守恒，636 项）
         run: node test/run-tests.mjs
+      - name: 静态检查
+        run: node test/static-check.mjs
       - name: 进度/成就逻辑（40 项）
         run: node test/progress-tests.mjs
       - name: 设置与存档（20 项）
