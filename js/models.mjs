@@ -714,6 +714,42 @@ function buildPanda(b) {
   sphere(b, pink, { pos: [0, 0.48, 0.54], scale: [0.05, 0.03, 0.02] }, 1.0, 10, 8);  // 嘴
 }
 
+// ---------------- 模型 25：独角兽 ----------------
+
+function buildUnicorn(b) {
+  const white = [0.97, 0.95, 0.99], pink = [0.95, 0.55, 0.75], purple = [0.65, 0.45, 0.90];
+  const gold = [0.98, 0.82, 0.25], dark = [0.10, 0.08, 0.10];
+  sphere(b, white, { pos: [0, 0.02, 0], scale: [0.48, 0.40, 0.62] }, 1.0, 32, 20);  // 身体
+  sphere(b, white, { pos: [0, 0.40, 0.52], scale: [0.34, 0.32, 0.36] }, 1.0, 28, 18); // 头
+  for (const s of [-1, 1]) {
+    sphere(b, white, { pos: [s * 0.18, 0.66, 0.48], scale: [0.10, 0.16, 0.08] }, 1.0, 16, 10); // 耳
+    sphere(b, dark, { pos: [s * 0.13, 0.43, 0.72], scale: [1, 1, 0.6] }, 0.045, 12, 8); // 眼
+    sphere(b, white, { pos: [s * 0.28, -0.28, 0.02], scale: [0.10, 0.28, 0.12] }, 1.0, 18, 10); // 腿
+  }
+  sphere(b, gold, { pos: [0, 0.78, 0.55], scale: [0.07, 0.24, 0.07] }, 1.0, 16, 10); // 角
+  sphere(b, pink, { pos: [0, 0.56, 0.75], scale: [0.16, 0.10, 0.10] }, 1.0, 16, 10); // 口鼻
+  // 鬃毛
+  for (let i = 0; i < 4; i++) sphere(b, i % 2 ? purple : pink, { pos: [0, 0.55 - i * 0.12, 0.20 - i * 0.10], scale: [0.10, 0.12, 0.12] }, 0.9, 14, 10);
+  sphere(b, pink, { pos: [0, 0.10, -0.62], scale: [0.14, 0.16, 0.28] }, 1.0, 18, 12); // 尾
+}
+
+// ---------------- 模型 26：章鱼 ----------------
+
+function buildOctopus(b) {
+  const purple = [0.62, 0.34, 0.78], pink = [0.90, 0.52, 0.72], dark = [0.08, 0.06, 0.10], white = [0.98, 0.97, 0.94];
+  sphere(b, purple, { pos: [0, 0.28, 0], scale: [0.58, 0.52, 0.58] }, 1.0, 32, 22); // 头
+  for (const s of [-1, 1]) {
+    sphere(b, white, { pos: [s * 0.20, 0.34, 0.48], scale: [0.14, 0.16, 0.08] }, 1.0, 18, 12); // 眼白
+    sphere(b, dark, { pos: [s * 0.20, 0.34, 0.55], scale: [0.06, 0.07, 0.04] }, 1.0, 12, 8); // 瞳
+  }
+  // 8 条触手
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI * 2 * i) / 8;
+    sphere(b, i % 2 ? pink : purple, { pos: [Math.cos(a) * 0.42, -0.18, Math.sin(a) * 0.42], scale: [0.12, 0.16, 0.30] }, 1.0, 18, 10);
+    sphere(b, i % 2 ? purple : pink, { pos: [Math.cos(a) * 0.54, -0.38, Math.sin(a) * 0.54], scale: [0.08, 0.10, 0.18] }, 1.0, 14, 8);
+  }
+}
+
 // ---------------- 配色皮肤 ----------------
 // 只改顶点颜色、不改任何几何：切割平面表按几何标定，因此所有配色共用同一套
 // 切割参数（水密性/体积守恒与颜色无关）。
@@ -795,6 +831,8 @@ export const MODELS = {
   owl: { name: '猫头鹰', emoji: '🦉', build: buildOwl },
   fox: { name: '小狐狸', emoji: '🦊', build: buildFox },
   panda: { name: '熊猫', emoji: '🐼', build: buildPanda },
+  unicorn: { name: '独角兽', emoji: '🦄', build: buildUnicorn },
+  octopus: { name: '章鱼', emoji: '🐙', build: buildOctopus },
   donut: { name: '甜甜圈', emoji: '🍩', build: buildDonut },
 };
 
