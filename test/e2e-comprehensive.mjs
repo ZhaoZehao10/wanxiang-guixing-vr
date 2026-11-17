@@ -515,6 +515,18 @@ const filterTest = await evalJs(`(() => {
 })()`);
 check('模型筛选：收藏视图只显示收藏模型', filterTest.count === 1 && filterTest.text.includes('熊猫'), JSON.stringify({ count: filterTest.count }));
 
+const missionTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.recordMissionProgress(3, 8);
+  const list = p.getDailyMissions();
+  p.openMissions();
+  const rows = document.querySelectorAll('#missions-body .mission-row').length;
+  const text = document.getElementById('missions-body').textContent;
+  document.getElementById('missions-close').click();
+  return { list, rows, text };
+})()`);
+check('每日任务：完成 1 局/3 星/8 块与弹窗', missionTest.list.every((m) => m.done) && missionTest.rows === 3 && missionTest.text.includes('8 块'), JSON.stringify({ rows: missionTest.rows }));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 

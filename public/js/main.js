@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.44.0';
+const APP_VERSION = '1.45.0';
 const BUILD_INFO = '28 模型 · 136 关 · 7 配色 · 11 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -946,6 +946,7 @@ function winGame() {
     : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days, weeklyDone: Object.keys(readWeekly()).length, monthlyDone: Object.keys(readMonthly()).length, yearlyDone: Object.keys(readYearly()).length });
   let taBest = 0, practiceRec = null;
   if (state.practice) practiceRec = recordPracticeBest(state.modelKey, state.pieceCount, secs);
+  recordMissionProgress(noRecord ? 0 : (res.stars || 0), state.pieceCount);
   let randomRec = null;
   if (state.randomMode && !state.practice) randomRec = recordRandomStats(state.modelKey, state.pieceCount, secs);
   if (state.timeAttack && !state.practice) { taBest = recordTimeAttack(state.modelKey, state.pieceCount, secs).bestTime; }
@@ -1528,6 +1529,45 @@ function recordPracticeBest(modelKey, n, secs) {
   return rec;
 }
 
+const MISSIONS_KEY = 'wanxiang.missions';
+function readMissions() {
+  try {
+    const d = JSON.parse(localStorage.getItem(MISSIONS_KEY) || '{}');
+    if (d.date !== dayKey()) return { date: dayKey(), plays: 0, stars: 0, eight: 0 };
+    return { date: dayKey(), plays: d.plays || 0, stars: d.stars || 0, eight: d.eight || 0 };
+  } catch (e) { return { date: dayKey(), plays: 0, stars: 0, eight: 0 }; }
+}
+function recordMissionProgress(stars, pieceCount) {
+  const m = readMissions();
+  m.plays += 1;
+  m.stars += Number.isFinite(stars) ? stars : 0;
+  if (pieceCount === 8) m.eight += 1;
+  try { localStorage.setItem(MISSIONS_KEY, JSON.stringify(m)); } catch (e) { /* ignore */ }
+  return m;
+}
+function missionList() {
+  const m = readMissions();
+  return [
+    { id: 'play1', text: getLang() === 'en' ? 'Complete 1 level' : '完成 1 局任意关卡', cur: Math.min(1, m.plays), target: 1 },
+    { id: 'stars3', text: getLang() === 'en' ? 'Earn 3 stars' : '累计获得 3 颗星', cur: Math.min(3, m.stars), target: 3 },
+    { id: 'eight1', text: getLang() === 'en' ? 'Complete one 8-piece level' : '完成 1 次 8 块关卡', cur: Math.min(1, m.eight), target: 1 },
+  ].map((x) => ({ ...x, done: x.cur >= x.target }));
+}
+function buildMissionsUI() {
+  const body = $('missions-body');
+  if (!body) return;
+  body.innerHTML = '';
+  for (const item of missionList()) {
+    const row = document.createElement('div');
+    row.className = 'mission-row';
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(140,165,255,.25);border-radius:10px;padding:10px 12px;' + (item.done ? 'background:rgba(109,255,168,.15)' : 'background:rgba(39,51,94,.35)');
+    row.innerHTML = '<span>' + (item.done ? '✅ ' : '⬜ ') + item.text + '</span><b style="color:' + (item.done ? '#6dffa8' : '#ffd24d') + '">' + item.cur + '/' + item.target + '</b>';
+    body.appendChild(row);
+  }
+}
+function openMissions() { buildMissionsUI(); $('missions').classList.remove('hidden'); }
+function closeMissions() { $('missions').classList.add('hidden'); }
+
 function challengeBadge(rec) {
   if (!rec || !Array.isArray(rec.times) || !rec.times.length) return getLang() === 'en' ? '⬜ Not done' : '⬜ 未完成';
   return (getLang() === 'en' ? '✅ Done · best ' : '✅ 已完成 · 最佳 ') + fmtDur(rec.times[0]);
@@ -1661,6 +1701,13 @@ function showDifficulty() {
   logBtn.innerHTML = '<b style="font-size:14px">📜 ' + (getLang() === 'en' ? 'Changelog' : '更新日志') + '</b>';
   logBtn.onclick = () => { sfx.ui(); openChangelog(); };
   card.appendChild(logBtn);
+  const missionBtn = document.createElement('button');
+  missionBtn.className = 'diff-btn';
+  missionBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  const missionDone = missionList().filter((x) => x.done).length;
+  missionBtn.innerHTML = '<b style="font-size:14px">🎯 ' + (getLang() === 'en' ? 'Daily missions' : '今日任务') + ' · ' + missionDone + '/3</b>';
+  missionBtn.onclick = () => { sfx.ui(); openMissions(); };
+  card.appendChild(missionBtn);
 
   const filterRow = document.createElement('div');
   filterRow.className = 'diff-row model-filter';
@@ -2426,7 +2473,7 @@ const SETTING_ROWS = [
 function resetAllProgress() {
   saveProgress(localStorage, {});
   saveAchievements(localStorage, []);
-  for (const key of [DAILY_KEY, WEEKLY_KEY, MONTHLY_KEY, YEARLY_KEY, TIMEATTACK_KEY, PRACTICE_BEST_KEY, RANDOM_STATS_KEY]) {
+  for (const key of [DAILY_KEY, WEEKLY_KEY, MONTHLY_KEY, YEARLY_KEY, TIMEATTACK_KEY, PRACTICE_BEST_KEY, RANDOM_STATS_KEY, MISSIONS_KEY]) {
     try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
   }
   buildSettingsUI();
@@ -3097,6 +3144,9 @@ if ($('yearreport-copy')) {
 if ($('ach-poster')) {
   $('ach-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadAchievementPoster(); });
 }
+if ($('missions-close')) {
+  $('missions-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeMissions(); });
+}
 if ($('changelog-close')) {
   $('changelog-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeChangelog(); });
 }
@@ -3219,7 +3269,8 @@ window.__wanxiang = {
   openDataPanel, closeDataPanel,
   getDataText: () => ($('data-text') ? $('data-text').value : ''),
   openSettings, closeSettings, protocolHint,
-  openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport, openChangelog, closeChangelog,
+  openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport, openChangelog, closeChangelog, openMissions, closeMissions,
+  getDailyMissions: () => missionList(), recordMissionProgress,
   getChangelogText: () => changelogText(),
   getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
