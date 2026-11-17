@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.46.0';
+const APP_VERSION = '1.47.0';
 const BUILD_INFO = '28 模型 · 136 关 · 7 配色 · 11 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1577,6 +1577,16 @@ function buildMissionsUI() {
 }
 function openMissions() { buildMissionsUI(); $('missions').classList.remove('hidden'); }
 function closeMissions() { $('missions').classList.add('hidden'); }
+
+function captureSceneDataURL() {
+  try {
+    renderer.render(scene, camera);
+    return renderer.domElement.toDataURL('image/png');
+  } catch (e) { return ''; }
+}
+function downloadSnapshot() {
+  try { const a = document.createElement('a'); a.href = captureSceneDataURL(); a.download = 'WanxiangGuixing-scene.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
+}
 
 function challengeBadge(rec) {
   if (!rec || !Array.isArray(rec.times) || !rec.times.length) return getLang() === 'en' ? '⬜ Not done' : '⬜ 未完成';
@@ -3154,6 +3164,9 @@ if ($('yearreport-copy')) {
 if ($('ach-poster')) {
   $('ach-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadAchievementPoster(); });
 }
+if ($('snap-btn')) {
+  $('snap-btn').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadSnapshot(); });
+}
 if ($('missions-close')) {
   $('missions-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeMissions(); });
 }
@@ -3285,7 +3298,7 @@ window.__wanxiang = {
   getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
-  getDailyStats: () => dailyStats(), recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
+  getDailyStats: () => dailyStats(), captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,
