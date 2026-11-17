@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.45.0';
+const APP_VERSION = '1.46.0';
 const BUILD_INFO = '28 模型 · 136 关 · 7 配色 · 11 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -943,10 +943,11 @@ function winGame() {
   // 成绩入库 + 成就评估（练习/随机模式跳过，不污染记录）
   const res = noRecord
     ? { stars: 0, rec: { bestTime: 0, plays: 0 }, newly: [] }
-    : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days, weeklyDone: Object.keys(readWeekly()).length, monthlyDone: Object.keys(readMonthly()).length, yearlyDone: Object.keys(readYearly()).length });
+    : commitResult(state.modelKey, state.pieceCount, secs, state.hintsUsed || 0, { dailyDays: dailyStats().days, missionDays: readMissionHistory().length, weeklyDone: Object.keys(readWeekly()).length, monthlyDone: Object.keys(readMonthly()).length, yearlyDone: Object.keys(readYearly()).length });
   let taBest = 0, practiceRec = null;
   if (state.practice) practiceRec = recordPracticeBest(state.modelKey, state.pieceCount, secs);
   recordMissionProgress(noRecord ? 0 : (res.stars || 0), state.pieceCount);
+  recordMissionDayIfDone();
   let randomRec = null;
   if (state.randomMode && !state.practice) randomRec = recordRandomStats(state.modelKey, state.pieceCount, secs);
   if (state.timeAttack && !state.practice) { taBest = recordTimeAttack(state.modelKey, state.pieceCount, secs).bestTime; }
@@ -1545,6 +1546,15 @@ function recordMissionProgress(stars, pieceCount) {
   try { localStorage.setItem(MISSIONS_KEY, JSON.stringify(m)); } catch (e) { /* ignore */ }
   return m;
 }
+const MISSION_HISTORY_KEY = 'wanxiang.missionHistory';
+function readMissionHistory() { try { const a = JSON.parse(localStorage.getItem(MISSION_HISTORY_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function recordMissionDayIfDone() {
+  if (!missionList().every((x) => x.done)) return;
+  const list = readMissionHistory();
+  const today = dayKey();
+  if (!list.includes(today)) { list.push(today); try { localStorage.setItem(MISSION_HISTORY_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ } }
+}
+
 function missionList() {
   const m = readMissions();
   return [

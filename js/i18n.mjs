@@ -133,6 +133,8 @@ export const ACH_EN = {
   weekly_4: ['Four Weeks', 'Complete 4 weekly challenges'],
   monthly_3: ['Quarter Challenger', 'Complete 3 monthly challenges'],
   yearly_1: ['Yearly Challenger', 'Complete 1 yearly challenge'],
+  mission_1: ['Daily Clear', 'Complete all 3 daily missions once'],
+  mission_7: ['Mission Week', 'Complete all daily missions on 7 days'],
   daily_30: ['Monthly Streak', 'Complete 30 days of daily challenges'],
   daily_100: ['100-Day Challenge', 'Complete 100 days of daily challenges'],
   star_100: ['Star Hoarder', 'Collect 100 stars'],
