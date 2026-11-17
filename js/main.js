@@ -38,8 +38,8 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.47.0';
-const BUILD_INFO = '28 模型 · 136 关 · 7 配色 · 11 主题';
+const APP_VERSION = '1.48.0';
+const BUILD_INFO = '28 模型 · 136 关 · 7 配色 · 13 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -115,6 +115,8 @@ const SCENE_THEMES = {
   sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
   dawn: { name: '樱花', emoji: '🌸', bg: 0x2b1e2c, fog: 0x2b1e2c, floor: 0x3d2a42, slope: 0x50355a, hemiSky: 0xffd8ea, hemiGround: 0x5c4050, dir: 0xffe8f2, dir2: 0xff9ec9, rim: 0xff7ab0, starOpacity: 0.5 },
   dusk: { name: '黄昏', emoji: '🌅', bg: 0x2a1a1e, fog: 0x2a1a1e, floor: 0x3a2a2a, slope: 0x4a3230, hemiSky: 0xffd0a0, hemiGround: 0x5a3a30, dir: 0xffd8b0, dir2: 0xff8a60, rim: 0xff6a80, starOpacity: 0.3 },
+  snowfield: { name: '雪原', emoji: '❄️', bg: 0x1a2a3a, fog: 0x1a2a3a, floor: 0xdfe9f5, slope: 0xeef6ff, hemiSky: 0xffffff, hemiGround: 0x9bb8d0, dir: 0xffffff, dir2: 0xa8d8ff, rim: 0xd0f0ff, starOpacity: 0.05 },
+  cyber: { name: '赛博', emoji: '🌃', bg: 0x0a0618, fog: 0x0a0618, floor: 0x1a0a2a, slope: 0x2a1240, hemiSky: 0xff4ad0, hemiGround: 0x1a0a30, dir: 0x66f0ff, dir2: 0xff40c0, rim: 0x66f0ff, starOpacity: 0.5 },
   aurora: { name: '极光', emoji: '🌌', bg: 0x071a24, fog: 0x071a24, floor: 0x0e2a33, slope: 0x163a44, hemiSky: 0x8affd0, hemiGround: 0x0a2030, dir: 0xb0ffe0, dir2: 0x6a80ff, rim: 0x9affd0, starOpacity: 0.7 },
   desert: { name: '沙漠', emoji: '🏜️', bg: 0x2a1e10, fog: 0x2a1e10, floor: 0x4a341c, slope: 0x5a4224, hemiSky: 0xffd08a, hemiGround: 0x3a2810, dir: 0xffe0a0, dir2: 0xff8a40, rim: 0xffb060, starOpacity: 0.1 },
   morning: { name: '晨曦', emoji: '🌤️', bg: 0x1a2233, fog: 0x1a2233, floor: 0x2a3444, slope: 0x3a4a5a, hemiSky: 0xffe0b0, hemiGround: 0x405060, dir: 0xfff0d0, dir2: 0xffc080, rim: 0xffe0a0, starOpacity: 0.1 },
