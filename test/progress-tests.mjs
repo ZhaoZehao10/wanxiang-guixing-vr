@@ -119,13 +119,15 @@ console.log('\n=== 成就判定 ===');
   check('累计 4 周本周挑战 → weekly_4', evaluateAchievements({}, [], { weeklyDone: 4 }).includes('weekly_4'));
   check('累计 3 个月本月挑战 → monthly_3', evaluateAchievements({}, [], { monthlyDone: 3 }).includes('monthly_3'));
   check('完成 1 次年度挑战 → yearly_1', evaluateAchievements({}, [], { yearlyDone: 1 }).includes('yearly_1'));
+  check('每日任务全清 1 天 → mission_1', evaluateAchievements({}, [], { missionDays: 1 }).includes('mission_1'));
+  check('每日任务全清 7 天 → mission_7', evaluateAchievements({}, [], { missionDays: 7 }).includes('mission_7'));
   check('累计 30 天每日挑战 → daily_30', evaluateAchievements({}, [], { dailyDays: 30 }).includes('daily_30'));
   check('累计 100 天每日挑战 → daily_100', evaluateAchievements({}, [], { dailyDays: 100 }).includes('daily_100'));
   check('累计 ≥100 星 → star_100', evaluateAchievements(p100, []).includes('star_100'), JSON.stringify(evaluateAchievements(p100, []).filter((x) => x === 'star_100')));
   const pM6 = {};
   for (const mk of MODEL_KEYS) recordResult(pM6, mk, 6, 40, 0); // 每关 3 星
   check('全部模型 6 块三星 → all_perfect_6', evaluateAchievements(pM6, []).includes('all_perfect_6'), JSON.stringify(evaluateAchievements(pM6, []).filter((x) => x === 'all_perfect_6')));
-  check('成就总数 = 18', ACHIEVEMENTS.length === 18);
+  check('成就总数 = 20', ACHIEVEMENTS.length === 20);
 }
 
 // ---------------- 统计概览 ----------------

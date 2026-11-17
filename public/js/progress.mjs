@@ -122,6 +122,14 @@ export const ACHIEVEMENTS = [
     test: (p, extra) => (extra.yearlyDone || 0) >= 1,
   },
   {
+    id: 'mission_1', name: '今日全清', desc: '完成一次每日任务全部 3 项',
+    test: (p, extra) => (extra.missionDays || 0) >= 1,
+  },
+  {
+    id: 'mission_7', name: '任务周记', desc: '累计 7 天完成每日任务全部 3 项',
+    test: (p, extra) => (extra.missionDays || 0) >= 7,
+  },
+  {
     id: 'star_100', name: '百星收藏家', desc: '累计获得 100 颗星',
     test: (p) => Object.values(p).reduce((s, r) => s + (r.stars || 0), 0) >= 100,
   },

@@ -418,7 +418,7 @@ const achGallery = await evalJs(`(() => {
   const poster = p.generateAchievementPoster();
   return { visible, cards, text, closed, poster, posterLen: poster.length };
 })()`);
-check('成就图鉴：18 项与解锁状态', achGallery.visible === true && achGallery.cards === 18 && achGallery.closed === true && achGallery.text.includes('初次拼合') && achGallery.poster.startsWith('data:image/png') && achGallery.posterLen > 5000, JSON.stringify({ cards: achGallery.cards }));
+check('成就图鉴：20 项与解锁状态', achGallery.visible === true && achGallery.cards === 20 && achGallery.closed === true && achGallery.text.includes('初次拼合') && achGallery.poster.startsWith('data:image/png') && achGallery.posterLen > 5000, JSON.stringify({ cards: achGallery.cards }));
 
 const challengeBadges = await evalJs(`(() => {
   const p = window.__wanxiang;
@@ -1030,7 +1030,7 @@ const ach = await evalJs(`(() => {
   const menuText = document.getElementById('difficulty').innerText;
   const diffBtns = [...document.querySelectorAll('#difficulty .diff-btn')].map((b) => b.textContent);
   const hasRecord = diffBtns.some((t) => t.includes('★') || t.includes('☆')) || diffBtns.some((t) => t.includes('未挑战'));
-  const hasAch = menuText.includes('成就 ') && menuText.includes('/18');
+  const hasAch = menuText.includes('成就 ') && menuText.includes('/20');
   return { list, winText, winVisible, hasAch, hasRecord };
 })()`);
 check('首通解锁 first_win 且胜利面板提示', ach.list.includes('first_win') && ach.winVisible && ach.winText.includes('初次拼合'), JSON.stringify(ach));
