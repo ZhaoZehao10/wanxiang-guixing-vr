@@ -750,6 +750,43 @@ function buildOctopus(b) {
   }
 }
 
+// ---------------- 模型 27：考拉 ----------------
+
+function buildKoala(b) {
+  const grey = [0.62, 0.64, 0.68], greyD = [0.48, 0.50, 0.55], white = [0.94, 0.94, 0.92], dark = [0.08, 0.08, 0.09];
+  sphere(b, grey, { pos: [0, 0.02, 0], scale: [0.50, 0.48, 0.44] }, 1.0, 32, 22);     // 身体
+  sphere(b, white, { pos: [0, 0.02, 0.25], scale: [0.28, 0.30, 0.16] }, 1.0, 22, 14);  // 肚皮
+  sphere(b, grey, { pos: [0, 0.60, 0.08], scale: [0.44, 0.38, 0.40] }, 1.0, 30, 20);   // 头
+  for (const s of [-1, 1]) {
+    sphere(b, greyD, { pos: [s * 0.38, 0.78, 0.02], scale: [0.20, 0.24, 0.10] }, 1.0, 20, 14); // 大耳
+    sphere(b, grey, { pos: [s * 0.38, 0.78, 0.10], scale: [0.12, 0.16, 0.06] }, 1.0, 16, 10); // 耳内
+    sphere(b, dark, { pos: [s * 0.14, 0.66, 0.44], scale: [1, 1, 0.6] }, 0.045, 12, 8); // 眼
+    sphere(b, grey, { pos: [s * 0.42, 0.04, 0], scale: [0.12, 0.26, 0.14] }, 1.0, 18, 12); // 手臂
+    sphere(b, greyD, { pos: [s * 0.24, -0.38, 0.04], scale: [0.16, 0.12, 0.18] }, 1.0, 16, 10); // 脚
+  }
+  sphere(b, dark, { pos: [0, 0.52, 0.48], scale: [0.10, 0.14, 0.08] }, 1.0, 16, 10); // 大鼻子
+}
+
+// ---------------- 模型 28：小恐龙 ----------------
+
+function buildDino(b) {
+  const green = [0.35, 0.72, 0.38], greenD = [0.25, 0.55, 0.28], cream = [0.88, 0.94, 0.68], dark = [0.08, 0.09, 0.08];
+  sphere(b, green, { pos: [0, 0.05, 0], scale: [0.48, 0.42, 0.58] }, 1.0, 32, 20);      // 身体
+  sphere(b, cream, { pos: [0, 0.02, 0.34], scale: [0.28, 0.26, 0.20] }, 1.0, 24, 16);  // 肚皮
+  sphere(b, green, { pos: [0, 0.52, 0.44], scale: [0.42, 0.34, 0.40] }, 1.0, 28, 18);  // 头
+  for (const s of [-1, 1]) {
+    sphere(b, dark, { pos: [s * 0.16, 0.60, 0.66], scale: [1, 1, 0.6] }, 0.05, 12, 8); // 眼
+    sphere(b, greenD, { pos: [s * 0.48, 0.02, 0], scale: [0.14, 0.28, 0.14] }, 1.0, 18, 12); // 手臂
+    sphere(b, greenD, { pos: [s * 0.26, -0.40, 0.06], scale: [0.19, 0.14, 0.22] }, 1.0, 18, 12); // 脚
+  }
+  // 尾巴
+  sphere(b, green, { pos: [0, 0.02, -0.68], scale: [0.24, 0.22, 0.50] }, 1.0, 24, 14);
+  sphere(b, greenD, { pos: [0, 0.02, -1.02], scale: [0.14, 0.14, 0.22] }, 1.0, 16, 10);
+  // 背刺
+  for (let i = 0; i < 3; i++) sphere(b, cream, { pos: [0, 0.40 - i * 0.08, -0.10 - i * 0.20], scale: [0.07, 0.14, 0.08] }, 1.0, 12, 8);
+  sphere(b, cream, { pos: [0, 0.42, 0.72], scale: [0.16, 0.08, 0.10] }, 1.0, 14, 8); // 口鼻
+}
+
 // ---------------- 配色皮肤 ----------------
 // 只改顶点颜色、不改任何几何：切割平面表按几何标定，因此所有配色共用同一套
 // 切割参数（水密性/体积守恒与颜色无关）。
@@ -833,6 +870,8 @@ export const MODELS = {
   panda: { name: '熊猫', emoji: '🐼', build: buildPanda },
   unicorn: { name: '独角兽', emoji: '🦄', build: buildUnicorn },
   octopus: { name: '章鱼', emoji: '🐙', build: buildOctopus },
+  koala: { name: '考拉', emoji: '🐨', build: buildKoala },
+  dino: { name: '小恐龙', emoji: '🦖', build: buildDino },
   donut: { name: '甜甜圈', emoji: '🍩', build: buildDonut },
 };
 
