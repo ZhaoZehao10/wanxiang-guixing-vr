@@ -16,6 +16,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   lang: 'zh',         // zh | en
   uiScale: 1,          // 1 | 1.15 | 1.3
   menuSide: 'center',  // left | center | right
+  themeRandom: false, // 每局随机场景主题
+  paletteRandom: false, // 每局随机配色
 });
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -31,6 +33,8 @@ export function clampSettings(raw = {}) {
   if (raw.lang === 'en' || raw.lang === 'zh') out.lang = raw.lang;
   if (Number.isFinite(raw.uiScale)) out.uiScale = clamp(raw.uiScale, 1, 1.3);
   if (['left', 'center', 'right'].includes(raw.menuSide)) out.menuSide = raw.menuSide;
+  if (typeof raw.themeRandom === 'boolean') out.themeRandom = raw.themeRandom;
+  if (typeof raw.paletteRandom === 'boolean') out.paletteRandom = raw.paletteRandom;
   return out;
 }
 

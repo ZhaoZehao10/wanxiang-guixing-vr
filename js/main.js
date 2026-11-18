@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.48.0';
+const APP_VERSION = '1.49.0';
 const BUILD_INFO = '28 模型 · 136 关 · 7 配色 · 13 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1020,6 +1020,8 @@ function startGame(modelKey, n, opts = {}) {
   }
   state.modelKey = modelKey;
   state.pieceCount = n;
+  if (state.settings.themeRandom) { const keys = Object.keys(SCENE_THEMES); state.theme = keys[Math.floor(Math.random() * keys.length)]; applyTheme(state.theme); }
+  if (state.settings.paletteRandom) { const keys = Object.keys(PALETTES); state.palette = keys[Math.floor(Math.random() * keys.length)]; savePalette(state.palette); }
   state.mode = 'playing';
   state.startTime = performance.now();
   state.lastPlacement = state.startTime;
@@ -2490,6 +2492,8 @@ const SETTING_ROWS = [
   { scope: 'settings', key: 'lang', label: '语言', labelKey: 'settings.lang', opts: [['中文', 'zh'], ['English', 'en']] },
   { scope: 'settings', key: 'uiScale', label: '界面缩放', labelKey: 'settings.uiScale', opts: [['标准', 1], ['大', 1.15], ['特大', 1.3]] },
   { scope: 'settings', key: 'menuSide', label: '菜单位置', labelKey: 'settings.menuSide', opts: [['左', 'left'], ['中', 'center'], ['右', 'right']] },
+  { scope: 'settings', key: 'themeRandom', label: '每局随机主题', labelKey: 'settings.themeRandom', opts: [['关', false], ['开', true]] },
+  { scope: 'settings', key: 'paletteRandom', label: '每局随机配色', labelKey: 'settings.paletteRandom', opts: [['关', false], ['开', true]] },
 ];
 
 function resetAllProgress() {

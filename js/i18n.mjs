@@ -69,6 +69,8 @@ const DICT = {
   'settings.lang': { zh: '语言', en: 'Language' },
   'settings.uiScale': { zh: '界面缩放', en: 'UI Scale' },
   'settings.menuSide': { zh: '菜单位置', en: 'Menu Side' },
+  'settings.themeRandom': { zh: '每局随机主题', en: 'Random Theme' },
+  'settings.paletteRandom': { zh: '每局随机配色', en: 'Random Palette' },
   'tutorial.title': { zh: '🧩 上手 4 步', en: '🧩 Quick Start' },
   'tutorial.ok': { zh: '知道了，开始拼图', en: 'Got it — Start' },
   'win.title': { zh: '🎉 拼图完成！', en: '🎉 Puzzle Complete!' },
