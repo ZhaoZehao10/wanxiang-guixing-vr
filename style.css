@@ -213,3 +213,6 @@ body.ui-scale #intro, body.ui-scale #difficulty, body.ui-scale #hud, body.ui-sca
 
 /* 每日任务 */
 #missions.hidden { display: none !important; }
+
+/* 截图相册 */
+#shotgallery.hidden { display: none !important; }
