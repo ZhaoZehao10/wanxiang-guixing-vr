@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.49.0';
+const APP_VERSION = '1.50.0';
 const BUILD_INFO = '28 模型 · 136 关 · 7 配色 · 13 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1589,8 +1589,44 @@ function captureSceneDataURL() {
   } catch (e) { return ''; }
 }
 function downloadSnapshot() {
-  try { const a = document.createElement('a'); a.href = captureSceneDataURL(); a.download = 'WanxiangGuixing-scene.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
+  try { const a = document.createElement('a'); a.href = captureSceneDataURL(); a.download = 'WanxiangGuixing-scene.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); saveShot(a.href); } catch (e) { /* ignore */ }
 }
+
+function openShotDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('wanxiang-shots', 1);
+    req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains('shots')) req.result.createObjectStore('shots', { keyPath: 'id', autoIncrement: true }); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function saveShot(data) {
+  try { const db = await openShotDB(); return await new Promise((resolve, reject) => { const tx = db.transaction('shots', 'readwrite'); const req = tx.objectStore('shots').add({ data, ts: Date.now() }); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); } catch (e) { return 0; }
+}
+async function listShots() {
+  try { const db = await openShotDB(); return await new Promise((resolve, reject) => { const req = db.transaction('shots', 'readonly').objectStore('shots').getAll(); req.onsuccess = () => resolve(req.result || []); req.onerror = () => reject(req.error); }); } catch (e) { return []; }
+}
+async function deleteShot(id) {
+  try { const db = await openShotDB(); return await new Promise((resolve, reject) => { const req = db.transaction('shots', 'readwrite').objectStore('shots').delete(id); req.onsuccess = () => resolve(true); req.onerror = () => reject(req.error); }); } catch (e) { return false; }
+}
+async function buildShotGallery() {
+  const body = $('shotgallery-body');
+  if (!body) return;
+  const shots = await listShots();
+  body.innerHTML = '';
+  if (!shots.length) { body.textContent = getLang() === 'en' ? 'No screenshots yet. Use the camera button in game.' : '还没有截图，在游戏里点 HUD 的相机按钮即可保存。'; return; }
+  for (const shot of shots.slice().reverse()) {
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:10px;overflow:hidden;background:rgba(39,51,94,.35)';
+    const img = document.createElement('img'); img.src = shot.data; img.style.cssText = 'width:100%;display:block';
+    const bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:6px;justify-content:center;padding:6px';
+    const dl = document.createElement('button'); dl.className = 'win-btn'; dl.style.cssText = 'font-size:11px;padding:3px 8px'; dl.textContent = getLang() === 'en' ? 'Save' : '下载'; dl.onclick = () => { const a = document.createElement('a'); a.href = shot.data; a.download = 'WanxiangGuixing-shot-' + shot.id + '.png'; a.click(); };
+    const del = document.createElement('button'); del.className = 'win-btn'; del.style.cssText = 'font-size:11px;padding:3px 8px;background:rgba(255,90,110,.2)'; del.textContent = getLang() === 'en' ? 'Delete' : '删除'; del.onclick = async () => { await deleteShot(shot.id); buildShotGallery(); };
+    bar.appendChild(dl); bar.appendChild(del); card.appendChild(img); card.appendChild(bar); body.appendChild(card);
+  }
+}
+async function openShotGallery() { $('shotgallery').classList.remove('hidden'); await buildShotGallery(); }
+function closeShotGallery() { $('shotgallery').classList.add('hidden'); }
 
 function challengeBadge(rec) {
   if (!rec || !Array.isArray(rec.times) || !rec.times.length) return getLang() === 'en' ? '⬜ Not done' : '⬜ 未完成';
@@ -1732,6 +1768,12 @@ function showDifficulty() {
   missionBtn.innerHTML = '<b style="font-size:14px">🎯 ' + (getLang() === 'en' ? 'Daily missions' : '今日任务') + ' · ' + missionDone + '/3</b>';
   missionBtn.onclick = () => { sfx.ui(); openMissions(); };
   card.appendChild(missionBtn);
+  const shotsBtn = document.createElement('button');
+  shotsBtn.className = 'diff-btn';
+  shotsBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  shotsBtn.innerHTML = '<b style="font-size:14px">📷 ' + (getLang() === 'en' ? 'Screenshot Gallery' : '截图相册') + '</b>';
+  shotsBtn.onclick = () => { sfx.ui(); openShotGallery(); };
+  card.appendChild(shotsBtn);
 
   const filterRow = document.createElement('div');
   filterRow.className = 'diff-row model-filter';
@@ -3170,6 +3212,9 @@ if ($('yearreport-copy')) {
 if ($('ach-poster')) {
   $('ach-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadAchievementPoster(); });
 }
+if ($('shotgallery-close')) {
+  $('shotgallery-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeShotGallery(); });
+}
 if ($('snap-btn')) {
   $('snap-btn').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadSnapshot(); });
 }
@@ -3304,7 +3349,7 @@ window.__wanxiang = {
   getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
-  getDailyStats: () => dailyStats(), captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
+  getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,
