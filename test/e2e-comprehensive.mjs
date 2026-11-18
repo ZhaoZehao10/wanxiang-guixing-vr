@@ -535,6 +535,20 @@ const snapshotTest = await evalJs(`(() => {
 })()`);
 check('场景截图：可生成 PNG DataURL', snapshotTest.data.startsWith('data:image/png') && snapshotTest.len > 1000, JSON.stringify({ len: snapshotTest.len }));
 
+const randomLook = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.setSettingsValue('themeRandom', true);
+  p.setSettingsValue('paletteRandom', true);
+  p.startGame('rocket', 2);
+  const theme = p.getThemeInfo().theme;
+  const palette = p.getPalette();
+  const ok = p.getSettings().themeRandom === true && p.getSettings().paletteRandom === true;
+  p.setSettingsValue('themeRandom', false);
+  p.setSettingsValue('paletteRandom', false);
+  return { theme, palette, ok };
+})()`);
+check('随机主题/配色设置生效', randomLook.ok === true && !!randomLook.theme && !!randomLook.palette, JSON.stringify(randomLook));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 
