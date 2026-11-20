@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.50.0';
+const APP_VERSION = '1.51.0';
 const BUILD_INFO = '28 模型 · 136 关 · 7 配色 · 13 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1609,6 +1609,27 @@ async function listShots() {
 async function deleteShot(id) {
   try { const db = await openShotDB(); return await new Promise((resolve, reject) => { const req = db.transaction('shots', 'readwrite').objectStore('shots').delete(id); req.onsuccess = () => resolve(true); req.onerror = () => reject(req.error); }); } catch (e) { return false; }
 }
+function applyShotFilter(data, filter) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.filter = filter || 'none';
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch (e) { resolve(data); }
+    };
+    img.onerror = () => resolve(data);
+    img.src = data;
+  });
+}
+async function clearShots() {
+  try { const db = await openShotDB(); return await new Promise((resolve, reject) => { const req = db.transaction('shots', 'readwrite').objectStore('shots').clear(); req.onsuccess = () => resolve(true); req.onerror = () => reject(req.error); }); } catch (e) { return false; }
+}
+
 async function buildShotGallery() {
   const body = $('shotgallery-body');
   if (!body) return;
@@ -1620,9 +1641,11 @@ async function buildShotGallery() {
     card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:10px;overflow:hidden;background:rgba(39,51,94,.35)';
     const img = document.createElement('img'); img.src = shot.data; img.style.cssText = 'width:100%;display:block';
     const bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:6px;justify-content:center;padding:6px';
-    const dl = document.createElement('button'); dl.className = 'win-btn'; dl.style.cssText = 'font-size:11px;padding:3px 8px'; dl.textContent = getLang() === 'en' ? 'Save' : '下载'; dl.onclick = () => { const a = document.createElement('a'); a.href = shot.data; a.download = 'WanxiangGuixing-shot-' + shot.id + '.png'; a.click(); };
+    const sel = document.createElement('select'); sel.style.cssText = 'font-size:11px;background:#1a2340;color:#cfd9f5;border:1px solid rgba(140,165,255,.3);border-radius:6px';
+    for (const [v, l] of [['none', getLang() === 'en' ? 'Original' : '原图'], ['grayscale(1)', getLang() === 'en' ? 'Mono' : '黑白'], ['sepia(0.7)', getLang() === 'en' ? 'Warm' : '暖色'], ['saturate(1.4) hue-rotate(-15deg)', getLang() === 'en' ? 'Cool' : '冷色']]) { const o = document.createElement('option'); o.value = v; o.textContent = l; sel.appendChild(o); }
+    const dl = document.createElement('button'); dl.className = 'win-btn'; dl.style.cssText = 'font-size:11px;padding:3px 8px'; dl.textContent = getLang() === 'en' ? 'Save' : '下载'; dl.onclick = async () => { const data = await applyShotFilter(shot.data, sel.value); const a = document.createElement('a'); a.href = data; a.download = 'WanxiangGuixing-shot-' + shot.id + '.png'; a.click(); };
     const del = document.createElement('button'); del.className = 'win-btn'; del.style.cssText = 'font-size:11px;padding:3px 8px;background:rgba(255,90,110,.2)'; del.textContent = getLang() === 'en' ? 'Delete' : '删除'; del.onclick = async () => { await deleteShot(shot.id); buildShotGallery(); };
-    bar.appendChild(dl); bar.appendChild(del); card.appendChild(img); card.appendChild(bar); body.appendChild(card);
+    bar.appendChild(sel); bar.appendChild(dl); bar.appendChild(del); card.appendChild(img); card.appendChild(bar); body.appendChild(card);
   }
 }
 async function openShotGallery() { $('shotgallery').classList.remove('hidden'); await buildShotGallery(); }
@@ -3212,6 +3235,9 @@ if ($('yearreport-copy')) {
 if ($('ach-poster')) {
   $('ach-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadAchievementPoster(); });
 }
+if ($('shotgallery-clear')) {
+  $('shotgallery-clear').addEventListener('click', async (e) => { e.stopPropagation(); sfx.ui(); await clearShots(); buildShotGallery(); });
+}
 if ($('shotgallery-close')) {
   $('shotgallery-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeShotGallery(); });
 }
@@ -3349,7 +3375,7 @@ window.__wanxiang = {
   getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
-  getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
+  getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,

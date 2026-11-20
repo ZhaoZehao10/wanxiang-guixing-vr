@@ -558,10 +558,13 @@ const shotGallery = await evalJs(`(async () => {
   await new Promise((r) => setTimeout(r, 300));
   const count = document.querySelectorAll('#shotgallery-body img').length;
   const stored = await p.listShots();
+  const filtered = await p.applyShotFilter(data, 'grayscale(1)');
+  await p.clearShots();
+  const after = await p.listShots();
   document.getElementById('shotgallery-close').click();
-  return { count, stored: stored.length };
+  return { count, stored: stored.length, filtered: filtered.startsWith('data:image/png'), after: after.length };
 })()`);
-check('截图相册：保存/列出/关闭', shotGallery.count >= 1 && shotGallery.stored >= 1, JSON.stringify(shotGallery));
+check('截图相册：保存/列出/关闭', shotGallery.count >= 1 && shotGallery.stored >= 1 && shotGallery.filtered === true && shotGallery.after === 0, JSON.stringify(shotGallery));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
