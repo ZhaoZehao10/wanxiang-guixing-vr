@@ -87,7 +87,7 @@ export const MODEL_EN = {
   penguin: 'Cute Penguin', gift: 'Gift Box', car: 'Mini Racer', xmas: 'Christmas Tree',
   rabbit: 'Cute Bunny', globe: 'Blue Earth', pumpkin: 'Jack-o-Lantern', turtle: 'Little Turtle',
   pig: 'Little Pig', heli: 'Helicopter', coffee: 'Coffee Cup', fish: 'Little Fish',
-  cat: 'Little Cat', cactus: 'Cactus', frog: 'Little Frog', donut: 'Donut', bear: 'Little Bear', owl: 'Owl', fox: 'Little Fox', panda: 'Panda', unicorn: 'Unicorn', octopus: 'Octopus', koala: 'Koala', dino: 'Dino',
+  cat: 'Little Cat', cactus: 'Cactus', frog: 'Little Frog', donut: 'Donut', bear: 'Little Bear', owl: 'Owl', fox: 'Little Fox', panda: 'Panda', unicorn: 'Unicorn', octopus: 'Octopus', koala: 'Koala', dino: 'Dino', lion: 'Lion', cow: 'Cow',
 };
 
 function detectLang() {
