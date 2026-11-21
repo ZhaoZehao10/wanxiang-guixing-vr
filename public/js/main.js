@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.53.0';
+const APP_VERSION = '1.54.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 13 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1630,15 +1630,16 @@ async function clearShots() {
   try { const db = await openShotDB(); return await new Promise((resolve, reject) => { const req = db.transaction('shots', 'readwrite').objectStore('shots').clear(); req.onsuccess = () => resolve(true); req.onerror = () => reject(req.error); }); } catch (e) { return false; }
 }
 
-async function generateShotSheet() {
-  const shots = (await listShots()).slice(-6);
+async function generateShotSheet(layout = 'grid') {
+  const shots = (await listShots()).slice(layout === 'strip' ? -4 : -6);
   if (!shots.length) return '';
   const canvas = document.createElement('canvas');
-  canvas.width = 1200; canvas.height = 900;
+  const strip = layout === 'strip';
+  canvas.width = strip ? 600 : 1200; canvas.height = strip ? 1200 : 900;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#0b1020'; ctx.fillRect(0, 0, 1200, 900);
-  const cols = 2, rows = 3, cw = 600, ch = 300;
-  for (let i = 0; i < Math.min(shots.length, 6); i++) {
+  ctx.fillStyle = '#0b1020'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const cols = strip ? 1 : 2, cw = strip ? 600 : 600, ch = strip ? 300 : 300;
+  for (let i = 0; i < Math.min(shots.length, strip ? 4 : 6); i++) {
     const data = await new Promise((resolve) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = shots[i].data; });
     if (!data) continue;
     const x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
@@ -1648,7 +1649,8 @@ async function generateShotSheet() {
   return canvas.toDataURL('image/png');
 }
 function downloadShotSheet() {
-  generateShotSheet().then((data) => { if (!data) return; const a = document.createElement('a'); a.href = data; a.download = 'WanxiangGuixing-shots.png'; a.click(); }).catch(() => {});
+  const layout = $('shotgallery-layout') ? $('shotgallery-layout').value : 'grid';
+  generateShotSheet(layout).then((data) => { if (!data) return; const a = document.createElement('a'); a.href = data; a.download = 'WanxiangGuixing-shots.png'; a.click(); }).catch(() => {});
 }
 
 async function buildShotGallery() {
