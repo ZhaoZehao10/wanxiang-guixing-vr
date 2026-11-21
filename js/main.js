@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.52.0';
+const APP_VERSION = '1.53.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 13 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1628,6 +1628,27 @@ function applyShotFilter(data, filter) {
 }
 async function clearShots() {
   try { const db = await openShotDB(); return await new Promise((resolve, reject) => { const req = db.transaction('shots', 'readwrite').objectStore('shots').clear(); req.onsuccess = () => resolve(true); req.onerror = () => reject(req.error); }); } catch (e) { return false; }
+}
+
+async function generateShotSheet() {
+  const shots = (await listShots()).slice(-6);
+  if (!shots.length) return '';
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200; canvas.height = 900;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0b1020'; ctx.fillRect(0, 0, 1200, 900);
+  const cols = 2, rows = 3, cw = 600, ch = 300;
+  for (let i = 0; i < Math.min(shots.length, 6); i++) {
+    const data = await new Promise((resolve) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = shots[i].data; });
+    if (!data) continue;
+    const x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
+    ctx.drawImage(data, x + 6, y + 6, cw - 12, ch - 12);
+    ctx.strokeStyle = 'rgba(108,208,255,.4)'; ctx.strokeRect(x + 6, y + 6, cw - 12, ch - 12);
+  }
+  return canvas.toDataURL('image/png');
+}
+function downloadShotSheet() {
+  generateShotSheet().then((data) => { if (!data) return; const a = document.createElement('a'); a.href = data; a.download = 'WanxiangGuixing-shots.png'; a.click(); }).catch(() => {});
 }
 
 async function buildShotGallery() {
@@ -3235,6 +3256,9 @@ if ($('yearreport-copy')) {
 if ($('ach-poster')) {
   $('ach-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadAchievementPoster(); });
 }
+if ($('shotgallery-sheet')) {
+  $('shotgallery-sheet').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadShotSheet(); });
+}
 if ($('shotgallery-clear')) {
   $('shotgallery-clear').addEventListener('click', async (e) => { e.stopPropagation(); sfx.ui(); await clearShots(); buildShotGallery(); });
 }
@@ -3375,7 +3399,7 @@ window.__wanxiang = {
   getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
-  getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
+  getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, generateShotSheet, downloadShotSheet, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,
