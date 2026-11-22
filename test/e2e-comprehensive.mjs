@@ -584,6 +584,18 @@ const searchTest = await evalJs(`(() => {
 })()`);
 check('模型搜索：中文名称过滤与恢复', searchTest.visible === 1 && searchTest.restored >= 30, JSON.stringify(searchTest));
 
+const categoryTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.setModelCategory('food');
+  p.showDifficulty();
+  const row = document.querySelector('#difficulty .diff-row:not(.model-filter)');
+  const visible = [...row.children].filter((b) => b.style.display !== 'none').length;
+  p.setModelCategory('all');
+  p.showDifficulty();
+  return { visible };
+})()`);
+check('模型分类：食物分类显示 3 个模型', categoryTest.visible === 3, JSON.stringify(categoryTest));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 

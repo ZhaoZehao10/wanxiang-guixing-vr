@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.55.0';
+const APP_VERSION = '1.56.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 13 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1497,8 +1497,19 @@ function downloadAchievementPoster() {
   try { const a = document.createElement('a'); a.href = generateAchievementPoster(); a.download = 'WanxiangGuixing-achievements.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
 }
 
+const MODEL_CATEGORIES = {
+  rocket: 'transport', mushroom: 'building', gemplanet: 'other', castle: 'building',
+  penguin: 'animal', gift: 'other', car: 'transport', xmas: 'other',
+  rabbit: 'animal', globe: 'other', pumpkin: 'food', turtle: 'animal',
+  pig: 'animal', heli: 'transport', coffee: 'food', fish: 'animal',
+  cat: 'animal', cactus: 'other', frog: 'animal', bear: 'animal',
+  owl: 'animal', fox: 'animal', panda: 'animal', unicorn: 'animal',
+  octopus: 'animal', koala: 'animal', dino: 'animal', lion: 'animal',
+  cow: 'animal', donut: 'food',
+};
 let modelFilter = 'all';
 let modelSearch = '';
+let modelCategory = 'all';
 const FAVORITES_KEY = 'wanxiang.favorites';
 function readFavorites() { try { const a = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); return Array.isArray(a) ? a.filter((k) => MODELS[k]) : []; } catch (e) { return []; } }
 function isFavorite(key) { return readFavorites().includes(key); }
@@ -1833,6 +1844,22 @@ function showDifficulty() {
       btn.style.display = !modelSearch || (btn.dataset.search || '').includes(modelSearch) ? '' : 'none';
     }
   };
+  const applyModelVisibility = () => {
+    for (const btn of row1.children) {
+      const matchSearch = !modelSearch || (btn.dataset.search || '').includes(modelSearch);
+      const matchCat = modelCategory === 'all' || btn.dataset.cat === modelCategory;
+      btn.style.display = matchSearch && matchCat ? '' : 'none';
+    }
+  };
+  const categorySelect = document.createElement('select');
+  categorySelect.id = 'model-category';
+  categorySelect.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 10px;border-radius:8px;border:1px solid rgba(140,165,255,.3);background:rgba(20,28,50,.8);color:#cfd9f5;font-size:13px';
+  for (const [v, l] of [['all', '全部分类'], ['animal', '动物'], ['building', '建筑'], ['food', '食物'], ['transport', '交通工具'], ['other', '其他']]) {
+    const o = document.createElement('option'); o.value = v; o.textContent = l; categorySelect.appendChild(o);
+  }
+  categorySelect.value = modelCategory;
+  categorySelect.onchange = () => { modelCategory = categorySelect.value; applyModelVisibility(); };
+  card.appendChild(categorySelect);
   card.appendChild(searchInput);
 
   const filterRow = document.createElement('div');
@@ -1863,6 +1890,7 @@ function showDifficulty() {
     const b = document.createElement('button');
     b.className = 'diff-btn';
     b.dataset.search = (def.name + ' ' + modelName(key, def.name) + ' ' + key).toLowerCase();
+    b.dataset.cat = MODEL_CATEGORIES[key] || 'other';
     // 星数进度：该模型所有支持难度的星级合计（帮助挑"还没玩过的模型"）
     const modelStars = supportedCounts(key).reduce((s, n) => s + (((progNow[levelKey(key, n)] || {}).stars) || 0), 0);
     const modelMax = supportedCounts(key).length * 3;
@@ -1885,6 +1913,7 @@ function showDifficulty() {
     };
     row1.appendChild(b);
   }
+  applyModelVisibility();
   card.appendChild(row1);
 
   // 难度行：每档显示全模型通关数 + 当前模型的星级/最佳时间
@@ -3413,7 +3442,7 @@ window.__wanxiang = {
   openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport, openChangelog, closeChangelog, openMissions, closeMissions,
   getDailyMissions: () => missionList(), recordMissionProgress,
   getChangelogText: () => changelogText(),
-  getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getModelSearch: () => modelSearch, setModelSearch: (q) => { modelSearch = String(q || '').toLowerCase(); }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
+  getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getModelSearch: () => modelSearch, setModelSearch: (q) => { modelSearch = String(q || '').toLowerCase(); }, getModelCategory: () => modelCategory, setModelCategory: (c) => { modelCategory = c || 'all'; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
   getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, generateShotSheet, downloadShotSheet, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
