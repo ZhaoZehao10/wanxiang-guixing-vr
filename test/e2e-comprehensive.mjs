@@ -568,6 +568,22 @@ const shotGallery = await evalJs(`(async () => {
 })()`);
 check('截图相册：保存/列出/关闭', shotGallery.count >= 1 && shotGallery.stored >= 1 && shotGallery.filtered === true && shotGallery.sheet === true && shotGallery.sheetLen > 1000 && shotGallery.strip === true && shotGallery.stripLen > 1000 && shotGallery.after === 0, JSON.stringify(shotGallery));
 
+const searchTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.setModelFilter('all');
+  p.showDifficulty();
+  const input = document.getElementById('model-search');
+  const row = document.querySelector('#difficulty .diff-row:not(.model-filter)');
+  input.value = '熊猫';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  const visible = [...row.children].filter((b) => b.style.display !== 'none').length;
+  input.value = '';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  const restored = [...row.children].filter((b) => b.style.display !== 'none').length;
+  return { visible, restored };
+})()`);
+check('模型搜索：中文名称过滤与恢复', searchTest.visible === 1 && searchTest.restored >= 30, JSON.stringify(searchTest));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 

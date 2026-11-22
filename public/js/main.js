@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.54.0';
+const APP_VERSION = '1.55.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 13 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1498,6 +1498,7 @@ function downloadAchievementPoster() {
 }
 
 let modelFilter = 'all';
+let modelSearch = '';
 const FAVORITES_KEY = 'wanxiang.favorites';
 function readFavorites() { try { const a = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); return Array.isArray(a) ? a.filter((k) => MODELS[k]) : []; } catch (e) { return []; } }
 function isFavorite(key) { return readFavorites().includes(key); }
@@ -1821,6 +1822,19 @@ function showDifficulty() {
   shotsBtn.onclick = () => { sfx.ui(); openShotGallery(); };
   card.appendChild(shotsBtn);
 
+  const searchInput = document.createElement('input');
+  searchInput.id = 'model-search';
+  searchInput.placeholder = getLang() === 'en' ? 'Search models…' : '搜索模型…';
+  searchInput.value = modelSearch;
+  searchInput.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 10px;border-radius:8px;border:1px solid rgba(140,165,255,.3);background:rgba(20,28,50,.8);color:#cfd9f5;font-size:13px';
+  searchInput.oninput = () => {
+    modelSearch = searchInput.value.trim().toLowerCase();
+    for (const btn of row1.children) {
+      btn.style.display = !modelSearch || (btn.dataset.search || '').includes(modelSearch) ? '' : 'none';
+    }
+  };
+  card.appendChild(searchInput);
+
   const filterRow = document.createElement('div');
   filterRow.className = 'diff-row model-filter';
   const filters = [['all', getLang() === 'en' ? 'All' : '全部'], ['fav', getLang() === 'en' ? 'Favorites' : '收藏'], ['todo', getLang() === 'en' ? 'Uncleared' : '未通关'], ['done', getLang() === 'en' ? 'Cleared' : '已通关']];
@@ -1848,6 +1862,7 @@ function showDifficulty() {
     const def = MODELS[key];
     const b = document.createElement('button');
     b.className = 'diff-btn';
+    b.dataset.search = (def.name + ' ' + modelName(key, def.name) + ' ' + key).toLowerCase();
     // 星数进度：该模型所有支持难度的星级合计（帮助挑"还没玩过的模型"）
     const modelStars = supportedCounts(key).reduce((s, n) => s + (((progNow[levelKey(key, n)] || {}).stars) || 0), 0);
     const modelMax = supportedCounts(key).length * 3;
@@ -3398,7 +3413,7 @@ window.__wanxiang = {
   openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport, openChangelog, closeChangelog, openMissions, closeMissions,
   getDailyMissions: () => missionList(), recordMissionProgress,
   getChangelogText: () => changelogText(),
-  getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
+  getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getModelSearch: () => modelSearch, setModelSearch: (q) => { modelSearch = String(q || '').toLowerCase(); }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
   getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, generateShotSheet, downloadShotSheet, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
