@@ -38,8 +38,8 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.56.0';
-const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 13 主题';
+const APP_VERSION = '1.57.0';
+const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 15 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -115,6 +115,8 @@ const SCENE_THEMES = {
   sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
   dawn: { name: '樱花', emoji: '🌸', bg: 0x2b1e2c, fog: 0x2b1e2c, floor: 0x3d2a42, slope: 0x50355a, hemiSky: 0xffd8ea, hemiGround: 0x5c4050, dir: 0xffe8f2, dir2: 0xff9ec9, rim: 0xff7ab0, starOpacity: 0.5 },
   dusk: { name: '黄昏', emoji: '🌅', bg: 0x2a1a1e, fog: 0x2a1a1e, floor: 0x3a2a2a, slope: 0x4a3230, hemiSky: 0xffd0a0, hemiGround: 0x5a3a30, dir: 0xffd8b0, dir2: 0xff8a60, rim: 0xff6a80, starOpacity: 0.3 },
+  city: { name: '城市', emoji: '🌁', bg: 0x0a1020, fog: 0x0a1020, floor: 0x151c30, slope: 0x202a44, hemiSky: 0x8ab0ff, hemiGround: 0x101828, dir: 0xd0e0ff, dir2: 0xffa060, rim: 0x66a0ff, starOpacity: 0.2 },
+  island: { name: '海岛', emoji: '🏝️', bg: 0x0a2a30, fog: 0x0a2a30, floor: 0x2a5a50, slope: 0x3a6a5a, hemiSky: 0xaaffdd, hemiGround: 0x1a3a30, dir: 0xfff0c0, dir2: 0x60d0ff, rim: 0xffd080, starOpacity: 0.15 },
   snowfield: { name: '雪原', emoji: '❄️', bg: 0x1a2a3a, fog: 0x1a2a3a, floor: 0xdfe9f5, slope: 0xeef6ff, hemiSky: 0xffffff, hemiGround: 0x9bb8d0, dir: 0xffffff, dir2: 0xa8d8ff, rim: 0xd0f0ff, starOpacity: 0.05 },
   cyber: { name: '赛博', emoji: '🌃', bg: 0x0a0618, fog: 0x0a0618, floor: 0x1a0a2a, slope: 0x2a1240, hemiSky: 0xff4ad0, hemiGround: 0x1a0a30, dir: 0x66f0ff, dir2: 0xff40c0, rim: 0x66f0ff, starOpacity: 0.5 },
   aurora: { name: '极光', emoji: '🌌', bg: 0x071a24, fog: 0x071a24, floor: 0x0e2a33, slope: 0x163a44, hemiSky: 0x8affd0, hemiGround: 0x0a2030, dir: 0xb0ffe0, dir2: 0x6a80ff, rim: 0x9affd0, starOpacity: 0.7 },
