@@ -596,6 +596,17 @@ const categoryTest = await evalJs(`(() => {
 })()`);
 check('模型分类：食物分类显示 3 个模型', categoryTest.visible === 3, JSON.stringify(categoryTest));
 
+const recentTest = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.setModelFilter('all');
+  p.startGame('panda', 2);
+  p.showDifficulty();
+  const row = document.querySelector('#difficulty .diff-row:not(.model-filter)');
+  const first = row ? row.children[0].textContent : '';
+  return { first, recent: p.getRecent() };
+})()`);
+check('最近游玩：模型自动置顶', recentTest.first.includes('熊猫') && recentTest.recent[0] === 'panda', JSON.stringify({ first: recentTest.first, recent: recentTest.recent.slice(0, 3) }));
+
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
 

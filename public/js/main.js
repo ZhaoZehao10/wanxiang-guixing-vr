@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.57.0';
+const APP_VERSION = '1.58.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 15 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1022,6 +1022,7 @@ function startGame(modelKey, n, opts = {}) {
   }
   state.modelKey = modelKey;
   state.pieceCount = n;
+  touchRecent(modelKey);
   if (state.settings.themeRandom) { const keys = Object.keys(SCENE_THEMES); state.theme = keys[Math.floor(Math.random() * keys.length)]; applyTheme(state.theme); }
   if (state.settings.paletteRandom) { const keys = Object.keys(PALETTES); state.palette = keys[Math.floor(Math.random() * keys.length)]; savePalette(state.palette); }
   state.mode = 'playing';
@@ -1499,6 +1500,14 @@ function downloadAchievementPoster() {
   try { const a = document.createElement('a'); a.href = generateAchievementPoster(); a.download = 'WanxiangGuixing-achievements.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
 }
 
+const RECENT_KEY = 'wanxiang.recent';
+function readRecent() { try { const a = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); return Array.isArray(a) ? a.filter((k) => MODELS[k]) : []; } catch (e) { return []; } }
+function touchRecent(modelKey) {
+  const list = readRecent().filter((k) => k !== modelKey);
+  list.unshift(modelKey);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 12))); } catch (e) { /* ignore */ }
+}
+
 const MODEL_CATEGORIES = {
   rocket: 'transport', mushroom: 'building', gemplanet: 'other', castle: 'building',
   penguin: 'animal', gift: 'other', car: 'transport', xmas: 'other',
@@ -1886,7 +1895,7 @@ function showDifficulty() {
     if (modelFilter === 'done') return hasAnyStar(key);
     if (modelFilter === 'todo') return !hasAnyStar(key);
     return true;
-  }).sort((a, b) => Number(isFavorite(b)) - Number(isFavorite(a)));
+  }).sort((a, b) => { const rf = Number(isFavorite(b)) - Number(isFavorite(a)); if (rf) return rf; const ra = readRecent(); return (ra.indexOf(a) < 0 ? 999 : ra.indexOf(a)) - (ra.indexOf(b) < 0 ? 999 : ra.indexOf(b)); });
   for (const key of orderedKeys) {
     const def = MODELS[key];
     const b = document.createElement('button');
@@ -3444,7 +3453,7 @@ window.__wanxiang = {
   openBoard, closeBoard, openGallery, closeGallery, openAchievements, closeAchievements, openStats, closeStats, openYearReport, closeYearReport, openChangelog, closeChangelog, openMissions, closeMissions,
   getDailyMissions: () => missionList(), recordMissionProgress,
   getChangelogText: () => changelogText(),
-  getFavorites: () => readFavorites(), toggleFavorite, getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getModelSearch: () => modelSearch, setModelSearch: (q) => { modelSearch = String(q || '').toLowerCase(); }, getModelCategory: () => modelCategory, setModelCategory: (c) => { modelCategory = c || 'all'; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
+  getFavorites: () => readFavorites(), toggleFavorite, getRecent: () => readRecent(), getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getModelSearch: () => modelSearch, setModelSearch: (q) => { modelSearch = String(q || '').toLowerCase(); }, getModelCategory: () => modelCategory, setModelCategory: (c) => { modelCategory = c || 'all'; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
   getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
   getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, generateShotSheet, downloadShotSheet, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
