@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-const PORT = 9335;
+const PORT = 9345;
 const FILE = path.resolve('dist/WanxiangGuixing-offline.html');
 const URL = 'file:///' + FILE.replace(/\\/g, '/');
 

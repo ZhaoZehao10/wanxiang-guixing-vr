@@ -413,12 +413,17 @@ const achGallery = await evalJs(`(() => {
   const visible = !document.getElementById('achievements').classList.contains('hidden');
   const cards = document.querySelectorAll('#achievements-body .achievement-card').length;
   const text = p.getAchievementGalleryText();
+  const filter = document.getElementById('ach-filter');
+  filter.value = 'locked'; filter.dispatchEvent(new Event('change'));
+  const locked = document.querySelectorAll('#achievements-body .achievement-card').length;
+  filter.value = 'unlocked'; filter.dispatchEvent(new Event('change'));
+  const unlocked = document.querySelectorAll('#achievements-body .achievement-card').length;
   document.getElementById('achievements-close').click();
   const closed = document.getElementById('achievements').classList.contains('hidden');
   const poster = p.generateAchievementPoster();
-  return { visible, cards, text, closed, poster, posterLen: poster.length };
+  return { visible, cards, text, closed, poster, posterLen: poster.length, locked, unlocked };
 })()`);
-check('成就图鉴：20 项与解锁状态', achGallery.visible === true && achGallery.cards === 20 && achGallery.closed === true && achGallery.text.includes('初次拼合') && achGallery.poster.startsWith('data:image/png') && achGallery.posterLen > 5000, JSON.stringify({ cards: achGallery.cards }));
+check('成就图鉴：20 项与解锁状态', achGallery.visible === true && achGallery.cards === 20 && achGallery.closed === true && achGallery.text.includes('初次拼合') && achGallery.locked + achGallery.unlocked === 20 && achGallery.poster.startsWith('data:image/png') && achGallery.posterLen > 5000, JSON.stringify({ cards: achGallery.cards, locked: achGallery.locked, unlocked: achGallery.unlocked }));
 
 const challengeBadges = await evalJs(`(() => {
   const p = window.__wanxiang;
