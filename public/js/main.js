@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.60.0';
+const APP_VERSION = '1.61.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 15 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1261,6 +1261,22 @@ function buildStatsUI() {
   }
   yearWrap.appendChild(yg);
   body.appendChild(yearWrap);
+
+  const achCats = [['basic', '基础'], ['challenge', '挑战'], ['collect', '收集'], ['daily', '每日'], ['periodic', '周期']];
+  const achWrap = document.createElement('div');
+  achWrap.style.cssText = 'grid-column:1 / -1;border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px';
+  achWrap.innerHTML = '<div style="color:#8b96b8;font-size:12px;margin-bottom:8px">' + (getLang() === 'en' ? 'Achievements by category' : '成就分类完成度') + '</div>';
+  const unlockedAch = readAchievements();
+  for (const [ck, cl] of achCats) {
+    const items = ACHIEVEMENTS.filter((a) => (ACH_CATEGORIES[a.id] || 'basic') === ck);
+    const got = items.filter((a) => unlockedAch.includes(a.id)).length;
+    const row = document.createElement('div');
+    row.className = 'ach-cat-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:#cfd9f5;margin:4px 0';
+    row.innerHTML = '<span style="width:36px;color:#8b96b8">' + cl + '</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(140,165,255,.15);overflow:hidden"><div style="height:100%;width:' + Math.round(got / Math.max(1, items.length) * 100) + '%;background:linear-gradient(90deg,#ffd24d,#ff9f6e)"></div></div><span style="width:32px;text-align:right">' + got + '/' + items.length + '</span>';
+    achWrap.appendChild(row);
+  }
+  body.appendChild(achWrap);
 
   const wh = weeklyHistory(12);
   const weekWrap = document.createElement('div');

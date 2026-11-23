@@ -298,11 +298,12 @@ const statsTest = await evalJs(`(() => {
   const prevCells = document.querySelectorAll('#stats-body .month-cell').length;
   const yearCells = document.querySelectorAll('#stats-body .year-cell').length;
   const weekCells = document.querySelectorAll('#stats-body .week-cell').length;
+  const achCats = document.querySelectorAll('#stats-body .ach-cat-row').length;
   p.closeStats();
-  return { visible, text, ds, cells, doneCells, monthCells, monthDone, curMonth, prevMonth, prevCells, yearCells, weekCells };
+  return { visible, text, ds, cells, doneCells, monthCells, monthDone, curMonth, prevMonth, prevCells, yearCells, weekCells, achCats };
 })()`);
 check('统计面板：进度与每日挑战连续天数',
-  statsTest.visible === true && statsTest.text.includes('总进度') && statsTest.text.includes('挑战完成') && statsTest.ds.days >= 3 && statsTest.ds.streak >= 3 && statsTest.cells === 14 && statsTest.doneCells >= 3 && statsTest.monthCells >= 28 && statsTest.monthDone >= 3 && statsTest.prevMonth !== statsTest.curMonth && statsTest.prevCells >= 28 && statsTest.yearCells >= 365 && statsTest.weekCells === 12,
+  statsTest.visible === true && statsTest.text.includes('总进度') && statsTest.text.includes('挑战完成') && statsTest.ds.days >= 3 && statsTest.ds.streak >= 3 && statsTest.cells === 14 && statsTest.doneCells >= 3 && statsTest.monthCells >= 28 && statsTest.monthDone >= 3 && statsTest.prevMonth !== statsTest.curMonth && statsTest.prevCells >= 28 && statsTest.yearCells >= 365 && statsTest.weekCells === 12 && statsTest.achCats === 5,
   JSON.stringify({ visible: statsTest.visible, ds: statsTest.ds }));
 
 const timeAttack = await evalJs(`(async () => {
