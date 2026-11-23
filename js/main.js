@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.58.0';
+const APP_VERSION = '1.59.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 15 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1447,13 +1447,15 @@ function openYearReport() {
 }
 function closeYearReport() { $('yearreport').classList.add('hidden'); }
 
-function buildAchievementsUI() {
+function buildAchievementsUI(filter = 'all') {
   const body = $('achievements-body');
   if (!body) return;
   const unlocked = readAchievements();
   body.innerHTML = '';
   for (const a of ACHIEVEMENTS) {
     const got = unlocked.includes(a.id);
+    if (filter === 'unlocked' && !got) continue;
+    if (filter === 'locked' && got) continue;
     const card = document.createElement('div');
     card.className = 'achievement-card';
     card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;opacity:' + (got ? '1' : '0.6');
@@ -1464,7 +1466,7 @@ function buildAchievementsUI() {
   }
 }
 
-function openAchievements() { buildAchievementsUI(); $('achievements').classList.remove('hidden'); }
+function openAchievements() { buildAchievementsUI('all'); $('achievements').classList.remove('hidden'); }
 function closeAchievements() { $('achievements').classList.add('hidden'); }
 
 function generateAchievementPoster() {
@@ -3330,6 +3332,9 @@ if ($('missions-close')) {
 }
 if ($('changelog-close')) {
   $('changelog-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeChangelog(); });
+}
+if ($('ach-filter')) {
+  $('ach-filter').addEventListener('change', (e) => { e.stopPropagation(); buildAchievementsUI($('ach-filter').value); });
 }
 if ($('achievements-close')) {
   $('achievements-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeAchievements(); });
