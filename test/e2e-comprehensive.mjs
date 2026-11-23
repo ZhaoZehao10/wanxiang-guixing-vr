@@ -418,12 +418,17 @@ const achGallery = await evalJs(`(() => {
   const locked = document.querySelectorAll('#achievements-body .achievement-card').length;
   filter.value = 'unlocked'; filter.dispatchEvent(new Event('change'));
   const unlocked = document.querySelectorAll('#achievements-body .achievement-card').length;
+  filter.value = 'all'; filter.dispatchEvent(new Event('change'));
+  const cat = document.getElementById('ach-category');
+  cat.value = 'daily'; cat.dispatchEvent(new Event('change'));
+  const daily = document.querySelectorAll('#achievements-body .achievement-card').length;
+  cat.value = 'all'; cat.dispatchEvent(new Event('change'));
   document.getElementById('achievements-close').click();
   const closed = document.getElementById('achievements').classList.contains('hidden');
   const poster = p.generateAchievementPoster();
-  return { visible, cards, text, closed, poster, posterLen: poster.length, locked, unlocked };
+  return { visible, cards, text, closed, poster, posterLen: poster.length, locked, unlocked, daily };
 })()`);
-check('成就图鉴：20 项与解锁状态', achGallery.visible === true && achGallery.cards === 20 && achGallery.closed === true && achGallery.text.includes('初次拼合') && achGallery.locked + achGallery.unlocked === 20 && achGallery.poster.startsWith('data:image/png') && achGallery.posterLen > 5000, JSON.stringify({ cards: achGallery.cards, locked: achGallery.locked, unlocked: achGallery.unlocked }));
+check('成就图鉴：20 项与解锁状态', achGallery.visible === true && achGallery.cards === 20 && achGallery.closed === true && achGallery.text.includes('初次拼合') && achGallery.locked + achGallery.unlocked === 20 && achGallery.daily === 4 && achGallery.poster.startsWith('data:image/png') && achGallery.posterLen > 5000, JSON.stringify({ cards: achGallery.cards, locked: achGallery.locked, unlocked: achGallery.unlocked }));
 
 const challengeBadges = await evalJs(`(() => {
   const p = window.__wanxiang;
