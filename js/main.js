@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.59.0';
+const APP_VERSION = '1.60.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 15 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1447,7 +1447,16 @@ function openYearReport() {
 }
 function closeYearReport() { $('yearreport').classList.add('hidden'); }
 
-function buildAchievementsUI(filter = 'all') {
+const ACH_CATEGORIES = {
+  first_win: 'basic', all_easy: 'basic', collector: 'basic',
+  thinker: 'challenge', speedrun: 'challenge', first_8: 'challenge', eight_master: 'challenge', eight_three: 'challenge',
+  star_50: 'collect', star_100: 'collect', perfectionist: 'collect', all_perfect_6: 'collect',
+  daily_30: 'daily', daily_100: 'daily', mission_1: 'daily', mission_7: 'daily',
+  weekly_4: 'periodic', monthly_3: 'periodic', yearly_1: 'periodic',
+};
+function achCategory(id) { return ACH_CATEGORIES[id] || 'basic'; }
+
+function buildAchievementsUI(filter = 'all', category = 'all') {
   const body = $('achievements-body');
   if (!body) return;
   const unlocked = readAchievements();
@@ -1456,6 +1465,7 @@ function buildAchievementsUI(filter = 'all') {
     const got = unlocked.includes(a.id);
     if (filter === 'unlocked' && !got) continue;
     if (filter === 'locked' && got) continue;
+    if (category !== 'all' && achCategory(a.id) !== category) continue;
     const card = document.createElement('div');
     card.className = 'achievement-card';
     card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;opacity:' + (got ? '1' : '0.6');
@@ -1466,7 +1476,7 @@ function buildAchievementsUI(filter = 'all') {
   }
 }
 
-function openAchievements() { buildAchievementsUI('all'); $('achievements').classList.remove('hidden'); }
+function openAchievements() { buildAchievementsUI('all', 'all'); $('achievements').classList.remove('hidden'); }
 function closeAchievements() { $('achievements').classList.add('hidden'); }
 
 function generateAchievementPoster() {
@@ -3334,7 +3344,10 @@ if ($('changelog-close')) {
   $('changelog-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeChangelog(); });
 }
 if ($('ach-filter')) {
-  $('ach-filter').addEventListener('change', (e) => { e.stopPropagation(); buildAchievementsUI($('ach-filter').value); });
+  $('ach-filter').addEventListener('change', (e) => { e.stopPropagation(); buildAchievementsUI($('ach-filter').value, $('ach-category') ? $('ach-category').value : 'all'); });
+}
+if ($('ach-category')) {
+  $('ach-category').addEventListener('change', (e) => { e.stopPropagation(); buildAchievementsUI($('ach-filter') ? $('ach-filter').value : 'all', $('ach-category').value); });
 }
 if ($('achievements-close')) {
   $('achievements-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeAchievements(); });
