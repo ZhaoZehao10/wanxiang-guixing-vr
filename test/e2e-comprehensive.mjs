@@ -205,7 +205,11 @@ const extras = await evalJs(`(() => {
   out.random = { mode: p.state.randomMode, pieces: p.state.pieces.length, different: a !== b && a.length > 0 };
   p.setRandomMode(false);
   p.openGallery();
-  out.gallery = { visible: !document.getElementById('gallery').classList.contains('hidden'), cards: document.querySelectorAll('#gallery-body .gallery-card').length, text: p.getGalleryText() };
+  const gcat = document.getElementById('gallery-category');
+  gcat.value = 'food'; gcat.dispatchEvent(new Event('change'));
+  const foodCards = [...document.querySelectorAll('#gallery-body .gallery-card')].filter((c) => c.style.display !== 'none').length;
+  gcat.value = 'all'; gcat.dispatchEvent(new Event('change'));
+  out.gallery = { visible: !document.getElementById('gallery').classList.contains('hidden'), cards: document.querySelectorAll('#gallery-body .gallery-card').length, food: foodCards, text: p.getGalleryText() };
   p.closeGallery();
   const poster = p.generatePoster();
   out.poster = { data: poster.startsWith('data:image/png'), len: poster.length };
@@ -235,9 +239,9 @@ const extras = await evalJs(`(() => {
 check('随机模式：每局切割不同且片数正确',
   extras.random.mode === true && extras.random.pieces === 4 && extras.random.different === true,
   JSON.stringify(extras.random));
-check('模型图鉴：22 张卡片与收集进度',
-  extras.gallery.visible === true && extras.gallery.cards === 30 && extras.gallery.text.includes('★'),
-  JSON.stringify({ visible: extras.gallery.visible, cards: extras.gallery.cards }));
+check('模型图鉴：30 张卡片与收集进度',
+  extras.gallery.visible === true && extras.gallery.cards === 30 && extras.gallery.food === 3 && extras.gallery.text.includes('★'),
+  JSON.stringify({ visible: extras.gallery.visible, cards: extras.gallery.cards, food: extras.gallery.food }));
 check('完成海报：生成 PNG DataURL', extras.poster.data === true && extras.poster.len > 5000, JSON.stringify(extras.poster));
 const i18nTest = await evalJs(`(() => {
   const p = window.__wanxiang;

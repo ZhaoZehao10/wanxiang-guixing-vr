@@ -171,6 +171,7 @@
 <div id="gallery" class="hidden" style="position:fixed;inset:0;z-index:45;background:rgba(4,8,18,.85)">
   <div class="diff-card" style="max-width:900px;text-align:left;max-height:88vh;overflow-y:auto">
     <h2 style="text-align:center" data-i18n="gallery.title">🖼️ 模型图鉴</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input id="gallery-search" placeholder="搜索模型…" style="flex:1;min-width:180px;padding:7px 10px;border-radius:8px;border:1px solid rgba(140,165,255,.3);background:rgba(20,28,50,.8);color:#cfd9f5;font-size:13px"><select id="gallery-category" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(140,165,255,.3);background:rgba(20,28,50,.8);color:#cfd9f5;font-size:13px"><option value="all">全部分类</option><option value="animal">动物</option><option value="building">建筑</option><option value="food">食物</option><option value="transport">交通工具</option><option value="other">其他</option></select></div>
     <div id="gallery-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
     <div style="text-align:center;margin-top:14px"><button id="gallery-close" class="win-btn">关闭</button></div>
   </div>

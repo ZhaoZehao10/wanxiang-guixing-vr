@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.62.0';
+const APP_VERSION = '1.63.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 15 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -3090,6 +3090,8 @@ function buildGalleryUI() {
     }
     const card = document.createElement('div');
     card.className = 'gallery-card';
+    card.dataset.search = (def.name + ' ' + modelName(key, def.name) + ' ' + key).toLowerCase();
+    card.dataset.cat = MODEL_CATEGORIES[key] || 'other';
     card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:10px;text-align:center;cursor:pointer';
     card.innerHTML = `<div style="font-size:34px">${def.emoji}</div>`
       + `<b style="font-size:14px">${modelName(key, def.name)}</b>`
@@ -3100,7 +3102,21 @@ function buildGalleryUI() {
   }
 }
 
-function openGallery() { buildGalleryUI(); $('gallery').classList.remove('hidden'); }
+function filterGalleryCards() {
+  const q = ($('gallery-search') ? $('gallery-search').value : '').trim().toLowerCase();
+  const cat = $('gallery-category') ? $('gallery-category').value : 'all';
+  for (const card of document.querySelectorAll('#gallery-body .gallery-card')) {
+    const okSearch = !q || (card.dataset.search || '').includes(q);
+    const okCat = cat === 'all' || card.dataset.cat === cat;
+    card.style.display = okSearch && okCat ? '' : 'none';
+  }
+}
+function openGallery() {
+  buildGalleryUI();
+  if ($('gallery-search')) { $('gallery-search').value = ''; $('gallery-search').oninput = filterGalleryCards; }
+  if ($('gallery-category')) { $('gallery-category').value = 'all'; $('gallery-category').onchange = filterGalleryCards; }
+  $('gallery').classList.remove('hidden');
+}
 function closeGallery() { $('gallery').classList.add('hidden'); }
 
 // ---------------- 完成海报 ----------------
