@@ -38,8 +38,8 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.64.0';
-const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 15 主题';
+const APP_VERSION = '1.65.0';
+const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 15 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -1576,7 +1576,8 @@ const MODEL_CATEGORIES = {
   cat: 'animal', cactus: 'other', frog: 'animal', bear: 'animal',
   owl: 'animal', fox: 'animal', panda: 'animal', unicorn: 'animal',
   octopus: 'animal', koala: 'animal', dino: 'animal', lion: 'animal',
-  cow: 'animal', donut: 'food',
+  cow: 'animal', chick: 'animal', icecream: 'food',
+  donut: 'food',
 };
 let modelFilter = 'all';
 let modelSearch = '';
