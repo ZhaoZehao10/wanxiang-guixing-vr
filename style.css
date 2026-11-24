@@ -216,3 +216,6 @@ body.ui-scale #intro, body.ui-scale #difficulty, body.ui-scale #hud, body.ui-sca
 
 /* 截图相册 */
 #shotgallery.hidden { display: none !important; }
+
+/* 模型详情 */
+#modeldetail.hidden { display: none !important; }
