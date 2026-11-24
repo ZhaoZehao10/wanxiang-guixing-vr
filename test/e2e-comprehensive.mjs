@@ -629,11 +629,12 @@ const modelDetail = await evalJs(`(() => {
   const rows = document.querySelectorAll('#modeldetail-body .modeldetail-row').length;
   const text = document.getElementById('modeldetail-body').textContent;
   const title = document.getElementById('modeldetail-title').textContent;
+  const poster = p.generateModelPoster('panda');
   document.getElementById('modeldetail-close').click();
   const closed = document.getElementById('modeldetail').classList.contains('hidden');
-  return { visible, rows, text, title, closed };
+  return { visible, rows, text, title, closed, poster, posterLen: poster.length };
 })()`);
-check('模型详情：显示各难度记录与关闭', modelDetail.visible === true && modelDetail.rows >= 5 && modelDetail.text.includes('正式') && modelDetail.title.includes('熊猫') && modelDetail.closed === true, JSON.stringify({ rows: modelDetail.rows, title: modelDetail.title }));
+check('模型详情：显示各难度记录与关闭', modelDetail.visible === true && modelDetail.rows >= 5 && modelDetail.text.includes('正式') && modelDetail.title.includes('熊猫') && modelDetail.closed === true && modelDetail.poster.startsWith('data:image/png') && modelDetail.posterLen > 5000, JSON.stringify({ rows: modelDetail.rows, title: modelDetail.title }));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));

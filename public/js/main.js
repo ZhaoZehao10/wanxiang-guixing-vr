@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.63.0';
+const APP_VERSION = '1.64.0';
 const BUILD_INFO = '30 模型 · 146 关 · 7 配色 · 15 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1494,6 +1494,38 @@ function buildAchievementsUI(filter = 'all', category = 'all') {
 
 function openAchievements() { buildAchievementsUI('all', 'all'); $('achievements').classList.remove('hidden'); }
 function closeAchievements() { $('achievements').classList.add('hidden'); }
+
+function generateModelPoster(key) {
+  const def = MODELS[key];
+  if (!def) return '';
+  const canvas = document.createElement('canvas');
+  canvas.width = 720; canvas.height = 1080;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 720, 1080);
+  g.addColorStop(0, '#0b1020'); g.addColorStop(1, '#2a1630');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 720, 1080);
+  const prog = readProgress(), practice = readPracticeBest(), rs = readRandomStats(), ta = readTimeAttack();
+  ctx.textAlign = 'center'; ctx.fillStyle = '#dfe7ff'; ctx.font = 'bold 42px "Segoe UI", "PingFang SC", sans-serif';
+  ctx.fillText('万象归形 · 模型档案', 360, 110);
+  ctx.font = '130px "Segoe UI Emoji", sans-serif'; ctx.fillText(def.emoji, 360, 290);
+  ctx.font = 'bold 40px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#dfe7ff'; ctx.fillText(modelName(key, def.name), 360, 370);
+  ctx.font = '20px "Segoe UI", sans-serif'; ctx.fillStyle = '#8b96b8'; ctx.fillText((CATEGORY_NAMES[MODEL_CATEGORIES[key] || 'other'] || '其他') + ' · ' + supportedCounts(key).length + ' 档难度', 360, 410);
+  ctx.textAlign = 'left'; let y = 500;
+  for (const n of supportedCounts(key)) {
+    const rec = prog[levelKey(key, n)] || {};
+    ctx.font = '24px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#cfd9f5';
+    ctx.fillText(n + ' 块 · ' + diffName(n, DIFFICULTY_NAME[n]), 80, y);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24d';
+    ctx.fillText(rec.stars ? '★'.repeat(rec.stars) + '☆'.repeat(3 - rec.stars) : '未挑战', 640, y);
+    ctx.textAlign = 'left'; y += 90;
+  }
+  ctx.textAlign = 'center'; ctx.fillStyle = '#6cd0ff'; ctx.font = '20px "Segoe UI", sans-serif';
+  ctx.fillText(new Date().toLocaleDateString('zh-CN') + ' · Wanxiang Guixing', 360, 1030);
+  return canvas.toDataURL('image/png');
+}
+function downloadModelPoster() {
+  try { const a = document.createElement('a'); a.href = generateModelPoster(modelDetailKey); a.download = 'WanxiangGuixing-model.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
+}
 
 function generateAchievementPoster() {
   const canvas = document.createElement('canvas');
@@ -3403,6 +3435,9 @@ if ($('shotgallery-sheet')) {
 if ($('shotgallery-clear')) {
   $('shotgallery-clear').addEventListener('click', async (e) => { e.stopPropagation(); sfx.ui(); await clearShots(); buildShotGallery(); });
 }
+if ($('modeldetail-poster')) {
+  $('modeldetail-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadModelPoster(); });
+}
 if ($('modeldetail-close')) {
   $('modeldetail-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeModelDetail(); });
 }
@@ -3550,7 +3585,7 @@ window.__wanxiang = {
   getModelDetailText: () => ($('modeldetail-body') ? $('modeldetail-body').textContent : ''),
   getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getModelSearch: () => modelSearch, setModelSearch: (q) => { modelSearch = String(q || '').toLowerCase(); }, getModelCategory: () => modelCategory, setModelCategory: (c) => { modelCategory = c || 'all'; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
-  getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster,
+  getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster, generateModelPoster, downloadModelPoster,
   getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, generateShotSheet, downloadShotSheet, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
