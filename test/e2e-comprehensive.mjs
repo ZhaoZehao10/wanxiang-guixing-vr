@@ -449,7 +449,7 @@ const favTest = await evalJs(`(() => {
   const row = document.querySelector('#difficulty .diff-row:not(.model-filter)');
   const first = row ? row.children[0] : null;
   const text = first ? first.textContent : '';
-  const star = first ? first.lastElementChild : null;
+  const star = first ? first.querySelector('.fav-star') : null;
   const sorted = text.includes('熊猫');
   p.toggleFavorite('panda');
   p.showDifficulty();
@@ -617,6 +617,19 @@ const recentTest = await evalJs(`(() => {
   return { first, recent: p.getRecent() };
 })()`);
 check('最近游玩：模型自动置顶', recentTest.first.includes('熊猫') && recentTest.recent[0] === 'panda', JSON.stringify({ first: recentTest.first, recent: recentTest.recent.slice(0, 3) }));
+
+const modelDetail = await evalJs(`(() => {
+  const p = window.__wanxiang;
+  p.openModelDetail('panda');
+  const visible = !document.getElementById('modeldetail').classList.contains('hidden');
+  const rows = document.querySelectorAll('#modeldetail-body .modeldetail-row').length;
+  const text = document.getElementById('modeldetail-body').textContent;
+  const title = document.getElementById('modeldetail-title').textContent;
+  document.getElementById('modeldetail-close').click();
+  const closed = document.getElementById('modeldetail').classList.contains('hidden');
+  return { visible, rows, text, title, closed };
+})()`);
+check('模型详情：显示各难度记录与关闭', modelDetail.visible === true && modelDetail.rows >= 5 && modelDetail.text.includes('正式') && modelDetail.title.includes('熊猫') && modelDetail.closed === true, JSON.stringify({ rows: modelDetail.rows, title: modelDetail.title }));
 
 check('双人规则：支持三局两胜', moreFeatures.duelRounds === 3 && moreFeatures.modeBtn.includes('3'), JSON.stringify({ rounds: moreFeatures.duelRounds, btn: moreFeatures.modeBtn }));
 check('无障碍设置：界面缩放与菜单位置生效', moreFeatures.s.uiScale === 1.3 && moreFeatures.s.menuSide === 'left' && moreFeatures.uiScale === '1.3', JSON.stringify({ s: moreFeatures.s, uiScale: moreFeatures.uiScale }));
