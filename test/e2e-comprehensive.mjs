@@ -239,8 +239,8 @@ const extras = await evalJs(`(() => {
 check('随机模式：每局切割不同且片数正确',
   extras.random.mode === true && extras.random.pieces === 4 && extras.random.different === true,
   JSON.stringify(extras.random));
-check('模型图鉴：30 张卡片与收集进度',
-  extras.gallery.visible === true && extras.gallery.cards === 30 && extras.gallery.food === 3 && extras.gallery.text.includes('★'),
+check('模型图鉴：32 张卡片与收集进度',
+  extras.gallery.visible === true && extras.gallery.cards === 32 && extras.gallery.food === 4 && extras.gallery.text.includes('★'),
   JSON.stringify({ visible: extras.gallery.visible, cards: extras.gallery.cards, food: extras.gallery.food }));
 check('完成海报：生成 PNG DataURL', extras.poster.data === true && extras.poster.len > 5000, JSON.stringify(extras.poster));
 const i18nTest = await evalJs(`(() => {
@@ -609,7 +609,7 @@ const categoryTest = await evalJs(`(() => {
   p.showDifficulty();
   return { visible };
 })()`);
-check('模型分类：食物分类显示 3 个模型', categoryTest.visible === 3, JSON.stringify(categoryTest));
+check('模型分类：食物分类显示 4 个模型', categoryTest.visible === 4, JSON.stringify(categoryTest));
 
 const recentTest = await evalJs(`(() => {
   const p = window.__wanxiang;
@@ -1010,7 +1010,7 @@ const smoke = await evalJs(`(() => {
   };
 })()`);
 check('全菜单冒烟：20 模型/6 配色/开关按钮点击无异常',
-  smoke.fatal === false && smoke.models === 30 && smoke.palettes === 7
+  smoke.fatal === false && smoke.models === 32 && smoke.palettes === 7
   && smoke.practice === false && smoke.palette === 'classic', JSON.stringify(smoke));
 
 // 3.10) 练习模式：通关不写入进度

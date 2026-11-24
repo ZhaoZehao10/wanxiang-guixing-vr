@@ -825,6 +825,32 @@ function buildCow(b) {
   for (const s of [-1, 1]) sphere(b, [0.90, 0.85, 0.65], { pos: [s * 0.18, 0.80, 0.50], scale: [0.06, 0.16, 0.06] }, 1.0, 12, 8); // 角
 }
 
+// ---------------- 模型 31：小鸡 ----------------
+
+function buildChick(b) {
+  const yellow = [1.0, 0.82, 0.22], yellowD = [0.95, 0.68, 0.12], orange = [0.98, 0.55, 0.10], dark = [0.10, 0.08, 0.07];
+  sphere(b, yellow, { pos: [0, 0.02, 0], scale: [0.44, 0.42, 0.44] }, 1.0, 30, 20);      // 身体
+  sphere(b, yellow, { pos: [0, 0.48, 0.22], scale: [0.34, 0.32, 0.32] }, 1.0, 28, 18);   // 头
+  for (const s of [-1, 1]) {
+    sphere(b, dark, { pos: [s * 0.12, 0.53, 0.48], scale: [1, 1, 0.6] }, 0.045, 12, 8); // 眼
+    sphere(b, yellowD, { pos: [s * 0.34, -0.04, 0], scale: [0.10, 0.20, 0.12] }, 1.0, 16, 10); // 翅
+    sphere(b, orange, { pos: [s * 0.16, -0.38, 0.10], scale: [0.12, 0.08, 0.16] }, 1.0, 14, 8); // 脚
+  }
+  sphere(b, orange, { pos: [0, 0.43, 0.52], scale: [0.10, 0.07, 0.12] }, 1.0, 14, 8);   // 喙
+  sphere(b, yellowD, { pos: [0, 0.78, 0.18], scale: [0.08, 0.10, 0.06] }, 1.0, 12, 8);  // 冠
+}
+
+// ---------------- 模型 32：冰淇淋 ----------------
+
+function buildIcecream(b) {
+  const cone = [0.82, 0.60, 0.30], coneD = [0.68, 0.46, 0.20], pink = [0.98, 0.55, 0.72], white = [0.98, 0.96, 0.92], cherry = [0.90, 0.12, 0.20];
+  for (let i = 0; i < 4; i++) sphere(b, i % 2 ? coneD : cone, { pos: [0, -0.38 + i * 0.20, 0], scale: [0.30 - i * 0.05, 0.12, 0.30 - i * 0.05] }, 1.0, 24, 14); // 蛋筒
+  sphere(b, pink, { pos: [0, 0.52, 0], scale: [0.42, 0.26, 0.42] }, 1.0, 28, 18);       // 下层
+  sphere(b, white, { pos: [0, 0.80, 0], scale: [0.34, 0.24, 0.34] }, 1.0, 26, 16);      // 上层
+  sphere(b, cherry, { pos: [0, 1.06, 0], scale: [0.10, 0.10, 0.10] }, 1.0, 14, 10);     // 樱桃
+  sphere(b, [0.85, 0.20, 0.35], { pos: [0, 1.16, 0], scale: [0.02, 0.08, 0.02] }, 1.0, 8, 6); // 梗
+}
+
 // ---------------- 配色皮肤 ----------------
 // 只改顶点颜色、不改任何几何：切割平面表按几何标定，因此所有配色共用同一套
 // 切割参数（水密性/体积守恒与颜色无关）。
@@ -912,6 +938,8 @@ export const MODELS = {
   dino: { name: '小恐龙', emoji: '🦖', build: buildDino },
   lion: { name: '狮子', emoji: '🦁', build: buildLion },
   cow: { name: '奶牛', emoji: '🐮', build: buildCow },
+  chick: { name: '小鸡', emoji: '🐤', build: buildChick },
+  icecream: { name: '冰淇淋', emoji: '🍦', build: buildIcecream },
   donut: { name: '甜甜圈', emoji: '🍩', build: buildDonut },
 };
 
