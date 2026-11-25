@@ -209,7 +209,7 @@ const extras = await evalJs(`(() => {
   gcat.value = 'food'; gcat.dispatchEvent(new Event('change'));
   const foodCards = [...document.querySelectorAll('#gallery-body .gallery-card')].filter((c) => c.style.display !== 'none').length;
   gcat.value = 'all'; gcat.dispatchEvent(new Event('change'));
-  out.gallery = { visible: !document.getElementById('gallery').classList.contains('hidden'), cards: document.querySelectorAll('#gallery-body .gallery-card').length, food: foodCards, text: p.getGalleryText() };
+  out.gallery = { visible: !document.getElementById('gallery').classList.contains('hidden'), cards: document.querySelectorAll('#gallery-body .gallery-card').length, food: foodCards, text: p.getGalleryText(), summary: document.getElementById('gallery-summary').textContent };
   p.closeGallery();
   const poster = p.generatePoster();
   out.poster = { data: poster.startsWith('data:image/png'), len: poster.length };
@@ -240,7 +240,7 @@ check('随机模式：每局切割不同且片数正确',
   extras.random.mode === true && extras.random.pieces === 4 && extras.random.different === true,
   JSON.stringify(extras.random));
 check('模型图鉴：32 张卡片与收集进度',
-  extras.gallery.visible === true && extras.gallery.cards === 32 && extras.gallery.food === 4 && extras.gallery.text.includes('★'),
+  extras.gallery.visible === true && extras.gallery.cards === 32 && extras.gallery.food === 4 && extras.gallery.text.includes('★') && extras.gallery.summary.includes('已通关') && extras.gallery.summary.includes('星星'),
   JSON.stringify({ visible: extras.gallery.visible, cards: extras.gallery.cards, food: extras.gallery.food }));
 check('完成海报：生成 PNG DataURL', extras.poster.data === true && extras.poster.len > 5000, JSON.stringify(extras.poster));
 const i18nTest = await evalJs(`(() => {
