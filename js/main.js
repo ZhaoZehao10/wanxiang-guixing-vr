@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.67.0';
+const APP_VERSION = '1.68.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 17 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -3119,7 +3119,12 @@ function buildGalleryUI() {
   const doneModels = Object.keys(MODELS).filter((mk) => supportedCounts(mk).some((n) => ((prog[levelKey(mk, n)] || {}).stars || 0) > 0)).length;
   const summary = $('gallery-summary');
   if (summary) summary.textContent = (getLang() === 'en' ? 'Cleared ' + doneModels + '/' + Object.keys(MODELS).length + ' models · Stars ' + sum.stars + '/' + sum.maxStars : '已通关 ' + doneModels + '/' + Object.keys(MODELS).length + ' 个模型 · 星星 ' + sum.stars + '/' + sum.maxStars);
-  for (const [key, def] of Object.entries(MODELS)) {
+  const sortMode = $('gallery-sort') ? $('gallery-sort').value : 'default';
+  let entries = Object.entries(MODELS);
+  if (sortMode === 'stars') entries.sort((a, b) => supportedCounts(b[0]).reduce((s, n) => s + (((prog[levelKey(b[0], n)] || {}).stars) || 0), 0) - supportedCounts(a[0]).reduce((s, n) => s + (((prog[levelKey(a[0], n)] || {}).stars) || 0), 0));
+  else if (sortMode === 'name') entries.sort((a, b) => a[1].name.localeCompare(b[1].name, 'zh'));
+  else if (sortMode === 'recent') { const recent = readRecent(); entries.sort((a, b) => (recent.indexOf(a[0]) < 0 ? 999 : recent.indexOf(a[0])) - (recent.indexOf(b[0]) < 0 ? 999 : recent.indexOf(b[0]))); }
+  for (const [key, def] of entries) {
     const counts = supportedCounts(key);
     const maxStars = counts.length * 3;
     let stars = 0, done = 0;
@@ -3154,6 +3159,7 @@ function openGallery() {
   buildGalleryUI();
   if ($('gallery-search')) { $('gallery-search').value = ''; $('gallery-search').oninput = filterGalleryCards; }
   if ($('gallery-category')) { $('gallery-category').value = 'all'; $('gallery-category').onchange = filterGalleryCards; }
+  if ($('gallery-sort')) { $('gallery-sort').value = 'default'; $('gallery-sort').onchange = () => { buildGalleryUI(); filterGalleryCards(); }; }
   $('gallery').classList.remove('hidden');
 }
 function closeGallery() { $('gallery').classList.add('hidden'); }
