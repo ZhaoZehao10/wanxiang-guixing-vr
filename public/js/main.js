@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.68.0';
+const APP_VERSION = '1.69.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 17 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1279,6 +1279,16 @@ function buildStatsUI() {
     achWrap.appendChild(row);
   }
   body.appendChild(achWrap);
+
+  const duelWrap = document.createElement('div');
+  duelWrap.style.cssText = 'grid-column:1 / -1;border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:12px;color:#cfd9f5;font-size:12px';
+  const dh = readDuelHistory();
+  const dw = [0, 0, 0];
+  for (const d of dh) dw[d.winner === 'p1' ? 0 : d.winner === 'p2' ? 1 : 2]++;
+  duelWrap.innerHTML = '<div style="color:#8b96b8;margin-bottom:6px">双人战绩</div>'
+    + '<div style="font-size:18px;margin-bottom:6px">玩家1 <b style="color:#ffd24d">' + dw[0] + '</b> 胜 · 玩家2 <b style="color:#6cd0ff">' + dw[1] + '</b> 胜 · 平局 ' + dw[2] + '</div>'
+    + (dh.length ? dh.slice(0, 5).map((d) => '<div style="color:#8b96b8;margin:2px 0">' + modelName(d.model, MODELS[d.model] ? MODELS[d.model].name : d.model) + ' · ' + d.n + ' 块 · ' + (d.winner === 'p1' ? '玩家1胜' : d.winner === 'p2' ? '玩家2胜' : '平局') + ' · ' + fmtDur(d.a) + ' / ' + fmtDur(d.b) + '</div>').join('') : '<div style="color:#8b96b8">还没有双人对局</div>');
+  body.appendChild(duelWrap);
 
   const wh = weeklyHistory(12);
   const weekWrap = document.createElement('div');
@@ -3227,6 +3237,14 @@ function downloadPoster() {
 
 // ---------------- 双人轮流 ----------------
 
+const DUEL_HISTORY_KEY = 'wanxiang.duelHistory';
+function readDuelHistory() {
+  try { const a = JSON.parse(localStorage.getItem(DUEL_HISTORY_KEY) || '[]'); return Array.isArray(a) ? a.slice(0, 30) : []; } catch (e) { return []; }
+}
+function recordDuelHistory(entry) {
+  const list = readDuelHistory(); list.unshift(entry);
+  try { localStorage.setItem(DUEL_HISTORY_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) { /* ignore */ }
+}
 let duelState = null;
 const fmtDur = (s) => `${Math.floor((s || 0) / 60)}分${(s || 0) % 60}秒`;
 
@@ -3282,6 +3300,7 @@ function duelRecord(secs, n) {
   } else {
     const [a, b] = duelState.results;
     const winner = a.secs === b.secs ? '平局' : (a.secs < b.secs ? '玩家1 获胜 🏆' : '玩家2 获胜 🏆');
+    recordDuelHistory({ model: duelState.modelKey, n: duelState.n, winner: a.secs === b.secs ? 'draw' : (a.secs < b.secs ? 'p1' : 'p2'), a: a.secs, b: b.secs, ts: Date.now() });
     $('duel-body').textContent = `玩家1：${fmtDur(a.secs)} · ${a.stars}★\n玩家2：${fmtDur(b.secs)} · ${b.stars}★\n\n${winner}（用时更短者胜）`;
     $('duel-ok').textContent = '结束';
   }
@@ -3604,7 +3623,7 @@ window.__wanxiang = {
   getDailyBoard: () => dailyBoardText(), recordDaily,
   generatePoster: () => generatePosterDataURL(), downloadPoster,
   openDuel, closeDuel, duelAdvance, setDuelRounds,
-  getDuelInfo: () => (duelState ? { ...duelState, results: duelState.results.map((r) => ({ ...r })) } : null),
+  getDuelInfo: () => (duelState ? { ...duelState, results: duelState.results.map((r) => ({ ...r })) } : null), getDuelHistory: () => readDuelHistory(), recordDuelHistory,
   getGalleryText: () => ($('gallery-body') ? $('gallery-body').textContent : ''),
   getBoardText: () => ($('board-body') ? $('board-body').textContent : ''),
   startGameUI, openTutorial, closeTutorial,
