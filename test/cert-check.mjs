@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import os from 'node:os';
 
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-const PORT = 9333;
+const PORT = 9505;
 const ips = new Set();
 for (const list of Object.values(os.networkInterfaces())) {
   for (const ni of list || []) if (ni.family === 'IPv4' && !ni.internal) ips.add(ni.address);

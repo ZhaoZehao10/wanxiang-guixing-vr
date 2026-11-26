@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-const PORT = 9333;
+const PORT = 9505;
 const URL = 'https://localhost:8443/';
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu-sandbox', '--no-first-run',

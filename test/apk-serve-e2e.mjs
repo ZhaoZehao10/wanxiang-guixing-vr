@@ -13,7 +13,7 @@ import zlib from 'node:zlib';
 
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 8898;      // 与 Java 壳一致的端口
-const CDP = 9336;
+const CDP = 9520;
 
 // ---------- 1) 从 APK 提取内嵌 HTML ----------
 function extractAsset(apkPath, entryName) {
