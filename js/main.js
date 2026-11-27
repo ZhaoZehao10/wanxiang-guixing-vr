@@ -38,8 +38,8 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.72.0';
-const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 17 主题';
+const APP_VERSION = '1.73.0';
+const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 19 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
 const supportedCounts = (mk) => Object.keys(CUT_TABLE[mk] || {}).map(Number).sort((a, b) => a - b);
@@ -115,6 +115,8 @@ const SCENE_THEMES = {
   sunset: { name: '日落', emoji: '🌇', bg: 0x2a1630, fog: 0x2a1630, floor: 0x3a2440, slope: 0x4a2c4a, hemiSky: 0xffd0a8, hemiGround: 0x5a3040, dir: 0xffe0b0, dir2: 0xff9a70, rim: 0xff7aa0, starOpacity: 0.35 },
   dawn: { name: '樱花', emoji: '🌸', bg: 0x2b1e2c, fog: 0x2b1e2c, floor: 0x3d2a42, slope: 0x50355a, hemiSky: 0xffd8ea, hemiGround: 0x5c4050, dir: 0xffe8f2, dir2: 0xff9ec9, rim: 0xff7ab0, starOpacity: 0.5 },
   dusk: { name: '黄昏', emoji: '🌅', bg: 0x2a1a1e, fog: 0x2a1a1e, floor: 0x3a2a2a, slope: 0x4a3230, hemiSky: 0xffd0a0, hemiGround: 0x5a3a30, dir: 0xffd8b0, dir2: 0xff8a60, rim: 0xff6a80, starOpacity: 0.3 },
+  forest: { name: '森林', emoji: '🌲', bg: 0x0e1f16, fog: 0x0e1f16, floor: 0x1e3a24, slope: 0x2e4a2c, hemiSky: 0xaaffaa, hemiGround: 0x0e1f16, dir: 0xfff0b0, dir2: 0x60c080, rim: 0x80e0a0, starOpacity: 0.12 },
+  firstlight: { name: '黎明', emoji: '🌅', bg: 0x2a1a30, fog: 0x2a1a30, floor: 0x3a2a44, slope: 0x5a3a50, hemiSky: 0xffc0d0, hemiGround: 0x2a1a30, dir: 0xffd0a0, dir2: 0x80a0ff, rim: 0xffa0c0, starOpacity: 0.18 },
   field: { name: '田野', emoji: '🌾', bg: 0x142a18, fog: 0x142a18, floor: 0x2a4a28, slope: 0x3a5a30, hemiSky: 0xd0ffa0, hemiGround: 0x1a3018, dir: 0xfff0c0, dir2: 0x80d060, rim: 0xffe080, starOpacity: 0.1 },
   snowy: { name: '雪山', emoji: '🏔️', bg: 0x1a2433, fog: 0x1a2433, floor: 0x4a5a70, slope: 0xdfe9f5, hemiSky: 0xe0f0ff, hemiGround: 0x506080, dir: 0xffffff, dir2: 0xa0c8ff, rim: 0xc0e0ff, starOpacity: 0.25 },
   city: { name: '城市', emoji: '🌁', bg: 0x0a1020, fog: 0x0a1020, floor: 0x151c30, slope: 0x202a44, hemiSky: 0x8ab0ff, hemiGround: 0x101828, dir: 0xd0e0ff, dir2: 0xffa060, rim: 0x66a0ff, starOpacity: 0.2 },
