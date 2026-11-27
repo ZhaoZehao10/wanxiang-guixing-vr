@@ -9,7 +9,7 @@ import { spawn } from 'node:child_process';
 
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9515;
-const URL = 'https://localhost:8443/';
+const URL = 'https://localhost:8643/';
 const MINUTES = Math.max(0.2, Number((process.argv.find((a) => a.startsWith('--minutes=')) || '').split('=')[1] || process.env.SOAK_MINUTES || 30));
 
 const chrome = spawn(CHROME, [

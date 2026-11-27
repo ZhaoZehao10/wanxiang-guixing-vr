@@ -1,5 +1,5 @@
 // 真实浏览器证书校验验证 — 不带 --ignore-certificate-errors 启动 Chrome，
-// 访问 https://<LAN-IP>:8443/，读取页面实际状态（正常加载 or 证书拦截页）。
+// 访问 https://<LAN-IP>:8643/，读取页面实际状态（正常加载 or 证书拦截页）。
 // 这是修复 ERR_CERT_INVALID 的验收测试。
 import { spawn } from 'node:child_process';
 import os from 'node:os';
@@ -11,7 +11,7 @@ for (const list of Object.values(os.networkInterfaces())) {
   for (const ni of list || []) if (ni.family === 'IPv4' && !ni.internal) ips.add(ni.address);
 }
 const lanIp = [...ips][0];
-const URL = `https://${lanIp}:8443/`;
+const URL = `https://${lanIp}:8643/`;
 
 const chrome = spawn(CHROME, [
   '--headless=new', '--no-first-run',

@@ -4,7 +4,7 @@
 // 输出每套耗时与结果，任一失败则整体失败。
 //
 //   --fast       跳过耗时较长的压力/性能套件（plane-fuzz、perf-browser）
-//   --no-server  假定 8443 已在运行，不自动拉起（用于 CI 里已有服务的情况）
+//   --no-server  假定 8643 已在运行，不自动拉起（用于 CI 里已有服务的情况）
 import { spawn, spawnSync, execSync } from 'node:child_process';
 import https from 'node:https';
 import path from 'node:path';
@@ -44,7 +44,7 @@ function killStaleChrome() {
 
 function serverUp() {
   return new Promise((resolve) => {
-    const req = https.get({ host: '127.0.0.1', port: 8443, path: '/', rejectUnauthorized: false, timeout: 1200 }, (res) => {
+    const req = https.get({ host: '127.0.0.1', port: 8643, path: '/', rejectUnauthorized: false, timeout: 1200 }, (res) => {
       res.resume();
       resolve(res.statusCode === 200);
     });
@@ -67,12 +67,12 @@ let serverProc = null;
 
 if (needServer && !NO_SERVER) {
   if (await serverUp()) {
-    console.log('· 检测到 8443 已在运行，复用现有服务器');
+    console.log('· 检测到 8643 已在运行，复用现有服务器');
   } else {
     console.log('· 启动本地服务器…');
     serverProc = spawn(NODE, [path.join(ROOT, 'server.mjs')], { cwd: ROOT, stdio: 'ignore' });
     if (!(await waitServer())) {
-      console.error('✗ 服务器启动失败（8443 未就绪）');
+      console.error('✗ 服务器启动失败（8643 未就绪）');
       if (serverProc) serverProc.kill();
       process.exit(1);
     }

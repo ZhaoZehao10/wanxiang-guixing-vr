@@ -1,11 +1,11 @@
 // 完整 e2e — 9 种组合建局 + 新功能验证（VR 菜单/物理/找回/音效）+ 全模型截图
-// 运行前提：server.mjs 已启动（8443 端口）
+// 运行前提：server.mjs 已启动（8643 端口）
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 9505;
-const URL = 'https://localhost:8443/';
+const URL = 'https://localhost:8643/';
 
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu-sandbox', '--no-first-run',
@@ -578,12 +578,13 @@ const shotGallery = await evalJs(`(async () => {
   const filtered = await p.applyShotFilter(data, 'grayscale(1)');
   const sheet = await p.generateShotSheet();
   const strip = await p.generateShotSheet('strip');
+  const summary = document.getElementById('shotgallery-summary').textContent;
   await p.clearShots();
   const after = await p.listShots();
   document.getElementById('shotgallery-close').click();
-  return { count, stored: stored.length, filtered: filtered.startsWith('data:image/png'), sheet: sheet.startsWith('data:image/png'), sheetLen: sheet.length, strip: strip.startsWith('data:image/png'), stripLen: strip.length, after: after.length };
+  return { count, stored: stored.length, filtered: filtered.startsWith('data:image/png'), sheet: sheet.startsWith('data:image/png'), sheetLen: sheet.length, strip: strip.startsWith('data:image/png'), stripLen: strip.length, summary, after: after.length };
 })()`);
-check('截图相册：保存/列出/关闭', shotGallery.count >= 1 && shotGallery.stored >= 1 && shotGallery.filtered === true && shotGallery.sheet === true && shotGallery.sheetLen > 1000 && shotGallery.strip === true && shotGallery.stripLen > 1000 && shotGallery.after === 0, JSON.stringify(shotGallery));
+check('截图相册：保存/列出/关闭', shotGallery.count >= 1 && shotGallery.stored >= 1 && shotGallery.filtered === true && shotGallery.sheet === true && shotGallery.sheetLen > 1000 && shotGallery.strip === true && shotGallery.stripLen > 1000 && shotGallery.summary.includes('1 张截图') && shotGallery.after === 0, JSON.stringify(shotGallery));
 
 const searchTest = await evalJs(`(() => {
   const p = window.__wanxiang;

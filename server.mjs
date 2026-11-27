@@ -10,9 +10,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUB = path.join(__dirname, 'public');
-const PORT = parseInt(process.env.PORT || '8443', 10);
+const PORT = parseInt(process.env.PORT || '8643', 10);
 const HTTP_PORT = parseInt(process.env.HTTP_PORT || '8081', 10); // 明文入口：只有一张引导页
-// 端口选择：8443/8081 不在 Windows 排除端口段内；8080(TCP) 被本机常驻服务占用
+// 端口选择：8643/8081 不在 Windows 排除端口段内；8080(TCP) 被本机常驻服务占用
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',

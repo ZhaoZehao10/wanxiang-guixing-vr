@@ -13,12 +13,12 @@
 
 ```powershell
 node make-cert.mjs      # 首次：生成本地 CA + 服务器证书（cert/）
-node server.mjs         # HTTPS 8443 / HTTP 8081
+node server.mjs         # HTTPS 8643 / HTTP 8081
 ```
 
 ### 2. 头盔访问
 
-- 头显浏览器打开 `https://<电脑局域网IP>:8443/`
+- 头显浏览器打开 `https://<电脑局域网IP>:8643/`
 - 首次建议先装 CA：`http://<IP>:8081/ca.crt`（设置→安全→从存储安装），之后 HTTPS 零警告
 - 不急也可以：HTTPS 页面点「高级」→「仍要继续」
 
@@ -77,6 +77,7 @@ node server.mjs         # HTTPS 8443 / HTTP 8081
 - **限时模式**：每关按难度生成倒计时，超时弹出重试/返回菜单；限时榜独立记录最佳，并提供全模型限时总榜
 - **双人轮流**：同一头显两人轮流拼同一关（1 局 / 3 局 2 胜），自动比较用时与星级
 - **截图拼图**：相册最多 6 张导出为一张 PNG，支持网格 2×3 / 竖条 1×4 模板
+- **相册总览**：截图张数与存储占用
 - **截图相册**：IndexedDB 保存最近截图，支持滤镜（原图/黑白/暖色/冷色）、下载/删除/清空
 - **场景截图**：游戏中一键保存当前 3D 场景 PNG
 - **完成海报**：结算一键生成 PNG 海报（模型/星级/用时/日期）
@@ -115,7 +116,7 @@ node server.mjs         # HTTPS 8443 / HTTP 8081
 ## 🧪 测试
 
 ```powershell
-node tools\test-all.mjs          # 16 套件串行，自动拉起/关闭 8443，约 320 秒
+node tools\test-all.mjs          # 16 套件串行，自动拉起/关闭 8643，约 320 秒
 node tools\test-all.mjs --soak   # 追加 30 分钟稳定性浸泡（发版前）
 node tools\test-all.mjs --fast   # 跳过压力/性能（约 60 秒）
 ```
@@ -182,7 +183,7 @@ apk-puzzle/        APK 壳工程（AndroidManifest、res、src、keystore 配置
 tools/             calibrate-cuts / check-calibration / check-models /
                    make-offline-puzzle / make-icons-puzzle / build-apk-puzzle / test-all
 test/              16 套自动化测试与基线数据（另有可选 30 分钟 soak）
-server.mjs         HTTPS 静态服务器（8443 / 8081）
+server.mjs         HTTPS 静态服务器（8643 / 8081）
 cert/              本地证书（gitignore，make-cert.mjs 生成）
 ```
 
