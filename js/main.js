@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.70.0';
+const APP_VERSION = '1.71.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 17 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1288,6 +1288,11 @@ function buildStatsUI() {
   duelWrap.innerHTML = '<div style="color:#8b96b8;margin-bottom:6px">双人战绩</div>'
     + '<div style="font-size:18px;margin-bottom:6px">玩家1 <b style="color:#ffd24d">' + dw[0] + '</b> 胜 · 玩家2 <b style="color:#6cd0ff">' + dw[1] + '</b> 胜 · 平局 ' + dw[2] + '</div>'
     + (dh.length ? dh.slice(0, 5).map((d) => '<div style="color:#8b96b8;margin:2px 0">' + modelName(d.model, MODELS[d.model] ? MODELS[d.model].name : d.model) + ' · ' + d.n + ' 块 · ' + (d.winner === 'p1' ? '玩家1胜' : d.winner === 'p2' ? '玩家2胜' : '平局') + ' · ' + fmtDur(d.a) + ' / ' + fmtDur(d.b) + '</div>').join('') : '<div style="color:#8b96b8">还没有双人对局</div>');
+  const duelBtns = document.createElement('div');
+  duelBtns.style.cssText = 'margin-top:8px;display:flex;gap:8px';
+  const dp = document.createElement('button'); dp.className = 'win-btn'; dp.style.cssText = 'font-size:11px;padding:3px 8px'; dp.textContent = '导出战绩'; dp.onclick = (e) => { e.stopPropagation(); downloadDuelPoster(); };
+  const dc = document.createElement('button'); dc.className = 'win-btn'; dc.style.cssText = 'font-size:11px;padding:3px 8px;background:rgba(255,90,110,.2)'; dc.textContent = '清空战绩'; dc.onclick = (e) => { e.stopPropagation(); clearDuelHistory(); buildStatsUI(); };
+  duelBtns.appendChild(dp); duelBtns.appendChild(dc); duelWrap.appendChild(duelBtns);
   body.appendChild(duelWrap);
 
   const wh = weeklyHistory(12);
@@ -1538,6 +1543,30 @@ function generateModelPoster(key) {
 function downloadModelPoster() {
   try { const a = document.createElement('a'); a.href = generateModelPoster(modelDetailKey); a.download = 'WanxiangGuixing-model.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
 }
+
+function clearDuelHistory() { try { localStorage.removeItem(DUEL_HISTORY_KEY); } catch (e) { /* ignore */ } }
+function generateDuelPoster() {
+  const canvas = document.createElement('canvas'); canvas.width = 900; canvas.height = 1200;
+  const ctx = canvas.getContext('2d'); const g = ctx.createLinearGradient(0, 0, 900, 1200);
+  g.addColorStop(0, '#101020'); g.addColorStop(1, '#2a1630'); ctx.fillStyle = g; ctx.fillRect(0, 0, 900, 1200);
+  const dh = readDuelHistory(); const dw = [0, 0, 0]; for (const d of dh) dw[d.winner === 'p1' ? 0 : d.winner === 'p2' ? 1 : 2]++;
+  ctx.textAlign = 'center'; ctx.fillStyle = '#dfe7ff'; ctx.font = 'bold 46px "Microsoft YaHei", sans-serif'; ctx.fillText('万象归形 · 双人战绩', 450, 110);
+  ctx.font = '26px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#ffd24d'; ctx.fillText('玩家1  ' + dw[0] + ' 胜', 220, 240);
+  ctx.fillStyle = '#6cd0ff'; ctx.fillText('玩家2  ' + dw[1] + ' 胜', 680, 240);
+  ctx.fillStyle = '#8b96b8'; ctx.font = '22px "Microsoft YaHei", sans-serif'; ctx.fillText('平局 ' + dw[2] + ' 场 · 共 ' + dh.length + ' 场', 450, 300);
+  ctx.textAlign = 'left'; let y = 400;
+  for (const d of dh.slice(0, 8)) {
+    ctx.fillStyle = 'rgba(39,51,94,.8)'; ctx.fillRect(70, y - 32, 760, 64);
+    ctx.fillStyle = '#cfd9f5'; ctx.font = '20px "Microsoft YaHei", sans-serif';
+    ctx.fillText((MODELS[d.model] ? MODELS[d.model].name : d.model) + ' · ' + d.n + ' 块', 95, y + 4);
+    ctx.textAlign = 'right'; ctx.fillStyle = d.winner === 'p1' ? '#ffd24d' : d.winner === 'p2' ? '#6cd0ff' : '#8b96b8';
+    ctx.fillText((d.winner === 'p1' ? '玩家1胜' : d.winner === 'p2' ? '玩家2胜' : '平局') + ' · ' + fmtDur(d.a) + ' / ' + fmtDur(d.b), 805, y + 4);
+    ctx.textAlign = 'left'; y += 82;
+  }
+  ctx.textAlign = 'center'; ctx.fillStyle = '#6cd0ff'; ctx.font = '20px "Segoe UI", sans-serif'; ctx.fillText('Wanxiang Guixing · ' + new Date().toLocaleDateString('zh-CN'), 450, 1120);
+  return canvas.toDataURL('image/png');
+}
+function downloadDuelPoster() { try { const a = document.createElement('a'); a.href = generateDuelPoster(); a.download = 'WanxiangGuixing-duel.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ } }
 
 function generateStatsPoster() {
   const canvas = document.createElement('canvas');
@@ -3655,7 +3684,7 @@ window.__wanxiang = {
   getModelDetailText: () => ($('modeldetail-body') ? $('modeldetail-body').textContent : ''),
   getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getModelSearch: () => modelSearch, setModelSearch: (q) => { modelSearch = String(q || '').toLowerCase(); }, getModelCategory: () => modelCategory, setModelCategory: (c) => { modelCategory = c || 'all'; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
-  getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster, generateStatsPoster, downloadStatsPoster, generateModelPoster, downloadModelPoster,
+  getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster, generateStatsPoster, downloadStatsPoster, generateDuelPoster, downloadDuelPoster, clearDuelHistory, generateModelPoster, downloadModelPoster,
   getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, generateShotSheet, downloadShotSheet, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
