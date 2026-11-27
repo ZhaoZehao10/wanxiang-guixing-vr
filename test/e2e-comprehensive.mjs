@@ -162,6 +162,7 @@ const dataTest = await evalJs(`(() => {
   const p = window.__wanxiang;
   p.recordDaily(p.dayKey(), 'rocket', 2, 55);
   p.toggleFavorite('panda');
+  p.recordDuelHistory({ model: 'panda', n: 2, winner: 'p1', a: 10, b: 20, ts: Date.now() });
   const text = p.buildExportText();
   const bad = p.applyImportText('not json');
   p.openDataPanel('export');
@@ -170,8 +171,8 @@ const dataTest = await evalJs(`(() => {
   p.closeDataPanel();
   const good = p.applyImportText(text);
   const msg = document.getElementById('data-msg').textContent;
-  const hasChallenge = text.includes('"challenge"') && text.includes('"favorites"');
-  const restored = p.getDailyStats().days > 0 && p.getFavorites().includes('panda');
+  const hasChallenge = text.includes('"challenge"') && text.includes('"favorites"') && text.includes('"duelHistory"');
+  const restored = p.getDailyStats().days > 0 && p.getFavorites().includes('panda') && p.getDuelHistory().length > 0;
   p.toggleFavorite('panda');
   return { bad, good, panelVisible, nonEmpty, msg, textHasApp: text.includes('wanxiang-guixing'), hasChallenge, restored };
 })()`);
