@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.69.0';
+const APP_VERSION = '1.70.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 17 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1537,6 +1537,41 @@ function generateModelPoster(key) {
 }
 function downloadModelPoster() {
   try { const a = document.createElement('a'); a.href = generateModelPoster(modelDetailKey); a.download = 'WanxiangGuixing-model.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
+}
+
+function generateStatsPoster() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 900; canvas.height = 1200;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 900, 1200);
+  g.addColorStop(0, '#0b1020'); g.addColorStop(1, '#162440');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 900, 1200);
+  const prog = readProgress(); const sum = summarize(prog, totalLevels());
+  const ds = dailyStats(); const dh = readDuelHistory();
+  const dw = [0, 0, 0]; for (const d of dh) dw[d.winner === 'p1' ? 0 : d.winner === 'p2' ? 1 : 2]++;
+  ctx.textAlign = 'center'; ctx.fillStyle = '#dfe7ff'; ctx.font = 'bold 46px "Microsoft YaHei", sans-serif';
+  ctx.fillText('万象归形 · 统计报告', 450, 110);
+  ctx.font = '20px "Segoe UI", sans-serif'; ctx.fillStyle = '#8b96b8'; ctx.fillText(new Date().toLocaleDateString('zh-CN'), 450, 155);
+  const rows = [
+    ['总进度', sum.done + ' / ' + sum.total + ' 关'],
+    ['星星', sum.stars + ' / ' + sum.maxStars],
+    ['最佳总用时', fmtDur(sum.bestTotal || 0)],
+    ['每日挑战连续', (ds.streak || 0) + ' 天'],
+    ['双人战绩', '玩家1 ' + dw[0] + ' 胜 · 玩家2 ' + dw[1] + ' 胜 · 平局 ' + dw[2]],
+  ];
+  let y = 300;
+  for (const [label, value] of rows) {
+    ctx.fillStyle = 'rgba(39,51,94,.8)'; ctx.fillRect(80, y - 40, 740, 90);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#8b96b8'; ctx.font = '22px "Microsoft YaHei", sans-serif'; ctx.fillText(label, 110, y + 8);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24d'; ctx.font = 'bold 28px "Microsoft YaHei", sans-serif'; ctx.fillText(value, 790, y + 8);
+    y += 120;
+  }
+  ctx.textAlign = 'center'; ctx.fillStyle = '#6cd0ff'; ctx.font = '20px "Segoe UI", sans-serif';
+  ctx.fillText('Wanxiang Guixing · 32 模型 / 156 关', 450, 1120);
+  return canvas.toDataURL('image/png');
+}
+function downloadStatsPoster() {
+  try { const a = document.createElement('a'); a.href = generateStatsPoster(); a.download = 'WanxiangGuixing-stats.png'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500); } catch (e) { /* ignore */ }
 }
 
 function generateAchievementPoster() {
@@ -3494,6 +3529,9 @@ if ($('ach-category')) {
 if ($('achievements-close')) {
   $('achievements-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeAchievements(); });
 }
+if ($('stats-poster')) {
+  $('stats-poster').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); downloadStatsPoster(); });
+}
 if ($('stats-close')) {
   $('stats-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeStats(); });
 }
@@ -3617,7 +3655,7 @@ window.__wanxiang = {
   getModelDetailText: () => ($('modeldetail-body') ? $('modeldetail-body').textContent : ''),
   getModelFilter: () => modelFilter, setModelFilter: (f) => { modelFilter = f; }, getModelSearch: () => modelSearch, setModelSearch: (q) => { modelSearch = String(q || '').toLowerCase(); }, getModelCategory: () => modelCategory, setModelCategory: (c) => { modelCategory = c || 'all'; }, getPracticeRecords: () => readPracticeBest(), getRandomStats: () => readRandomStats(), resetAllProgress,
   getAchievementGalleryText: () => ($('achievements-body') ? $('achievements-body').textContent : ''), generateAchievementPoster, downloadAchievementPoster,
-  getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster, generateModelPoster, downloadModelPoster,
+  getYearReportText: () => yearReportText(), generateChallengePoster, downloadChallengePoster, generateStatsPoster, downloadStatsPoster, generateModelPoster, downloadModelPoster,
   getDailyStats: () => dailyStats(), saveShot, listShots, deleteShot, clearShots, applyShotFilter, generateShotSheet, downloadShotSheet, openShotGallery, closeShotGallery, captureScene: () => captureSceneDataURL(), downloadSnapshot, recordWeekly, weekKey, weeklyChallenge, getWeeklyBoard: () => weeklyBoardText(), recordMonthly, monthKey, monthlyChallenge, getMonthlyBoard: () => monthlyBoardText(), recordYearly, yearKey, yearlyChallenge, getYearlyBoard: () => yearlyBoardText(),
   getTimeAttackRecords: () => readTimeAttack(),
   getDailyBoard: () => dailyBoardText(), recordDaily,
