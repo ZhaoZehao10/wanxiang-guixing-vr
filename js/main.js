@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.71.0';
+const APP_VERSION = '1.72.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 17 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -3210,6 +3210,7 @@ function buildGalleryUI() {
     card.className = 'gallery-card';
     card.dataset.search = (def.name + ' ' + modelName(key, def.name) + ' ' + key).toLowerCase();
     card.dataset.cat = MODEL_CATEGORIES[key] || 'other';
+    card.dataset.key = key;
     card.style.cssText = 'border:1px solid rgba(140,165,255,.25);border-radius:12px;background:rgba(39,51,94,.35);padding:10px;text-align:center;cursor:pointer';
     card.innerHTML = `<div style="font-size:34px">${def.emoji}</div>`
       + `<b style="font-size:14px">${modelName(key, def.name)}</b>`
@@ -3223,10 +3224,12 @@ function buildGalleryUI() {
 function filterGalleryCards() {
   const q = ($('gallery-search') ? $('gallery-search').value : '').trim().toLowerCase();
   const cat = $('gallery-category') ? $('gallery-category').value : 'all';
+  const favOnly = $('gallery-fav') ? $('gallery-fav').checked : false;
   for (const card of document.querySelectorAll('#gallery-body .gallery-card')) {
     const okSearch = !q || (card.dataset.search || '').includes(q);
     const okCat = cat === 'all' || card.dataset.cat === cat;
-    card.style.display = okSearch && okCat ? '' : 'none';
+    const okFav = !favOnly || isFavorite(card.dataset.key);
+    card.style.display = okSearch && okCat && okFav ? '' : 'none';
   }
 }
 function openGallery() {
@@ -3234,6 +3237,7 @@ function openGallery() {
   if ($('gallery-search')) { $('gallery-search').value = ''; $('gallery-search').oninput = filterGalleryCards; }
   if ($('gallery-category')) { $('gallery-category').value = 'all'; $('gallery-category').onchange = filterGalleryCards; }
   if ($('gallery-sort')) { $('gallery-sort').value = 'default'; $('gallery-sort').onchange = () => { buildGalleryUI(); filterGalleryCards(); }; }
+  if ($('gallery-fav')) { $('gallery-fav').checked = false; $('gallery-fav').onchange = filterGalleryCards; }
   $('gallery').classList.remove('hidden');
 }
 function closeGallery() { $('gallery').classList.add('hidden'); }
