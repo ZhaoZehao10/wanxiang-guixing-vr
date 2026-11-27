@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.73.0';
+const APP_VERSION = '1.74.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 19 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -1853,6 +1853,11 @@ async function buildShotGallery() {
   if (!body) return;
   const shots = await listShots();
   body.innerHTML = '';
+  const summary = $('shotgallery-summary');
+  if (summary) {
+    const bytes = shots.reduce((s, x) => s + (x.data ? x.data.length : 0), 0);
+    summary.textContent = getLang() === 'en' ? shots.length + ' screenshots · ~' + (bytes / 1024 / 1024).toFixed(2) + ' MB' : '共 ' + shots.length + ' 张截图 · 约 ' + (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  }
   if (!shots.length) { body.textContent = getLang() === 'en' ? 'No screenshots yet. Use the camera button in game.' : '还没有截图，在游戏里点 HUD 的相机按钮即可保存。'; return; }
   for (const shot of shots.slice().reverse()) {
     const card = document.createElement('div');
