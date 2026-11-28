@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.75.0';
+const APP_VERSION = '1.76.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 19 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -2948,7 +2948,7 @@ function buildExportText() {
     tuning: state.tuning,
     challenge: {
       daily: readDaily(), weekly: readWeekly(), monthly: readMonthly(), yearly: readYearly(),
-      timeattack: readTimeAttack(), practice: readPracticeBest(), randomStats: readRandomStats(), favorites: readFavorites(), duelHistory: readDuelHistory(),
+      timeattack: readTimeAttack(), practice: readPracticeBest(), randomStats: readRandomStats(), favorites: readFavorites(), duelHistory: readDuelHistory(), missions: readMissions(), missionHistory: readMissionHistory(),
     },
   }, { version: APP_VERSION }), null, 2);
 }
@@ -3014,7 +3014,7 @@ function applyImportText(text) {
     saveTuning(state.tuning);
   }
   const ch = r.data.challenge || {};
-  for (const [key, storage] of [['daily', DAILY_KEY], ['weekly', WEEKLY_KEY], ['monthly', MONTHLY_KEY], ['yearly', YEARLY_KEY], ['timeattack', TIMEATTACK_KEY], ['practice', PRACTICE_BEST_KEY], ['randomStats', RANDOM_STATS_KEY], ['favorites', FAVORITES_KEY], ['duelHistory', DUEL_HISTORY_KEY]]) {
+  for (const [key, storage] of [['daily', DAILY_KEY], ['weekly', WEEKLY_KEY], ['monthly', MONTHLY_KEY], ['yearly', YEARLY_KEY], ['timeattack', TIMEATTACK_KEY], ['practice', PRACTICE_BEST_KEY], ['randomStats', RANDOM_STATS_KEY], ['favorites', FAVORITES_KEY], ['duelHistory', DUEL_HISTORY_KEY], ['missions', MISSIONS_KEY], ['missionHistory', MISSION_HISTORY_KEY]]) {
     if (ch[key] && typeof ch[key] === 'object') {
       try { localStorage.setItem(storage, JSON.stringify(ch[key])); } catch (e) { /* ignore */ }
     }
