@@ -35,10 +35,20 @@ const CHANGELOG = [
 function changelogText() {
   return CHANGELOG.map((x) => 'v' + x.v + '\n' + x.notes.map((n) => '  · ' + n).join('\n')).join('\n\n');
 }
+function openAbout() {
+  const body = $('about-body');
+  if (!body) return;
+  body.textContent = '万象归形 · 3D / WebXR 拼图\n版本：v' + APP_VERSION + '\n构建：' + BUILD_INFO
+    + '\n\n操作：拖动旋转视角，滚轮/双指缩放，拖动拼图块到目标位置；点击 HUD 相机保存截图，VR 头显可直接进入沉浸模式。'
+    + '\n\n项目：https://github.com/ZhaoZehao10/wanxiang-guixing-vr';
+  $('about').classList.remove('hidden');
+}
+function closeAbout() { $('about').classList.add('hidden'); }
+
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.77.0';
+const APP_VERSION = '1.78.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 19 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -2007,6 +2017,12 @@ function showDifficulty() {
   logBtn.innerHTML = '<b style="font-size:14px">📜 ' + (getLang() === 'en' ? 'Changelog' : '更新日志') + '</b>';
   logBtn.onclick = () => { sfx.ui(); openChangelog(); };
   card.appendChild(logBtn);
+  const aboutBtn = document.createElement('button');
+  aboutBtn.className = 'diff-btn';
+  aboutBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
+  aboutBtn.innerHTML = '<b style="font-size:14px">ℹ️ ' + (getLang() === 'en' ? 'About' : '关于') + '</b>';
+  aboutBtn.onclick = () => { sfx.ui(); openAbout(); };
+  card.appendChild(aboutBtn);
   const missionBtn = document.createElement('button');
   missionBtn.className = 'diff-btn';
   missionBtn.style.cssText = 'width:100%;margin-bottom:10px;padding:8px 12px';
@@ -3557,6 +3573,9 @@ if ($('snap-btn')) {
 if ($('missions-close')) {
   $('missions-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeMissions(); });
 }
+if ($('about-close')) {
+  $('about-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeAbout(); });
+}
 if ($('changelog-close')) {
   $('changelog-close').addEventListener('click', (e) => { e.stopPropagation(); sfx.ui(); closeChangelog(); });
 }
@@ -3706,7 +3725,7 @@ window.__wanxiang = {
   getBoardText: () => ($('board-body') ? $('board-body').textContent : ''),
   startGameUI, openTutorial, closeTutorial,
   resetTutorial: () => { try { localStorage.removeItem(TUTORIAL_KEY); } catch (e) { /* ignore */ } },
-  getTutorialVisible: () => ($('tutorial') ? !$('tutorial').classList.contains('hidden') : false),
+  getTutorialVisible: () => ($('tutorial') ? !$('tutorial').classList.contains('hidden') : false), openAbout, closeAbout, getAboutText: () => ($('about-body') ? $('about-body').textContent : ''),
   setTheme: (k) => applyTheme(k),
   getThemeInfo: () => ({ theme: state.theme, bg: scene.background.getHexString(), fog: scene.fog.color.getHexString() }),
   setPractice: (on) => { state.practice = !!on; savePractice(state.practice); },
