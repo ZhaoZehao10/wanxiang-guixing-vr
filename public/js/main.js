@@ -38,7 +38,7 @@ function changelogText() {
 function openChangelog() { $('changelog-body').textContent = changelogText(); $('changelog').classList.remove('hidden'); }
 function closeChangelog() { $('changelog').classList.add('hidden'); }
 
-const APP_VERSION = '1.76.0';
+const APP_VERSION = '1.77.0';
 const BUILD_INFO = '32 模型 · 156 关 · 7 配色 · 19 主题';
 
 // 各模型实际支持的难度（8 块为可选档：圣诞树无解，其余 11 个模型支持）
@@ -2826,7 +2826,7 @@ const SETTING_ROWS = [
 function resetAllProgress() {
   saveProgress(localStorage, {});
   saveAchievements(localStorage, []);
-  for (const key of [DAILY_KEY, WEEKLY_KEY, MONTHLY_KEY, YEARLY_KEY, TIMEATTACK_KEY, PRACTICE_BEST_KEY, RANDOM_STATS_KEY, MISSIONS_KEY]) {
+  for (const key of [DAILY_KEY, WEEKLY_KEY, MONTHLY_KEY, YEARLY_KEY, TIMEATTACK_KEY, PRACTICE_BEST_KEY, RANDOM_STATS_KEY, MISSIONS_KEY, MISSION_HISTORY_KEY, FAVORITES_KEY, DUEL_HISTORY_KEY, RECENT_KEY]) {
     try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
   }
   buildSettingsUI();
